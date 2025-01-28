@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { auth } from "@/auth";
-import UserMenu from "./UserMenu";
+import HeaderUserSection from "./HeaderUserSection";
 
-export default async function Header() {
-  const session = await auth();
-
+export default function Header() {
   return (
     <header className="border-b border-primary/10 dark:border-accent-dark/10 bg-background dark:bg-background-dark shadow-sm">
       <div className="container mx-auto px-4">
@@ -37,19 +34,7 @@ export default async function Header() {
             </Link>
           </nav>
 
-          <div className="flex items-center space-x-4">
-            {session?.user ? (
-              <UserMenu />
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="rounded-md bg-primary hover:bg-primary/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90
-                px-4 py-2 text-white transition-colors"
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
+          <HeaderUserSection />
         </div>
       </div>
     </header>

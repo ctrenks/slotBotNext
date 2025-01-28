@@ -10,7 +10,8 @@ export default function Footer() {
               About Us
             </h3>
             <p className="text-foreground/70 dark:text-foreground-dark/70">
-              Beat Online SLots is an AI bot to give you information, there is NO Gambling here, informational only data.
+              Beat Online Slots is an AI bot to give you information, there is
+              NO Gambling here, informational only data.
             </p>
           </div>
 
@@ -88,7 +89,8 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-primary/10 dark:border-accent-dark/10 text-center text-foreground/60 dark:text-foreground-dark/60">
           <p>
-            © {new Date().getFullYear()} Beat Online Slots. All rights reserved.
+            © {new Date().getFullYear()} {process.env.NEXT_PUBLIC_SITE_NAME}.
+            All rights reserved.
           </p>
         </div>
       </div>

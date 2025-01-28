@@ -8,6 +8,7 @@ import Link from "next/link";
 export default function UserMenu() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function UserMenu() {
   if (status === "loading" || !session?.user) return null;
 
   const user = session.user;
+  console.log("Session user data:", user); // Debug session data
 
   return (
     <div className="relative" id="user-menu">
@@ -33,14 +35,15 @@ export default function UserMenu() {
         className="flex items-center space-x-2 text-foreground dark:text-foreground-dark hover:text-primary dark:hover:text-accent-dark transition-colors"
       >
         <div className="w-8 h-8 rounded-full overflow-hidden relative">
-          {user.image ? (
+          {user.image && !imageError ? (
             <Image
               src={user.image}
               alt={user.name || "User"}
-              fill
-              className="object-cover"
+              width={32}
+              height={32}
+              className="object-cover rounded-full"
               priority
-              key={user.image} // Force re-render when image changes
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">

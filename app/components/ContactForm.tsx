@@ -58,7 +58,7 @@ export function ContactForm() {
   return (
     <div className="max-w-md mx-auto my-8 p-6 bg-background dark:bg-background-dark rounded-lg shadow-lg border border-gray-200 dark:border-gray-800">
       <h1 className="text-3xl font-bold text-primary dark:text-accent-dark mb-6 text-center">
-        Contact AFC Media
+        Contact {process.env.NEXT_PUBLIC_SITE_NAME}
       </h1>
       <form id="contactForm" action={handleSubmit}>
         <div className="mb-4">

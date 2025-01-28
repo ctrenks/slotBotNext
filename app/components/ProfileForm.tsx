@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import { User } from "@prisma/client";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface ProfileFormProps {
   user: User;
@@ -11,6 +12,7 @@ interface ProfileFormProps {
 
 const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
   const { update: updateSession } = useSession();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(!user.name);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +49,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
       await updateSession({
         image: blob.url,
       });
+
+      // Force a router refresh to update all components
+      router.refresh();
     } catch (error) {
       console.error("Error uploading image:", error);
     } finally {
@@ -71,6 +76,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
           name: formData.name,
           image: formData.image,
         });
+
+        // Force a router refresh to update all components
+        router.refresh();
         setIsEditing(false);
       }
     } catch (error) {

@@ -32,6 +32,21 @@ export const {
     strategy: "jwt",
   },
   callbacks: {
+    async session({ session }) {
+      // Get the user from database
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email! },
+        select: { image: true, name: true },
+      });
+
+      // Update session with database values
+      if (user) {
+        session.user.image = user.image;
+        session.user.name = user.name;
+      }
+
+      return session;
+    },
     authorized({ request: { nextUrl, method }, auth }) {
       // Handle OPTIONS requests first
       if (method === "OPTIONS") {
