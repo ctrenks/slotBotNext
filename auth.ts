@@ -4,6 +4,9 @@ import { prisma } from "@/prisma";
 import GoogleProvider from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 
+// List of routes that require authentication
+const protectedRoutes = ["/dashboard", "/profile", "/settings", "/myprofile"];
+
 export const {
   handlers: { GET, POST },
   auth,
@@ -32,24 +35,21 @@ export const {
     authorized({ request: { nextUrl }, auth }) {
       const isLoggedIn = !!auth?.user;
       const isAuthPage = nextUrl.pathname.startsWith("/auth");
-      const isVerifyRequest = nextUrl.pathname === "/auth/verify-request";
-      const isContactPage = nextUrl.pathname === "/contact";
+      const isProtectedRoute = protectedRoutes.some((route) =>
+        nextUrl.pathname.startsWith(route)
+      );
 
-      // Allow access to verify-request and contact pages
-      if (isVerifyRequest || isContactPage) {
-        return true;
-      }
-
-      // Redirect unauthenticated users to login page
-      if (!isLoggedIn && !isAuthPage) {
-        return false;
-      }
-
-      // If logged in, redirect away from auth pages
+      // Redirect from auth pages if logged in
       if (isLoggedIn && isAuthPage) {
         return Response.redirect(new URL("/", nextUrl));
       }
 
+      // Require auth only for protected routes
+      if (isProtectedRoute) {
+        return isLoggedIn;
+      }
+
+      // All other routes are public
       return true;
     },
   },

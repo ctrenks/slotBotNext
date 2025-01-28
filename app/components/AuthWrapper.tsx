@@ -4,7 +4,8 @@ import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const publicPaths = ["/auth/login", "/"];
+// Only these routes require authentication
+const restrictedRoutes = ["/myprofile", "/dashboard"];
 
 export default function AuthWrapper({
   children,
@@ -18,9 +19,11 @@ export default function AuthWrapper({
   useEffect(() => {
     if (status === "loading") return;
 
-    const isPublicPath = publicPaths.includes(pathname);
+    const isRestrictedRoute = restrictedRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
 
-    if (!session && !isPublicPath) {
+    if (!session && isRestrictedRoute) {
       router.push("/auth/login");
     }
   }, [session, status, pathname, router]);
