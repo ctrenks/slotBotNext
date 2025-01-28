@@ -7,17 +7,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 model BotUser {
   id        Int      @id @default(autoincrement())
   userId    BigInt   @unique // Telegram user ID
-  username  String?  // Optional because not all users have usernames
+  username  String? // Optional because not all users have usernames
   firstName String
-  lastName  String?  // Optional because not all users have last names
+  lastName  String? // Optional because not all users have last names
   country   String
   paid      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  refferal  String?
 }
 
 model User {
@@ -174,8 +174,9 @@ model casino_p_casinos {
   meta                      casino_p_meta_casinos[]
   casino_geo                casino_p_restrictions[]
   softwares                 casino_p_software_link[]
-  unifiedBonuses  UnifiedBonus[]
+  unifiedBonuses            UnifiedBonus[]
   timestamp                 Int?                            @default(0)
+  ppc_links                 ppc_links[]
 
   @@index(fields: [id, nodeposit, freespins, deposit, bonus_percent, mobile, livegames, hot, new, approved, rogue])
 }
@@ -508,51 +509,52 @@ model casino_p_lcb_countries_codes {
   countrycode String
   countryname String
 }
+
 model UnifiedBonus {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Casino Information
-  casinoId      Int?
-  casinoName    String
+  casinoId        Int?
+  casinoName      String
   casinoCleanName String?
-  casinoButton  String?
-  casino        casino_p_casinos? @relation(fields: [casinoId], references: [id])
+  casinoButton    String?
+  casino          casino_p_casinos? @relation(fields: [casinoId], references: [id])
 
   // Bonus Information
-  title         String
-  code          String?
-  validUntil    String?
-  publishDate   String?
+  title       String
+  code        String?
+  validUntil  String?
+  publishDate String?
 
   // Bonus Type and Details
-  bonusType     String  // FREESPINS, NODEPOSIT, DEPOSIT, DEPOSIT_FREESPINS, TOURNAMENT
-  freespins     Int?    // Number of free spins if applicable
-  depositAmount Float?  // Required deposit amount if applicable
-  bonusAmount   Float?  // Bonus amount for deposit bonuses
-  percentage    Int?    // Bonus percentage for deposit matches
+  bonusType       String // FREESPINS, NODEPOSIT, DEPOSIT, DEPOSIT_FREESPINS, TOURNAMENT
+  freespins       Int? // Number of free spins if applicable
+  depositAmount   Float? // Required deposit amount if applicable
+  bonusAmount     Float? // Bonus amount for deposit bonuses
+  percentage      Int? // Bonus percentage for deposit matches
   noDepositAmount Float? // Amount for no deposit bonuses
-  maxBet       Float?   // Maximum bet allowed with bonus
-  setBet       Float?   // Set bet amount for free spins
+  maxBet          Float? // Maximum bet allowed with bonus
+  setBet          Float? // Set bet amount for free spins
   previousDeposit Boolean? // Whether a previous deposit is required
 
   // Tournament Specific Fields
-  isTournament      Boolean  @default(false)
-  tournamentType    String?  // SLOTS, POKER, BLACKJACK, etc.
-  startDate         DateTime?
-  endDate           DateTime?
-  prizePool         Decimal? @db.Decimal(10, 2)
-  entryFee         Decimal? @db.Decimal(10, 2)
-  currentPlayers   Int?     @default(0)
-  tournamentStatus String?  // UPCOMING, ACTIVE, COMPLETED, CANCELLED
+  isTournament     Boolean   @default(false)
+  tournamentType   String? // SLOTS, POKER, BLACKJACK, etc.
+  startDate        DateTime?
+  endDate          DateTime?
+  prizePool        Decimal?  @db.Decimal(10, 2)
+  entryFee         Decimal?  @db.Decimal(10, 2)
+  currentPlayers   Int?      @default(0)
+  tournamentStatus String? // UPCOMING, ACTIVE, COMPLETED, CANCELLED
 
   // Terms and Conditions
-  wagering    String?
-  minDeposit  String?
-  maxCashOut  String?
-  players     String?
-  notes       String?  @db.Text
+  wagering   String?
+  minDeposit String?
+  maxCashOut String?
+  players    String?
+  notes      String? @db.Text
 
   // Valid Games/Slots Array (stored as JSON)
   validGames Json? // Array of {name, image, cleanName}
@@ -563,8 +565,8 @@ model UnifiedBonus {
   dislikes Int @default(0)
 
   // Source tracking
-  importedBonusId String?  @unique // Reference to original imported bonus if this was imported
-  sourceType      String   // MANUAL, IMPORTED, API
+  importedBonusId String? @unique // Reference to original imported bonus if this was imported
+  sourceType      String // MANUAL, IMPORTED, API
 
   @@index([casinoId])
   @@index([bonusType])
@@ -572,4 +574,16 @@ model UnifiedBonus {
   @@index([tournamentStatus])
   @@index([sourceType])
   @@index([validUntil])
+}
+
+model ppc_links {
+  id        Int              @id @default(autoincrement())
+  casino_id Int
+  geo       String           @db.Char(2) // 2 letter country code
+  url       String
+  casino    casino_p_casinos @relation(fields: [casino_id], references: [id], onDelete: Cascade)
+
+  @@unique([casino_id, geo], name: "casino_id_geo") // Named composite unique constraint
+  @@index([casino_id])
+  @@index([geo])
 }
