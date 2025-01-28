@@ -8,12 +8,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+export const config = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -48,4 +43,7 @@ export const {
   pages: {
     signIn: "/auth/login",
   },
-});
+};
+
+export const { auth, signIn, signOut } = NextAuth(config);
+export const { GET, POST } = NextAuth(config).handlers;
