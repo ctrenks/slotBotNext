@@ -38,4 +38,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   debug: process.env.NODE_ENV === "development",
 });
 
-export const { GET, POST } = handlers;
+// Export the handlers with CORS config
+export const { GET, POST, OPTIONS } = {
+  ...handlers,
+  OPTIONS: async function options(req: Request) {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  },
+};
