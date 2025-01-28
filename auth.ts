@@ -32,7 +32,12 @@ export const {
     strategy: "jwt",
   },
   callbacks: {
-    authorized({ request: { nextUrl }, auth }) {
+    authorized({ request: { nextUrl, method }, auth }) {
+      // Handle OPTIONS requests first
+      if (method === "OPTIONS") {
+        return true;
+      }
+
       const isLoggedIn = !!auth?.user;
       const isAuthPage = nextUrl.pathname.startsWith("/auth");
       const isProtectedRoute = protectedRoutes.some((route) =>
@@ -54,15 +59,3 @@ export const {
     },
   },
 });
-
-// Handle OPTIONS requests
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
-  });
-}

@@ -47,7 +47,7 @@ export async function submitContactForm(formData: FormData) {
 
   try {
     await resend.emails.send({
-      from: "AFC Media <no-reply@allfreechips.com>",
+      from: process.env.EMAIL_FROM!,
       to: ["support@allfreechips.com"],
       subject: "New Contact Form Submission",
       html: `
