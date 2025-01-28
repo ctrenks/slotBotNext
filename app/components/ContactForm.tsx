@@ -18,6 +18,7 @@ declare global {
 export function ContactForm() {
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -32,6 +33,7 @@ export function ContactForm() {
 
   const handleSubmit = async (formData: FormData) => {
     try {
+      setIsSubmitting(true);
       const token = await window.grecaptcha.execute(
         process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!,
         { action: "submit" }
@@ -48,75 +50,78 @@ export function ContactForm() {
       console.error("reCAPTCHA or form submission error:", error);
       setMessage("An error occurred. Please try again later.");
       setIsSuccess(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto my-8 p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-size-3xl text-blue-700 text-center">
-        Contact AFC Media llc
+    <div className="max-w-md mx-auto my-8 p-6 bg-background dark:bg-background-dark rounded-lg shadow-lg border border-gray-200 dark:border-gray-800">
+      <h1 className="text-3xl font-bold text-primary dark:text-accent-dark mb-6 text-center">
+        Contact AFC Media
       </h1>
       <form id="contactForm" action={handleSubmit}>
         <div className="mb-4">
           <label
             htmlFor="name"
-            className="block text-gray-700 text-sm font-bold mb-2"
+            className="block text-foreground dark:text-foreground-dark text-sm font-medium mb-2"
           >
-            Name:
+            Name
           </label>
           <input
             type="text"
             id="name"
             name="name"
             required
-            className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full px-4 py-2 bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
           />
         </div>
         <div className="mb-4">
           <label
             htmlFor="email"
-            className="block text-gray-700 text-sm font-bold mb-2"
+            className="block text-foreground dark:text-foreground-dark text-sm font-medium mb-2"
           >
-            Email:
+            Email
           </label>
           <input
             type="email"
             id="email"
             name="email"
             required
-            className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full px-4 py-2 bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
           />
         </div>
         <div className="mb-6">
           <label
             htmlFor="message"
-            className="block text-gray-700 text-sm font-bold mb-2"
+            className="block text-foreground dark:text-foreground-dark text-sm font-medium mb-2"
           >
-            Message:
+            Message
           </label>
           <textarea
             id="message"
             name="message"
             required
-            className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500 h-32 resize-none"
+            className="w-full px-4 py-2 bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200 h-32 resize-none"
           ></textarea>
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300"
+          disabled={isSubmitting}
+          className="w-full bg-accent hover:bg-accent/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200 disabled:opacity-50"
         >
-          Send Message
+          {isSubmitting ? "Sending..." : "Send Message"}
         </button>
         {message && (
-          <p
-            className={`mt-4 p-2 rounded-lg ${
+          <div
+            className={`mt-4 p-3 rounded-lg ${
               isSuccess
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
+                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
             }`}
           >
             {message}
-          </p>
+          </div>
         )}
       </form>
     </div>
