@@ -3,12 +3,14 @@
 import React, { useState, useRef } from "react";
 import { User } from "@prisma/client";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 interface ProfileFormProps {
   user: User;
 }
 
 const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
+  const { update: updateSession } = useSession();
   const [isEditing, setIsEditing] = useState(!user.name);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
 
       const blob = await response.json();
       setFormData((prev) => ({ ...prev, image: blob.url }));
+
+      // Update session with new image
+      await updateSession({
+        image: blob.url,
+      });
     } catch (error) {
       console.error("Error uploading image:", error);
     } finally {
@@ -59,6 +66,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
       });
 
       if (response.ok) {
+        // Update session with new profile data
+        await updateSession({
+          name: formData.name,
+          image: formData.image,
+        });
         setIsEditing(false);
       }
     } catch (error) {
@@ -78,7 +90,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
               className="object-cover"
             />
           </div>
-          <div>
+          <div className="text-foreground dark:text-foreground-dark">
             <h2 className="text-xl font-semibold">Profile Information</h2>
             <p>
               <strong>Name:</strong> {formData.name}
@@ -94,7 +106,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
             </p>
           </div>
         </div>
-        <button onClick={() => setIsEditing(true)} className="emerald-button">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="bg-accent hover:bg-accent/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
+        >
           Edit Profile
         </button>
       </div>
@@ -116,7 +131,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 bg-emerald-500 text-white p-1 rounded-full hover:bg-emerald-600 transition-colors"
+            className="absolute bottom-0 right-0 bg-accent hover:bg-accent/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90 text-white p-1 rounded-full transition-colors"
             disabled={uploading}
           >
             {uploading ? (
@@ -149,7 +164,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground dark:text-foreground-dark"
             >
               Name *
             </label>
@@ -157,7 +172,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
               type="text"
               id="name"
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 block w-full rounded-lg bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -168,14 +183,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
           <div>
             <label
               htmlFor="birthday"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground dark:text-foreground-dark"
             >
               Birthday
             </label>
             <input
               type="date"
               id="birthday"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 block w-full rounded-lg bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
               value={formData.birthday}
               onChange={(e) =>
                 setFormData({ ...formData, birthday: e.target.value })
@@ -186,14 +201,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
           <div>
             <label
               htmlFor="location"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground dark:text-foreground-dark"
             >
               Location
             </label>
             <input
               type="text"
               id="location"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1 block w-full rounded-lg bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
               value={formData.location}
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
@@ -206,14 +221,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
       <div>
         <label
           htmlFor="bio"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-foreground dark:text-foreground-dark"
         >
           Bio
         </label>
         <textarea
           id="bio"
           rows={6}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="mt-1 block w-full rounded-lg bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
           value={formData.bio}
           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
           placeholder="Tell us about yourself..."
@@ -221,14 +236,17 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user }) => {
       </div>
 
       <div className="flex space-x-4 mt-6">
-        <button type="submit" className="emerald-button">
+        <button
+          type="submit"
+          className="bg-accent hover:bg-accent/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90 text-white font-semibold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
+        >
           Save Profile
         </button>
         {user.name && (
           <button
             type="button"
             onClick={() => setIsEditing(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-foreground dark:text-foreground-dark bg-white dark:bg-primary-dark hover:bg-gray-50 dark:hover:bg-primary-dark/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200"
           >
             Cancel
           </button>

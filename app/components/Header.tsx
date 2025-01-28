@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import UserMenu from "./UserMenu";
-import type { User } from "next-auth";
 
 export default async function Header() {
   const session = await auth();
@@ -40,15 +39,7 @@ export default async function Header() {
 
           <div className="flex items-center space-x-4">
             {session?.user ? (
-              <UserMenu
-                user={
-                  session.user as User & {
-                    email?: string | null;
-                    name?: string | null;
-                    image?: string | null;
-                  }
-                }
-              />
+              <UserMenu />
             ) : (
               <Link
                 href="/auth/signin"
