@@ -1,12 +1,11 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function SignInButtons() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -17,8 +16,6 @@ export default function SignInButtons() {
     setError(null);
 
     try {
-      const callbackUrl = searchParams?.get("callbackUrl") || "/";
-
       const result = await signIn("resend", {
         email,
         redirect: false,
@@ -29,7 +26,6 @@ export default function SignInButtons() {
       if (result?.error) {
         setError(result.error);
       } else if (result?.ok) {
-        // Force replace instead of push to prevent back navigation
         router.replace("/auth/verify-request");
       }
     } catch (e) {

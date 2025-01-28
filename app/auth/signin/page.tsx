@@ -5,7 +5,7 @@ import SignInButtons from "./SignInButtons";
 export default async function SignInPage() {
   const session = await auth();
 
-  if (session?.user) {
+  if (session) {
     redirect("/");
   }
 
