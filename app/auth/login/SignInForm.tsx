@@ -30,7 +30,10 @@ export default function SignInForm() {
     <div className="space-y-4">
       <form onSubmit={handleEmailSignIn} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-foreground dark:text-foreground-dark"
+          >
             Email
           </label>
           <input
@@ -40,13 +43,17 @@ export default function SignInForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border-primary/20 bg-background dark:bg-background-dark px-3 py-2 shadow-sm
+            focus:border-accent dark:focus:border-accent-dark focus:outline-none focus:ring-1 focus:ring-accent dark:focus:ring-accent-dark
+            text-foreground dark:text-foreground-dark"
           />
         </div>
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          className="w-full rounded-md bg-primary hover:bg-primary/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90
+          px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2
+          disabled:opacity-50 transition-colors"
         >
           {isLoading ? "Sending link..." : "Continue with Email"}
         </button>
@@ -54,17 +61,21 @@ export default function SignInForm() {
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <span className="w-full border-t border-primary/20 dark:border-accent-dark/20" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-gray-500">Or continue with</span>
+          <span className="bg-background dark:bg-background-dark px-2 text-foreground/60 dark:text-foreground-dark/60">
+            Or continue with
+          </span>
         </div>
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="w-full rounded-md border border-primary/20 dark:border-accent-dark/20 bg-background dark:bg-background-dark
+        px-4 py-2 text-foreground dark:text-foreground-dark hover:bg-primary/5 dark:hover:bg-accent-dark/10
+        focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2 transition-colors"
       >
         <div className="flex items-center justify-center">
           <svg

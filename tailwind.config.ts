@@ -9,18 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: {
-          light: "#353535", // light mode background
-          dark: "#1a1a1a", // dark mode background
-        },
-        text: {
-          light: "#353535", // light mode text
-          dark: "#ffffff", // dark mode text
-        },
-        // You can add more color variations as needed
         primary: {
-          light: "#3b82f6", // light mode primary color
-          dark: "#60a5fa", // dark mode primary color
+          DEFAULT: "#1E3A8A", // dark blue
+          dark: "#0F172A",
+        },
+        accent: {
+          DEFAULT: "#3B82F6", // bright blue
+          dark: "#4ADE80", // neon green
+        },
+        background: {
+          DEFAULT: "#F8FAFC", // light chrome
+          dark: "#000000", // pure black
+        },
+        foreground: {
+          DEFAULT: "#1E293B", // dark chrome text
+          dark: "#4ADE80", // neon green text
         },
       },
     },
