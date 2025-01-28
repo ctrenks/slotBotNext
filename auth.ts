@@ -4,7 +4,12 @@ import { prisma } from "@/prisma";
 import GoogleProvider from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -25,4 +30,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-export const { GET, POST } = handlers;
+// Handle OPTIONS requests
+export async function OPTIONS(request: Request) {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
+export { GET, POST };
