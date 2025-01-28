@@ -1,22 +1,29 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
-export interface AuthWrapperProps {
+const publicPaths = ["/auth/login", "/"];
+
+export default function AuthWrapper({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function AuthWrapper({ children }: AuthWrapperProps) {
+}) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated" && session?.user && !session.user.name) {
-      router.push("/myprofile");
+    if (status === "loading") return;
+
+    const isPublicPath = publicPaths.includes(pathname);
+
+    if (!session && !isPublicPath) {
+      router.push("/auth/login");
     }
-  }, [session, status, router]);
+  }, [session, status, pathname, router]);
 
   return <>{children}</>;
 }

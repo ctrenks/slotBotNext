@@ -1,15 +1,98 @@
-import React from "react";
+import Link from "next/link";
 
-const Footer: React.FC = () => {
+export default function Footer() {
   return (
-    <footer className="bg-gradient-to-r from-[#f9d90a] via-[#f4c003] to-[#dc7d11] text-gray-900 p-4 mt-auto">
-      <div className="max-w-[1280px] mx-auto text-center">
-        <p>
-          &copy; {new Date().getFullYear()} AFC MEDIA LLC. All rights reserved.
-        </p>
+    <footer className="border-t border-primary/10 dark:border-accent-dark/10 bg-background dark:bg-background-dark">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <h3 className="text-lg font-semibold text-primary dark:text-accent-dark mb-4">
+              About Us
+            </h3>
+            <p className="text-foreground/70 dark:text-foreground-dark/70">
+              Your trusted guide to online slots and casinos. We help you make
+              informed decisions about online gambling.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-primary dark:text-accent-dark mb-4">
+              Quick Links
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/casinos"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  Casinos
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/slots"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  Slots
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/software"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  Software
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-primary dark:text-accent-dark mb-4">
+              Legal
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/privacy"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-primary dark:text-accent-dark mb-4">
+              Contact
+            </h3>
+            <p className="text-foreground/70 dark:text-foreground-dark/70">
+              Have questions? Get in touch with us.
+            </p>
+            <Link
+              href="/contact"
+              className="inline-block mt-2 text-primary dark:text-accent-dark hover:underline"
+            >
+              Contact Us
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-primary/10 dark:border-accent-dark/10 text-center text-foreground/60 dark:text-foreground-dark/60">
+          <p>
+            © {new Date().getFullYear()} Beat Online Slots. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

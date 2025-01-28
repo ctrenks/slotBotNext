@@ -2,8 +2,17 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import type { User } from "next-auth";
 
-export default function UserMenu({ user }: { user: any }) {
+interface UserMenuProps {
+  user: User & {
+    email?: string | null;
+    name?: string | null;
+    image?: string | null;
+  };
+}
+
+export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
