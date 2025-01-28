@@ -7,9 +7,7 @@ import Resend from "next-auth/providers/resend";
 import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
-
-
-export const config = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -17,12 +15,14 @@ export const config = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     Resend({
-      from: process.env.EMAIL_FROM!,
       apiKey: process.env.RESEND_API_KEY!,
+      from: process.env.EMAIL_FROM!,
     }),
   ],
   pages: {
     signIn: "/auth/login",
+    error: "/auth/error",
+    verifyRequest: "/auth/verify-request",
   },
   session: {
     strategy: "jwt" as const,
@@ -35,7 +35,7 @@ export const config = {
       return session;
     },
   },
-};
+  debug: process.env.NODE_ENV === "development",
+});
 
-export const { auth, signIn, signOut } = NextAuth(config);
-export const { GET, POST } = NextAuth(config).handlers;
+export const { GET, POST } = handlers;
