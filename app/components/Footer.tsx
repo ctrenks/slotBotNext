@@ -10,8 +10,7 @@ export default function Footer() {
               About Us
             </h3>
             <p className="text-foreground/70 dark:text-foreground-dark/70">
-              Your trusted guide to online slots and casinos. We help you make
-              informed decisions about online gambling.
+              Beat Online SLots is an AI bot to give you information, there is NO Gambling here, informational only data.
             </p>
           </div>
 
