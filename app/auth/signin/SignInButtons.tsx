@@ -1,70 +1,80 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-export default function SignInForm() {
+export default function SignInButtons() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+
     try {
+      const callbackUrl = searchParams?.get("callbackUrl") || "/";
+
       const result = await signIn("resend", {
         email,
-        callbackUrl: "/",
         redirect: false,
       });
 
       console.log("Sign in result:", result);
 
       if (result?.error) {
-        console.error("Sign in error:", result.error);
-      } else {
-        window.location.href = "/auth/verify-request";
+        setError(result.error);
+      } else if (result?.ok) {
+        // Force replace instead of push to prevent back navigation
+        router.replace("/auth/verify-request");
       }
-    } catch (error) {
-      console.error("Error during sign in:", error);
+    } catch (e) {
+      console.error("Sign in exception:", e);
+      setError(e instanceof Error ? e.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
-  };
-
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="text-red-500 text-sm text-center mb-4">{error}</div>
+      )}
+
       <form onSubmit={handleEmailSignIn} className="space-y-4">
         <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-foreground dark:text-foreground-dark"
-          >
-            Email
+          <label htmlFor="email" className="sr-only">
+            Email address
           </label>
           <input
             id="email"
             type="email"
-            placeholder="name@example.com"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border border-primary/20 bg-background dark:bg-background-dark px-3 py-2 shadow-sm
-            focus:border-accent dark:focus:border-accent-dark focus:outline-none focus:ring-1 focus:ring-accent dark:focus:ring-accent-dark
-            text-foreground dark:text-foreground-dark"
+            placeholder="Enter your email"
+            className="w-full rounded-md border border-primary/20 dark:border-accent-dark/20
+            bg-background dark:bg-background-dark px-4 py-2
+            text-foreground dark:text-foreground-dark
+            focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark"
           />
         </div>
+
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full rounded-md bg-primary hover:bg-primary/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90
-          px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2
-          disabled:opacity-50 transition-colors"
+          className="w-full rounded-md bg-primary hover:bg-primary/90
+          dark:bg-accent-dark dark:hover:bg-accent-dark/90
+          px-4 py-2 text-white focus:outline-none focus:ring-2
+          focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2
+          transition-colors disabled:opacity-50"
         >
-          {isLoading ? "Sending link..." : "Continue with Email"}
+          {isLoading ? "Sending..." : "Continue with Email"}
         </button>
       </form>
 
@@ -80,11 +90,13 @@ export default function SignInForm() {
       </div>
 
       <button
-        type="button"
-        onClick={handleGoogleSignIn}
-        className="w-full rounded-md border border-primary/20 dark:border-accent-dark/20 bg-background dark:bg-background-dark
-        px-4 py-2 text-foreground dark:text-foreground-dark hover:bg-primary/5 dark:hover:bg-accent-dark/10
-        focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2 transition-colors"
+        onClick={() => signIn("google", { callbackUrl: "/" })}
+        className="w-full rounded-md border border-primary/20 dark:border-accent-dark/20
+        bg-background dark:bg-background-dark px-4 py-2
+        text-foreground dark:text-foreground-dark hover:bg-primary/5
+        dark:hover:bg-accent-dark/10 focus:outline-none focus:ring-2
+        focus:ring-accent dark:focus:ring-accent-dark focus:ring-offset-2
+        transition-colors"
       >
         <div className="flex items-center justify-center">
           <svg

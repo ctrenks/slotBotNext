@@ -51,7 +51,7 @@ export default async function Header() {
               />
             ) : (
               <Link
-                href="/auth/login"
+                href="/auth/signin"
                 className="rounded-md bg-primary hover:bg-primary/90 dark:bg-accent-dark dark:hover:bg-accent-dark/90
                 px-4 py-2 text-white transition-colors"
               >
