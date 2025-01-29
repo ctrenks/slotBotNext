@@ -36,9 +36,9 @@ export default function Home() {
         </div>
         <div className="w-full sm:w-[75%] justify-left">
           <InfoBox>
-            once we determine the best slots for these swings from 15% to 500%+
-            Return to player we then monitor them, and yes this has proven to be
-            consistent. Once we have a &quot;Hot Slot&quot; we initiate out
+            Once we determine the best slots for these swings from 15% to 500%+
+            return to player we then monitor them, and yes this has proven to be
+            consistent. Once we have a &quot;Hot Slot&quot; we initiate our
             alert to out members.
           </InfoBox>
         </div>
@@ -49,7 +49,7 @@ export default function Home() {
           <InfoBox>
             Results are great, of course nothing is 100% but using our basic
             methods you can gain an actual advantage on these bandits. Be sure
-            to read out beating online slots methods to not only get ahead but
+            to read our betting online slots methods to not only get ahead but
             make sure you keep ahead. You can contact us for a free 2 week trial
             and see for yourself.
           </InfoBox>
