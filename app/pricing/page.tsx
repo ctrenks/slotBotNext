@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { ContactForm } from "@/app/components/ContactForm";
+import CouponRedemption from "@/app/components/CouponRedemption";
+
 export const metadata: Metadata = {
   title: "Pricing",
   description: "Pricing for the slot system.",
@@ -23,6 +25,13 @@ export default function Pricing() {
             <strong>1 Year Membership</strong> - $150.00
           </li>
         </ul>
+      </div>
+      <div className="text-lg border-y border-green-900 py-4">
+        <p className="mb-4">
+          If you have a coupon code, please enter it below to redeem your
+          discount.
+        </p>
+        <CouponRedemption />
       </div>
       <ContactForm />
     </div>
