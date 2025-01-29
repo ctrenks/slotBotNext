@@ -1,4 +1,20 @@
-export default function BettingGuide() {
+import { auth } from "@/auth";
+
+
+export default async function BettingGuide() {
+  const session = await auth();
+  if (!session) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold p-6">Sign in to view this page</h1>
+        <div className="text-lg border-y border-green-900 py-4">
+          <p>
+            You must be logged in to view this page. Please sign in continue.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <h1 className="text-2xl font-bold p-6">Using the bot data for betting</h1>
