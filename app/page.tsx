@@ -1,5 +1,5 @@
 import InfoBox from "./components/InfoBox";
-
+import Link from "next/link";
 export default function Home() {
   return (
     <div className="flex">
@@ -38,14 +38,14 @@ export default function Home() {
           <InfoBox>
             once we determine the best slots for these swings from 15% to 500%+
             Return to player we then monitor them, and yes this has proven to be
-            consistent. Once we have a "Hot Slot" we initiate out alert to out
-            members.
+            consistent. Once we have a &quot;Hot Slot&quot; we initiate out
+            alert to out members.
           </InfoBox>
         </div>
         <div className="w-full text-center">
           <h3 className="text-2xl">Results</h3>
         </div>
-        <div className="w-full sm:w-[75%] justify-right">
+        <div className="w-full sm:w-[75%] ml-auto">
           <InfoBox>
             Results are great, of course nothing is 100% but using our basic
             methods you can gain an actual advantage on these bandits. Be sure
@@ -53,6 +53,17 @@ export default function Home() {
             make sure you keep ahead. You can contact us for a free 2 week trial
             and see for yourself.
           </InfoBox>
+        </div>
+        <div className="w-full text-center">
+          <span className="text-2xl">
+            <Link href="/betting-guide">Betting Guide</Link>
+          </span>
+          <span className="text-2xl">
+            <Link href="/pricing">Pricing</Link>
+          </span>
+          <span className="text-2xl">
+            <Link href="/trial">Trial</Link>
+          </span>
         </div>
       </main>
     </div>
