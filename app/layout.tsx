@@ -27,7 +27,7 @@ export default function RootLayout({
           <AuthWrapper>
             <div className="flex flex-col min-h-screen">
               <Header />
-              <main className="container mx-auto max-w-[1280px] px-4 flex-grow">
+              <main className="flex-1 container mx-auto max-w-[1280px] px-4 py-8">
                 {children}
               </main>
               <Footer />
