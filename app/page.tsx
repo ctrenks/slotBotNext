@@ -55,15 +55,15 @@ export default function Home() {
           </InfoBox>
         </div>
         <div className="w-full text-center">
-          <span className="text-2xl p-4">
+          <div className="text-2xl p-4">
             <Link href="/trial">Trial</Link>
-          </span>
-          <span className="text-2xl p-4">
+          </div>
+          <div className="text-2xl p-4">
             <Link href="/betting-guide">Betting Guide</Link>
-          </span>
-          <span className="text-2xl p-4">
+          </div>
+          <div className="text-2xl p-4">
             <Link href="/pricing">Pricing</Link>
-          </span>
+          </div>
         </div>
       </main>
     </div>
