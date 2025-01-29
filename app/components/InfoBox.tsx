@@ -8,15 +8,13 @@ export default function InfoBox({ children, className = "" }: InfoBoxProps) {
     <div className="border-x-4 border-x-emerald-700 rounded-lg shadow-lg">
       <div
         className={`
-        p-4 
-        rounded-lg 
-        border-2 
-        bg-gradient-to-r 
-        from-[#f9d90a]/10 
-        to-[#dc7d11]/10 
-        border-[#f9d90a] 
-        shadow-lg 
-        relative 
+        p-4
+        rounded-lg
+        border-2
+
+        border-[#f9d90a]
+        shadow-lg
+        relative
         overflow-hidden
         ${className}
       `}
