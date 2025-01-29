@@ -65,12 +65,16 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
             </li>
             {items.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} onClick={handleClick}>
+                <Link
+                  href={item.href}
+                  onClick={handleClick}
+                  className="block w-full py-3 px-4 text-lg font-medium text-white hover:bg-emerald-500/10 hover:text-emerald-500 rounded-lg transition-colors"
+                >
                   {item.name}
                 </Link>
               </li>
             ))}
-            <li onClick={handleClick}>
+            <li onClick={handleClick} className="mt-4">
               <SessionInfo />
             </li>
           </ul>
