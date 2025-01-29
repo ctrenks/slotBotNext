@@ -22,26 +22,26 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/casinos"
+                  href="/trial"
                   className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
                 >
-                  Casinos
+                  Trial
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/slots"
+                  href="/pricing"
                   className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
                 >
-                  Slots
+                  Pricing
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/software"
+                  href="/betting-guide"
                   className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
                 >
-                  Software
+                  Betting Guide
                 </Link>
               </li>
             </ul>

@@ -1,7 +1,13 @@
 import Link from "next/link";
 import HeaderUserSection from "./HeaderUserSection";
+import MobileMenu from "./MobileMenu";
 
 export default function Header() {
+  const menuItems = [
+    { name: "Trial", href: "/trial" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "Betting Guide", href: "/betting-guide" },
+  ];
   return (
     <header className="border-b border-primary/10 dark:border-accent-dark/10 bg-background dark:bg-background-dark shadow-sm">
       <div className="container mx-auto px-4">
@@ -14,27 +20,21 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex space-x-8">
-            <Link
-              href="/casinos"
-              className="text-foreground/80 dark:text-foreground-dark/80 hover:text-primary dark:hover:text-accent-dark transition-colors"
-            >
-              Casinos
-            </Link>
-            <Link
-              href="/slots"
-              className="text-foreground/80 dark:text-foreground-dark/80 hover:text-primary dark:hover:text-accent-dark transition-colors"
-            >
-              Slots
-            </Link>
-            <Link
-              href="/software"
-              className="text-foreground/80 dark:text-foreground-dark/80 hover:text-primary dark:hover:text-accent-dark transition-colors"
-            >
-              Software
-            </Link>
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-foreground/80 dark:text-foreground-dark/80 hover:text-primary dark:hover:text-accent-dark transition-colors"
+              >
+                {item.name}
+              </Link>
+            ))}
           </nav>
 
-          <HeaderUserSection />
+          <div className="flex items-center gap-4">
+            <MobileMenu items={menuItems} />
+            <HeaderUserSection />
+          </div>
         </div>
       </div>
     </header>

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import SessionInfo from "./SessionInfo";
 
-const MobileMenu: React.FC = () => {
+const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
   const handleClick = () => {
     const checkbox = document.getElementById("mobile-menu") as HTMLInputElement;
     if (checkbox) checkbox.checked = false;
@@ -15,7 +15,7 @@ const MobileMenu: React.FC = () => {
       <label htmlFor="mobile-menu" className="md:hidden cursor-pointer z-50">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 menu-icon"
+          className="h-6 w-6 text-emerald-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -35,15 +35,15 @@ const MobileMenu: React.FC = () => {
       />
       <label
         htmlFor="mobile-menu"
-        className="fixed inset-0 bg-black bg-opacity-50 hidden peer-checked:block md:hidden cursor-pointer"
+        className="fixed inset-0 bg-black bg-opacity-80 hidden peer-checked:block md:hidden cursor-pointer z-40"
       ></label>
-      <div className="mobile-menu">
-        <nav className="max-w-[1280px] mx-auto px-4 py-3">
-          <ul className="flex flex-col space-y-3">
+      <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-zinc-950 shadow-lg transform translate-x-full peer-checked:translate-x-0 transition-transform duration-200 ease-in-out md:hidden z-50">
+        <nav className="p-6">
+          <ul className="flex flex-col space-y-4">
             <li>
               <Link
                 href="/"
-                className="block hover:underline flex items-center"
+                className="flex items-center text-white hover:text-emerald-500 transition-colors"
                 onClick={handleClick}
               >
                 <svg
@@ -63,106 +63,13 @@ const MobileMenu: React.FC = () => {
                 Home
               </Link>
             </li>
-            <li className="mobile-submenu">
-              <span className="block font-bold mb-2">Casinos</span>
-              <ul className="pl-4 space-y-2">
-                <li>
-                  <Link
-                    href="/no-deposit-casinos"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    No Deposit Casinos
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/free-spin-casinos"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Free Spin Casinos
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/deposit-bonuses"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Deposit Bonuses
-                  </Link>
-                </li>
-              </ul>
-            </li>
-            <li className="mobile-submenu">
-              <span className="block font-bold mb-2">Software</span>
-              <ul className="pl-4 space-y-2">
-                <li>
-                  <Link
-                    href="/software/rtg"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    RTG
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/software/microgaming"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Microgaming
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/software/betsoft"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Betsoft
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/software/rival"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Rival
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/software/hacksaw"
-                    className="block hover:underline"
-                    onClick={handleClick}
-                  >
-                    Hacksaw
-                  </Link>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <Link
-                href="/about"
-                className="block hover:underline"
-                onClick={handleClick}
-              >
-                About
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/contact"
-                className="block hover:underline"
-                onClick={handleClick}
-              >
-                Contact
-              </Link>
-            </li>
+            {items.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} onClick={handleClick}>
+                  {item.name}
+                </Link>
+              </li>
+            ))}
             <li onClick={handleClick}>
               <SessionInfo />
             </li>
