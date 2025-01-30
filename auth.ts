@@ -8,6 +8,7 @@ import Resend from "next-auth/providers/resend";
 declare module "next-auth" {
   interface User {
     geo?: string | null;
+    refferal?: string | null;
   }
 
   interface Session {
@@ -16,6 +17,7 @@ declare module "next-auth" {
       image?: string | null;
       name?: string | null;
       geo?: string | null;
+      refferal?: string | null;
     };
   }
 }
@@ -54,20 +56,20 @@ export const {
     strategy: "jwt",
   },
   callbacks: {
-    async session({ session }) {
-      // Get the user from database
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email! },
-        select: { image: true, name: true, geo: true },
-      });
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
 
-      // Update session with database values
-      if (user) {
-        session.user.image = user.image;
-        session.user.name = user.name;
-        session.user.geo = user.geo;
+        // Get user's geo and referral from database
+        const userData = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { geo: true, refferal: true },
+        });
+
+        // Add geo and referral to session
+        session.user.geo = userData?.geo || null;
+        session.user.refferal = userData?.refferal || null;
       }
-
       return session;
     },
     authorized({ request: { nextUrl, method }, auth }) {

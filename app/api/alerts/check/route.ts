@@ -14,18 +14,38 @@ export async function POST() {
 
     console.log("Alert check request:", {
       userEmail: session.user.email,
+      userGeo: session.user.geo,
+      userReferral: session.user.refferal,
       currentTime: now.toISOString(),
     });
 
-    // Get user with all active alerts
+    // Get user's alerts
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: {
+      select: {
         alerts: {
           where: {
             alert: {
-              startTime: { lte: now },
-              endTime: { gt: now },
+              AND: [
+                // Time filter
+                {
+                  startTime: { lte: now },
+                  endTime: { gt: now },
+                },
+                // Geo and referral filter
+                {
+                  OR: [
+                    { geoTargets: { has: "all" } },
+                    { geoTargets: { has: session.user.geo || "" } },
+                  ],
+                },
+                {
+                  OR: [
+                    { referralCodes: { has: "all" } },
+                    { referralCodes: { has: session.user.refferal || "" } },
+                  ],
+                },
+              ],
             },
           },
           include: {
@@ -36,7 +56,6 @@ export async function POST() {
     });
 
     if (!user) {
-      console.log("User not found:", session.user.email);
       return new NextResponse("User not found", { status: 404 });
     }
 
@@ -50,12 +69,16 @@ export async function POST() {
 
     console.log("Returning alerts:", {
       userEmail: session.user.email,
+      userGeo: session.user.geo,
+      userReferral: session.user.refferal,
       alertCount: alerts.length,
       alerts: alerts.map((a) => ({
         id: a.id,
         message: a.message,
         startTime: a.startTime,
         endTime: a.endTime,
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
       })),
     });
 
