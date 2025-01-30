@@ -43,36 +43,34 @@ export async function createAlert(input: CreateAlertInput) {
     },
   });
 
-  // Find all users that match the criteria
-  const whereClause =
-    geoTargets.includes("all") && referralCodes.includes("all")
-      ? // If both are 'all', don't filter by geo or referral
-        {}
-      : {
-          OR: [
-            // Match by geo if specified
-            ...(!geoTargets.includes("all")
-              ? [{ geo: { in: geoTargets } }]
-              : []),
-            // Match by referral if specified
-            ...(!referralCodes.includes("all")
-              ? [{ refferal: { in: referralCodes } }]
-              : []),
-          ],
-        };
-
+  // Find all users that should receive this alert
   const users = await prisma.user.findMany({
-    where: whereClause,
+    where: {
+      OR: [
+        // If both are 'all', include everyone
+        ...(geoTargets.includes("all") && referralCodes.includes("all")
+          ? [{}]
+          : []),
+        // If only geo is 'all', match by referral
+        ...(geoTargets.includes("all") && !referralCodes.includes("all")
+          ? [{ refferal: { in: referralCodes } }]
+          : []),
+        // If only referral is 'all', match by geo
+        ...(!geoTargets.includes("all") && referralCodes.includes("all")
+          ? [{ geo: { in: geoTargets } }]
+          : []),
+        // If neither is 'all', match by either geo or referral
+        ...(!geoTargets.includes("all") && !referralCodes.includes("all")
+          ? [{ geo: { in: geoTargets } }, { refferal: { in: referralCodes } }]
+          : []),
+      ],
+    },
   });
 
-  console.log("Alert creation details:", {
+  console.log("Found users for alert:", {
     alertId: alert.id,
-    geoTargets,
-    referralCodes,
-    whereClause,
-    matchedUserCount: users.length,
-    matchedUsers: users.map((u) => ({
-      id: u.id,
+    totalUsers: users.length,
+    userDetails: users.map((u) => ({
       email: u.email,
       geo: u.geo,
       refferal: u.refferal,
