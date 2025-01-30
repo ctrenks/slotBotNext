@@ -13,6 +13,11 @@ export async function POST(request: Request) {
     const { lastAlertTime } = await request.json();
     const lastCheckTime = new Date(lastAlertTime);
 
+    console.log("Alert check request:", {
+      userEmail: session.user.email,
+      lastCheckTime: lastCheckTime.toISOString(),
+    });
+
     // Get user data
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -20,12 +25,10 @@ export async function POST(request: Request) {
         alerts: {
           where: {
             alert: {
-              createdAt: {
-                gt: lastCheckTime,
-              },
-              endTime: {
-                gt: new Date(),
-              },
+              AND: [
+                { createdAt: { gt: lastCheckTime } },
+                { endTime: { gt: new Date() } },
+              ],
             },
           },
           include: {
@@ -36,6 +39,7 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
+      console.log("User not found:", session.user.email);
       return new NextResponse("User not found", { status: 404 });
     }
 
@@ -46,6 +50,17 @@ export async function POST(request: Request) {
         ...recipient.alert!,
         read: recipient.read,
       }));
+
+    console.log("Returning alerts:", {
+      userEmail: session.user.email,
+      alertCount: alerts.length,
+      alerts: alerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        createdAt: a.createdAt,
+        endTime: a.endTime,
+      })),
+    });
 
     return NextResponse.json(alerts);
   } catch (error) {

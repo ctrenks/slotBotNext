@@ -17,41 +17,39 @@ export default function AlertDisplay({
   userGeo: string;
   userReferral: string | null;
 }) {
-  const [alerts, setAlerts] = useState<AlertWithRead[]>(
-    // Filter alerts based on user's geo and referral
-    initialAlerts.filter(
-      (alert) =>
-        (alert.geoTargets.includes("all") ||
-          alert.geoTargets.includes(userGeo)) &&
-        (alert.referralCodes.includes("all") ||
-          (userReferral && alert.referralCodes.includes(userReferral)))
-    )
-  );
+  const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
-  const [notificationSound] = useState(() =>
-    typeof Audio !== "undefined" ? new Audio("/notification.mp3") : null
-  );
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
   const lastCheckTimeRef = useRef<number>(Date.now());
 
+  // Initialize audio element
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      notificationSoundRef.current = new Audio("/notification.mp3");
+    }
+  }, []);
+
   const showNotification = useCallback(
-    (alert: AlertWithRead) => {
+    async (alert: AlertWithRead) => {
+      console.log("Showing notification for:", alert);
+
       if (permission === "granted") {
         // Show browser notification
         const notification = new Notification("New Alert", {
           body: alert.message,
           icon: "/favicon.ico",
-          tag: alert.id, // Prevent duplicate notifications
-          requireInteraction: true, // Keep notification visible until user interacts
+          tag: alert.id,
+          requireInteraction: true,
         });
 
         // Play sound
-        if (notificationSound) {
-          notificationSound
-            .play()
-            .catch((err) =>
-              console.error("Error playing notification sound:", err)
-            );
+        try {
+          if (notificationSoundRef.current) {
+            await notificationSoundRef.current.play();
+          }
+        } catch (err) {
+          console.error("Error playing notification sound:", err);
         }
 
         // Flash title
@@ -59,13 +57,11 @@ export default function AlertDisplay({
         let isFlashing = true;
         const flashInterval = setInterval(() => {
           if (isFlashing) {
-            document.title = isFlashing
-              ? `🔔 New Alert! 🔔 - ${alert.message}`
-              : originalTitle;
+            document.title = `🔔 New Alert! 🔔 - ${alert.message}`;
           } else {
-            clearInterval(flashInterval);
             document.title = originalTitle;
           }
+          isFlashing = !isFlashing;
         }, 1000);
 
         // Stop flashing when user focuses the window
@@ -74,6 +70,7 @@ export default function AlertDisplay({
           () => {
             isFlashing = false;
             document.title = originalTitle;
+            clearInterval(flashInterval);
           },
           { once: true }
         );
@@ -84,15 +81,20 @@ export default function AlertDisplay({
           notification.close();
           isFlashing = false;
           document.title = originalTitle;
+          clearInterval(flashInterval);
         };
       }
     },
-    [permission, notificationSound]
+    [permission]
   );
 
   // Check for new alerts every 10 seconds
   useEffect(() => {
     const checkNewAlerts = async () => {
+      console.log("Checking for new alerts...", {
+        lastCheckTime: new Date(lastCheckTimeRef.current).toISOString(),
+      });
+
       try {
         const response = await fetch("/api/alerts/check", {
           method: "POST",
@@ -104,9 +106,14 @@ export default function AlertDisplay({
           }),
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          console.error("Error response from alert check:", response.status);
+          return;
+        }
 
         const newAlerts: AlertWithRead[] = await response.json();
+        console.log("Received alerts:", newAlerts);
+
         if (newAlerts.length > 0) {
           // Filter new alerts based on user's geo and referral
           const filteredNewAlerts = newAlerts.filter(
@@ -117,32 +124,45 @@ export default function AlertDisplay({
                 (userReferral && alert.referralCodes.includes(userReferral)))
           );
 
+          console.log("Filtered alerts:", filteredNewAlerts);
+
           if (filteredNewAlerts.length > 0) {
             setAlerts((prev) => {
               // Filter out any duplicates
               const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
               const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
-              return [...existingAlerts, ...filteredNewAlerts];
+              const updatedAlerts = [...existingAlerts, ...filteredNewAlerts];
+              console.log("Updated alerts:", updatedAlerts);
+              return updatedAlerts;
             });
 
             // Show notification for each new alert
-            filteredNewAlerts.forEach(showNotification);
+            for (const alert of filteredNewAlerts) {
+              await showNotification(alert);
+            }
           }
         }
-
-        // Update last check time
-        lastCheckTimeRef.current = Date.now();
       } catch (error) {
         console.error("Error checking for new alerts:", error);
       }
+
+      // Update last check time
+      lastCheckTimeRef.current = Date.now();
     };
+
+    console.log("Setting up alert polling...");
 
     // Initial check
     checkNewAlerts();
 
     // Set up polling interval
     const interval = setInterval(checkNewAlerts, 10000);
-    return () => clearInterval(interval);
+
+    // Cleanup
+    return () => {
+      console.log("Cleaning up alert polling...");
+      clearInterval(interval);
+    };
   }, [userGeo, userReferral, showNotification]);
 
   useEffect(() => {
@@ -157,6 +177,7 @@ export default function AlertDisplay({
     const requestNotificationPermission = async () => {
       if (permission === "default") {
         const result = await Notification.requestPermission();
+        console.log("Notification permission:", result);
         setPermission(result);
       }
     };
