@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
-
+import { headers } from "next/headers";
 export const metadata: Metadata = {
   title: "Slot Bot",
   description: "Access the slot bot system.",
@@ -15,7 +15,21 @@ export default async function SlotBot() {
   if (!session?.user?.email) {
     redirect("/auth/signin");
   }
+  if (!session.user.geo) {
+    // Get country from request headers
+    const headersList = await headers();
+    const visitorCountry = headersList.get("x-vercel-ip-country") || "US";
 
+    // Update user geo if not already set
+    if (!session.user.geo) {
+      await prisma.user.update({
+        where: { email: session.user.email },
+        data: {
+          geo: visitorCountry,
+        },
+      });
+    }
+  }
   // Get user data to check paid status and trial
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
