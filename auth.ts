@@ -69,7 +69,9 @@ export const {
         // If no geo data, fetch it from our API
         if (!user.geo) {
           try {
-            const response = await fetch(`${process.env.NEXTAUTH_URL}/api/geo`);
+            const response = await fetch(
+              `${process.env.NEXTAUTH_URL}/api/user/geo`
+            );
             const geoData = await response.json();
             if (geoData.success && geoData.country) {
               session.user.geo = geoData.country;
