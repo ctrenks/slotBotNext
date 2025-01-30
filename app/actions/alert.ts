@@ -21,11 +21,11 @@ export async function createAlert(input: CreateAlertInput) {
 
   // Normalize empty arrays to ['all']
   const geoTargets =
-    input.geoTargets.length === 0 && input.referralCodes.length === 0
+    input.geoTargets.includes("all") || input.geoTargets.length === 0
       ? ["all"]
       : input.geoTargets;
   const referralCodes =
-    input.referralCodes.length === 0 && input.geoTargets.length === 0
+    input.referralCodes.includes("all") || input.referralCodes.length === 0
       ? ["all"]
       : input.referralCodes;
 
@@ -51,16 +51,21 @@ export async function createAlert(input: CreateAlertInput) {
   // Find all users that should receive this alert
   const users = await prisma.user.findMany({
     where: {
-      OR: [
-        // If either target is 'all', we should match all users
-        ...(geoTargets.includes("all") || referralCodes.includes("all")
-          ? [{}] // Empty where clause matches all users
-          : [
-              // Otherwise match users with either matching geo OR matching referral
-              { geo: { in: geoTargets } },
-              { refferal: { in: referralCodes } },
-            ]),
-      ],
+      // If both targets are 'all', match all users
+      ...(geoTargets.includes("all") && referralCodes.includes("all")
+        ? {} // Empty where clause matches all users
+        : {
+            OR: [
+              // If only geo is 'all', match by referral
+              ...(geoTargets.includes("all")
+                ? [{}]
+                : [{ geo: { in: geoTargets } }]),
+              // If only referral is 'all', match by geo
+              ...(referralCodes.includes("all")
+                ? [{}]
+                : [{ refferal: { in: referralCodes } }]),
+            ],
+          }),
     },
   });
 
