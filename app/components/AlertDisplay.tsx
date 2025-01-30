@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import { Alert as PrismaAlert } from "@prisma/client";
 
@@ -32,6 +32,7 @@ export default function AlertDisplay({
   const [notificationSound] = useState(() =>
     typeof Audio !== "undefined" ? new Audio("/notification.mp3") : null
   );
+  const lastCheckTimeRef = useRef<number>(Date.now());
 
   const showNotification = useCallback(
     (alert: AlertWithRead) => {
@@ -99,10 +100,7 @@ export default function AlertDisplay({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            lastAlertTime: Math.max(
-              ...alerts.map((a) => new Date(a.createdAt).getTime()),
-              0
-            ),
+            lastAlertTime: lastCheckTimeRef.current,
           }),
         });
 
@@ -120,19 +118,32 @@ export default function AlertDisplay({
           );
 
           if (filteredNewAlerts.length > 0) {
-            setAlerts((prev) => [...prev, ...filteredNewAlerts]);
+            setAlerts((prev) => {
+              // Filter out any duplicates
+              const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
+              const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
+              return [...existingAlerts, ...filteredNewAlerts];
+            });
+
             // Show notification for each new alert
             filteredNewAlerts.forEach(showNotification);
           }
         }
+
+        // Update last check time
+        lastCheckTimeRef.current = Date.now();
       } catch (error) {
         console.error("Error checking for new alerts:", error);
       }
     };
 
+    // Initial check
+    checkNewAlerts();
+
+    // Set up polling interval
     const interval = setInterval(checkNewAlerts, 10000);
     return () => clearInterval(interval);
-  }, [alerts, userGeo, userReferral, showNotification]);
+  }, [userGeo, userReferral, showNotification]);
 
   useEffect(() => {
     // Check if browser supports notifications
