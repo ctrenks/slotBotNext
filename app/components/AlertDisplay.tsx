@@ -21,7 +21,6 @@ export default function AlertDisplay({
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
-  const lastCheckTimeRef = useRef<number>(Date.now());
 
   // Initialize audio element
   useEffect(() => {
@@ -91,22 +90,13 @@ export default function AlertDisplay({
   // Check for new alerts every 10 seconds
   useEffect(() => {
     const checkNewAlerts = async () => {
-      const now = new Date();
-      console.log("Checking for new alerts...", {
-        lastCheckTime: new Date(lastCheckTimeRef.current).toISOString(),
-        currentTime: now.toISOString(),
-      });
-
       try {
         const response = await fetch("/api/alerts/check", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            lastAlertTime: lastCheckTimeRef.current,
-            currentTime: now.toISOString(),
-          }),
+          body: JSON.stringify({}),
         });
 
         if (!response.ok) {
@@ -122,7 +112,8 @@ export default function AlertDisplay({
           const filteredNewAlerts = newAlerts.filter((alert) => {
             const startTime = new Date(alert.startTime);
             const endTime = new Date(alert.endTime);
-            const isTimeValid = startTime <= now && endTime >= now;
+            const isTimeValid =
+              startTime <= new Date() && endTime >= new Date();
 
             const geoMatch =
               alert.geoTargets.includes("all") ||
@@ -136,7 +127,7 @@ export default function AlertDisplay({
               message: alert.message,
               startTime: startTime.toISOString(),
               endTime: endTime.toISOString(),
-              currentTime: now.toISOString(),
+              currentTime: new Date().toISOString(),
               isTimeValid,
               geoMatch,
               referralMatch,
@@ -149,12 +140,9 @@ export default function AlertDisplay({
 
           if (filteredNewAlerts.length > 0) {
             setAlerts((prev) => {
-              // Filter out any duplicates and expired alerts
+              // Filter out any duplicates
               const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
-              const existingAlerts = prev.filter((a) => {
-                const endTime = new Date(a.endTime);
-                return endTime >= now && !newAlertIds.has(a.id);
-              });
+              const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
               const updatedAlerts = [...existingAlerts, ...filteredNewAlerts];
               console.log("Updated alerts:", updatedAlerts);
               return updatedAlerts;
@@ -169,12 +157,7 @@ export default function AlertDisplay({
       } catch (error) {
         console.error("Error checking for new alerts:", error);
       }
-
-      // Update last check time
-      lastCheckTimeRef.current = Date.now();
     };
-
-    console.log("Setting up alert polling...");
 
     // Initial check
     checkNewAlerts();
@@ -189,34 +172,18 @@ export default function AlertDisplay({
     };
   }, [userGeo, userReferral, showNotification]);
 
+  // Request notification permission
   useEffect(() => {
-    // Check if browser supports notifications
-    if ("Notification" in window) {
-      setPermission(Notification.permission);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Request notification permission if not granted
-    const requestNotificationPermission = async () => {
-      if (permission === "default") {
+    const requestPermission = async () => {
+      if ("Notification" in window) {
         const result = await Notification.requestPermission();
         console.log("Notification permission:", result);
         setPermission(result);
       }
     };
 
-    requestNotificationPermission();
-  }, [permission]);
-
-  useEffect(() => {
-    // Show notifications for initial unread alerts
-    alerts.forEach((alert) => {
-      if (!alert.read) {
-        showNotification(alert);
-      }
-    });
-  }, []); // Only run once for initial alerts
+    requestPermission();
+  }, []);
 
   const handleMarkAsRead = async (alertId: string) => {
     await markAlertAsRead(alertId);
