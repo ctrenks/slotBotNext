@@ -3,10 +3,17 @@ import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
+import AlertDisplay from "@/app/components/AlertDisplay";
+import { Alert } from "@prisma/client";
+
 export const metadata: Metadata = {
   title: "Slot Bot",
   description: "Access the slot bot system.",
 };
+
+interface AlertWithRead extends Alert {
+  read: boolean;
+}
 
 export default async function SlotBot() {
   const session = await auth();
@@ -15,25 +22,35 @@ export default async function SlotBot() {
   if (!session?.user?.email) {
     redirect("/auth/signin");
   }
-  if (!session.user.geo) {
-    // Get country from request headers
-    const headersList = await headers();
-    const visitorCountry = headersList.get("x-vercel-ip-country") || "US";
 
-    // Update user geo if not already set
-    if (!session.user.geo) {
-      await prisma.user.update({
-        where: { email: session.user.email },
-        data: {
-          geo: visitorCountry,
-        },
-      });
-    }
+  // Get country from request headers if not set in user profile
+  const headersList = await headers();
+  const visitorCountry = headersList.get("x-vercel-ip-country") || "US";
+
+  // Update user geo if not already set
+  if (!session.user.geo) {
+    await prisma.user.update({
+      where: { email: session.user.email },
+      data: {
+        geo: visitorCountry,
+      },
+    });
   }
+
   // Get user data to check paid status and trial
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { paid: true, trial: true },
+    select: {
+      paid: true,
+      trial: true,
+      geo: true,
+      refferal: true,
+      alerts: {
+        include: {
+          alert: true,
+        },
+      },
+    },
   });
 
   // Check if user has access
@@ -65,9 +82,22 @@ export default async function SlotBot() {
     );
   }
 
+  // Transform alerts data for the AlertDisplay component
+  const userAlerts: AlertWithRead[] =
+    user?.alerts?.map((recipient) => ({
+      ...recipient.alert,
+      read: recipient.read,
+    })) || [];
+
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Welcome to the Slot Bot</h1>
+      <AlertDisplay
+        initialAlerts={userAlerts}
+        userGeo={user?.geo || visitorCountry}
+        userReferral={user?.refferal || null}
+      />
+
+      <h1 className="text-2xl font-bold mb-4 mt-8">Welcome to the Slot Bot</h1>
       <div className="text-lg border-y border-green-900 py-4">
         <p>
           You have access to the slot bot system. Content will be added here.
