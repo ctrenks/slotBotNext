@@ -38,6 +38,7 @@ model User {
   affiliate     String? @unique
   // Optional for WebAuthn support
   Authenticator Authenticator[]
+  alerts        AlertRecipient[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -591,4 +592,29 @@ model ppc_links {
   @@unique([casino_id, geo], name: "casino_id_geo") // Named composite unique constraint
   @@index([casino_id])
   @@index([geo])
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  message     String   @db.Text
+  geoTargets  String[] // Array of geo locations or "all"
+  referralCodes String[] // Array of referral codes or "all"
+  startTime   DateTime
+  endTime     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recipients  AlertRecipient[]
+}
+
+model AlertRecipient {
+  id        String   @id @default(cuid())
+  alertId   String
+  userId    String
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([alertId, userId])
 }
