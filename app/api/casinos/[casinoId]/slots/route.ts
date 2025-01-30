@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
 export async function GET(
-  request: NextRequest,
+  _: Request,
   { params }: { params: { casinoId: string } }
 ) {
   const session = await auth();
