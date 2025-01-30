@@ -2,21 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { casinoId: string } }
-) {
+type Props = {
+  params: {
+    casinoId: string;
+  };
+};
+
+export async function GET(request: NextRequest, props: Props) {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     // Get the casino with its software relations
     const casino = await prisma.casino_p_casinos.findUnique({
       where: {
-        id: parseInt(params.casinoId),
+        id: parseInt(props.params.casinoId),
       },
       select: {
         id: true,
@@ -35,7 +38,7 @@ export async function GET(
     });
 
     if (!casino) {
-      return new NextResponse("Casino not found", { status: 404 });
+      return NextResponse.json({ error: "Casino not found" }, { status: 404 });
     }
 
     // Get software IDs from the casino's software links
@@ -75,6 +78,9 @@ export async function GET(
     return NextResponse.json(transformedGames);
   } catch (error) {
     console.error("Failed to fetch slots:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
