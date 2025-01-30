@@ -16,13 +16,6 @@ interface SoftwareLink {
   softwarelist: Software | null;
 }
 
-interface Casino {
-  id: number;
-  casino: string | null;
-  software: string | null;
-  softwares: SoftwareLink[];
-}
-
 export async function GET() {
   const session = await auth();
 
