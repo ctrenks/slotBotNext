@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 
-export async function POST(request: Request) {
+export async function POST() {
   const session = await auth();
 
   if (!session?.user?.email) {
