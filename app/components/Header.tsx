@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HeaderUserSection from "./HeaderUserSection";
 import MobileMenu from "./MobileMenu";
+import SlotBotButton from "./SlotBotButton";
 
 export default function Header() {
   const menuItems = [
@@ -19,7 +20,7 @@ export default function Header() {
             Beat Online Slots
           </Link>
 
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex items-center space-x-8">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
@@ -29,6 +30,7 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
+            <SlotBotButton />
           </nav>
 
           <div className="flex items-center gap-4">

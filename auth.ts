@@ -5,7 +5,13 @@ import GoogleProvider from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 
 // List of routes that require authentication
-const protectedRoutes = ["/dashboard", "/profile", "/settings", "/myprofile"];
+const protectedRoutes = [
+  "/dashboard",
+  "/profile",
+  "/settings",
+  "/myprofile",
+  "/slotbot",
+];
 
 export const {
   handlers: { GET, POST },

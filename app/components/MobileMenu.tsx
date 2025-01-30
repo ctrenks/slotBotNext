@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import SessionInfo from "./SessionInfo";
+import SlotBotButton from "./SlotBotButton";
 
 const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
   const handleClick = () => {
@@ -74,6 +75,9 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
                 </Link>
               </li>
             ))}
+            <li>
+              <SlotBotButton className="w-full justify-center" />
+            </li>
             <li onClick={handleClick} className="mt-4">
               <SessionInfo />
             </li>
