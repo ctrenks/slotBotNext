@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
-export async function GET(
-  _: Request,
-  { params }: { params: { casinoId: string } }
-) {
+type RouteContext = {
+  params: {
+    casinoId: string;
+  };
+};
+
+export async function GET(_: Request, context: RouteContext) {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -16,7 +19,7 @@ export async function GET(
     // Get the casino with its software relations
     const casino = await prisma.casino_p_casinos.findUnique({
       where: {
-        id: parseInt(params.casinoId),
+        id: parseInt(context.params.casinoId),
       },
       select: {
         id: true,
