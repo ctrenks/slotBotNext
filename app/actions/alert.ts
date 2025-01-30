@@ -20,9 +20,14 @@ export async function createAlert(input: CreateAlertInput) {
   }
 
   // Normalize empty arrays to ['all']
-  const geoTargets = input.geoTargets.length === 0 ? ["all"] : input.geoTargets;
+  const geoTargets =
+    input.geoTargets.length === 0 && input.referralCodes.length === 0
+      ? ["all"]
+      : input.geoTargets;
   const referralCodes =
-    input.referralCodes.length === 0 ? ["all"] : input.referralCodes;
+    input.referralCodes.length === 0 && input.geoTargets.length === 0
+      ? ["all"]
+      : input.referralCodes;
 
   console.log("Creating alert with:", {
     geoTargets,

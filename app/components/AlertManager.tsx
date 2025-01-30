@@ -30,12 +30,14 @@ export default function AlertManager() {
     try {
       await createAlert({
         ...data,
-        geoTargets: selectedGeos.length ? selectedGeos : ["all"],
-        referralCodes: selectedReferrals.length ? selectedReferrals : ["all"],
+        geoTargets: selectedGeos,
+        referralCodes: selectedReferrals,
       });
       reset();
       setSelectedGeos([]);
       setSelectedReferrals([]);
+      setGeoInput("");
+      setReferralInput("");
     } catch (error) {
       console.error("Failed to create alert:", error);
     } finally {
