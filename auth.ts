@@ -4,6 +4,22 @@ import { prisma } from "@/prisma";
 import GoogleProvider from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 
+// Extend the built-in types
+declare module "next-auth" {
+  interface User {
+    geo?: string | null;
+  }
+
+  interface Session {
+    user: User & {
+      email: string;
+      image?: string | null;
+      name?: string | null;
+      geo?: string | null;
+    };
+  }
+}
+
 // List of routes that require authentication
 const protectedRoutes = [
   "/dashboard",
@@ -42,13 +58,28 @@ export const {
       // Get the user from database
       const user = await prisma.user.findUnique({
         where: { email: session.user.email! },
-        select: { image: true, name: true },
+        select: { image: true, name: true, geo: true },
       });
 
       // Update session with database values
       if (user) {
         session.user.image = user.image;
         session.user.name = user.name;
+
+        // If no geo data, fetch it from our API
+        if (!user.geo) {
+          try {
+            const response = await fetch(`${process.env.NEXTAUTH_URL}/api/geo`);
+            const geoData = await response.json();
+            if (geoData.success && geoData.country) {
+              session.user.geo = geoData.country;
+            }
+          } catch (error) {
+            console.error("Error fetching geo data:", error);
+          }
+        } else {
+          session.user.geo = user.geo;
+        }
       }
 
       return session;
