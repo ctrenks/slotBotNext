@@ -56,20 +56,21 @@ export const {
     strategy: "jwt",
   },
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async session({ session }) {
+      // Get the user from database
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email! },
+        select: { image: true, name: true, geo: true, refferal: true },
+      });
 
-        // Get user's geo and referral from database
-        const userData = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { geo: true, refferal: true },
-        });
-
-        // Add geo and referral to session
-        session.user.geo = userData?.geo || null;
-        session.user.refferal = userData?.refferal || null;
+      // Update session with database values
+      if (user) {
+        session.user.image = user.image;
+        session.user.name = user.name;
+        session.user.geo = user.geo;
+        session.user.refferal = user.refferal;
       }
+
       return session;
     },
     authorized({ request: { nextUrl, method }, auth }) {
