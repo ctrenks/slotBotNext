@@ -183,6 +183,7 @@ model casino_p_casinos {
   unifiedBonuses            UnifiedBonus[]
   timestamp                 Int?                            @default(0)
   ppc_links                 ppc_links[]
+  alerts                    Alert[]
 
   @@index(fields: [id, nodeposit, freespins, deposit, bonus_percent, mobile, livegames, hot, new, approved, rogue])
 }
@@ -261,13 +262,13 @@ model casino_p_software {
 }
 
 model casino_p_software_link {
-  id           Int                @id @default(autoincrement())
+  id           Int                @id @default(0)
   casino       Int?
   software     Int?
   softwares    casino_p_casinos?  @relation(fields: [casino], references: [id], onDelete: Cascade)
   softwarelist casino_p_software? @relation(fields: [software], references: [id], onDelete: Cascade)
 
-  @@unique([casino, software])
+
   @@index(fields: [casino, software])
 }
 
@@ -595,15 +596,18 @@ model ppc_links {
 }
 
 model Alert {
-  id          String   @id @default(cuid())
-  message     String   @db.Text
-  geoTargets  String[] // Array of geo locations or "all"
-  referralCodes String[] // Array of referral codes or "all"
-  startTime   DateTime
-  endTime     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  recipients  AlertRecipient[]
+  id            String           @id @default(cuid())
+  message       String
+  geoTargets    String[]
+  referralCodes String[]
+  startTime     DateTime
+  endTime       DateTime
+  casino        casino_p_casinos? @relation(fields: [casinoId], references: [id])
+  casinoId      Int?
+  slot          String?          // Store slot name directly since we don't have a slots table
+  recipients    AlertRecipient[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model AlertRecipient {

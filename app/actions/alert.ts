@@ -10,6 +10,8 @@ interface CreateAlertInput {
   referralCodes: string[];
   startTime: string;
   endTime: string;
+  casinoId?: number;
+  slot?: string;
 }
 
 export async function createAlert(input: CreateAlertInput) {
@@ -35,6 +37,8 @@ export async function createAlert(input: CreateAlertInput) {
     message: input.message,
     startTime: input.startTime,
     endTime: input.endTime,
+    casinoId: input.casinoId,
+    slot: input.slot,
   });
 
   // Create the alert
@@ -45,6 +49,8 @@ export async function createAlert(input: CreateAlertInput) {
       referralCodes,
       startTime: new Date(input.startTime),
       endTime: new Date(input.endTime),
+      ...(input.casinoId && { casinoId: input.casinoId }),
+      ...(input.slot && { slot: input.slot }),
     },
   });
 
