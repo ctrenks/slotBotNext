@@ -2,20 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
-interface Game {
-  game_name: string;
-  game_image: string | null;
-  game_clean_name: string | null;
-}
-
-interface Software {
-  games: Game[];
-}
-
-interface SoftwareLink {
-  softwarelist: Software | null;
-}
-
 export async function GET() {
   const session = await auth();
 
