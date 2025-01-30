@@ -47,30 +47,13 @@ export async function createAlert(input: CreateAlertInput) {
   const users = await prisma.user.findMany({
     where: {
       OR: [
-        // If geo target includes 'all' and referral includes 'all', this will match all users
-        // If only geo is 'all', match by referral
-        // If only referral is 'all', match by geo
-        // If neither is 'all', match exact combinations
-        ...(!geoTargets.includes("all") && !referralCodes.includes("all")
-          ? [
-              {
-                AND: [
-                  { geo: { in: geoTargets } },
-                  { refferal: { in: referralCodes } },
-                ],
-              },
-            ]
+        // If either target is 'all', we should match all users
+        ...(geoTargets.includes("all") || referralCodes.includes("all")
+          ? [{}] // Empty where clause matches all users
           : [
-              {
-                OR: [
-                  ...(geoTargets.includes("all")
-                    ? [{}]
-                    : [{ geo: { in: geoTargets } }]),
-                  ...(referralCodes.includes("all")
-                    ? [{}]
-                    : [{ refferal: { in: referralCodes } }]),
-                ],
-              },
+              // Otherwise match users with either matching geo OR matching referral
+              { geo: { in: geoTargets } },
+              { refferal: { in: referralCodes } },
             ]),
       ],
     },
