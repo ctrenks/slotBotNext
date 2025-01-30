@@ -47,22 +47,31 @@ export async function createAlert(input: CreateAlertInput) {
   const users = await prisma.user.findMany({
     where: {
       OR: [
-        // If both are 'all', include everyone
-        ...(geoTargets.includes("all") && referralCodes.includes("all")
-          ? [{}]
-          : []),
+        // If geo target includes 'all' and referral includes 'all', this will match all users
         // If only geo is 'all', match by referral
-        ...(geoTargets.includes("all") && !referralCodes.includes("all")
-          ? [{ refferal: { in: referralCodes } }]
-          : []),
         // If only referral is 'all', match by geo
-        ...(!geoTargets.includes("all") && referralCodes.includes("all")
-          ? [{ geo: { in: geoTargets } }]
-          : []),
-        // If neither is 'all', match by either geo or referral
+        // If neither is 'all', match exact combinations
         ...(!geoTargets.includes("all") && !referralCodes.includes("all")
-          ? [{ geo: { in: geoTargets } }, { refferal: { in: referralCodes } }]
-          : []),
+          ? [
+              {
+                AND: [
+                  { geo: { in: geoTargets } },
+                  { refferal: { in: referralCodes } },
+                ],
+              },
+            ]
+          : [
+              {
+                OR: [
+                  ...(geoTargets.includes("all")
+                    ? [{}]
+                    : [{ geo: { in: geoTargets } }]),
+                  ...(referralCodes.includes("all")
+                    ? [{}]
+                    : [{ refferal: { in: referralCodes } }]),
+                ],
+              },
+            ]),
       ],
     },
   });
@@ -70,6 +79,8 @@ export async function createAlert(input: CreateAlertInput) {
   console.log("Found users for alert:", {
     alertId: alert.id,
     totalUsers: users.length,
+    geoTargets,
+    referralCodes,
     userDetails: users.map((u) => ({
       email: u.email,
       geo: u.geo,
