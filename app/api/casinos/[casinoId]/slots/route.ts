@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
 export async function GET(
-  request: Request,
-  context: { params: { casinoId: string } }
+  request: NextRequest,
+  { params }: { params: { casinoId: string } }
 ) {
   const session = await auth();
-  const { casinoId } = context.params;
 
   if (!session?.user?.email) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -17,33 +16,42 @@ export async function GET(
     // Get the casino with its software relations
     const casino = await prisma.casino_p_casinos.findUnique({
       where: {
-        id: parseInt(casinoId),
+        id: parseInt(params.casinoId),
       },
-      include: {
-        softwares: true,
+      select: {
+        id: true,
+        casino: true,
+        softwares: {
+          select: {
+            softwarelist: {
+              select: {
+                id: true,
+                software_name: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!casino) {
       return new NextResponse("Casino not found", { status: 404 });
     }
-    console.log(casino.softwares);
-    // Extract software numbers from the relations
-    const softwareNumbers = casino.softwares
-      .map((sw) => sw.software)
-      .filter(
-        (software): software is number =>
-          software !== null && software !== undefined
-      );
 
-    console.log(`Found software numbers for casino:`, softwareNumbers);
+    // Get software IDs from the casino's software links
+    const softwareIds = casino.softwares
+      .map((sw) => sw.softwarelist?.id)
+      .filter((id): id is number => id !== null && id !== undefined);
 
-    // Get all games for these software numbers
+    console.log(`Found software IDs for casino:`, softwareIds);
+
+    // Get games for these software IDs
     const games = await prisma.casino_p_games.findMany({
       where: {
         game_software: {
-          in: softwareNumbers,
+          in: softwareIds,
         },
+        status: 1,
       },
       select: {
         game_name: true,
