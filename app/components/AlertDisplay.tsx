@@ -87,7 +87,7 @@ export default function AlertDisplay({
     [permission]
   );
 
-  // Check for new alerts every 10 seconds
+  // Check for new alerts every minute
   useEffect(() => {
     const checkNewAlerts = async () => {
       try {
@@ -162,8 +162,8 @@ export default function AlertDisplay({
     // Initial check
     checkNewAlerts();
 
-    // Set up polling interval
-    const interval = setInterval(checkNewAlerts, 10000);
+    // Set up polling interval (60000ms = 1 minute)
+    const interval = setInterval(checkNewAlerts, 60000);
 
     // Cleanup
     return () => {
