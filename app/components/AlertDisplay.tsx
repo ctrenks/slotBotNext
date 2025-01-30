@@ -91,8 +91,10 @@ export default function AlertDisplay({
   // Check for new alerts every 10 seconds
   useEffect(() => {
     const checkNewAlerts = async () => {
+      const now = new Date();
       console.log("Checking for new alerts...", {
         lastCheckTime: new Date(lastCheckTimeRef.current).toISOString(),
+        currentTime: now.toISOString(),
       });
 
       try {
@@ -103,6 +105,7 @@ export default function AlertDisplay({
           },
           body: JSON.stringify({
             lastAlertTime: lastCheckTimeRef.current,
+            currentTime: now.toISOString(),
           }),
         });
 
@@ -116,21 +119,42 @@ export default function AlertDisplay({
 
         if (newAlerts.length > 0) {
           // Filter new alerts based on user's geo and referral
-          const filteredNewAlerts = newAlerts.filter(
-            (alert) =>
-              (alert.geoTargets.includes("all") ||
-                alert.geoTargets.includes(userGeo)) &&
-              (alert.referralCodes.includes("all") ||
-                (userReferral && alert.referralCodes.includes(userReferral)))
-          );
+          const filteredNewAlerts = newAlerts.filter((alert) => {
+            const startTime = new Date(alert.startTime);
+            const endTime = new Date(alert.endTime);
+            const isTimeValid = startTime <= now && endTime >= now;
+
+            const geoMatch =
+              alert.geoTargets.includes("all") ||
+              alert.geoTargets.includes(userGeo);
+            const referralMatch =
+              alert.referralCodes.includes("all") ||
+              (userReferral && alert.referralCodes.includes(userReferral));
+
+            console.log("Alert filter check:", {
+              alertId: alert.id,
+              message: alert.message,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              currentTime: now.toISOString(),
+              isTimeValid,
+              geoMatch,
+              referralMatch,
+            });
+
+            return isTimeValid && (geoMatch || referralMatch);
+          });
 
           console.log("Filtered alerts:", filteredNewAlerts);
 
           if (filteredNewAlerts.length > 0) {
             setAlerts((prev) => {
-              // Filter out any duplicates
+              // Filter out any duplicates and expired alerts
               const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
-              const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
+              const existingAlerts = prev.filter((a) => {
+                const endTime = new Date(a.endTime);
+                return endTime >= now && !newAlertIds.has(a.id);
+              });
               const updatedAlerts = [...existingAlerts, ...filteredNewAlerts];
               console.log("Updated alerts:", updatedAlerts);
               return updatedAlerts;
