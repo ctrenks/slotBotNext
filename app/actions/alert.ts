@@ -15,17 +15,21 @@ interface CreateAlertInput {
 export async function createAlert(input: CreateAlertInput) {
   const session = await auth();
 
-  // Only allow admins to create alerts
   if (!session?.user?.email) {
     throw new Error("Unauthorized");
   }
+
+  // Normalize empty arrays to ['all']
+  const geoTargets = input.geoTargets.length === 0 ? ["all"] : input.geoTargets;
+  const referralCodes =
+    input.referralCodes.length === 0 ? ["all"] : input.referralCodes;
 
   // Create the alert
   const alert = await prisma.alert.create({
     data: {
       message: input.message,
-      geoTargets: input.geoTargets,
-      referralCodes: input.referralCodes,
+      geoTargets,
+      referralCodes,
       startTime: new Date(input.startTime),
       endTime: new Date(input.endTime),
     },
@@ -35,19 +39,34 @@ export async function createAlert(input: CreateAlertInput) {
   const users = await prisma.user.findMany({
     where: {
       OR: [
-        { geo: { in: input.geoTargets } },
-        { refferal: { in: input.referralCodes } },
+        // If targeting all, include everyone
+        ...(geoTargets.includes("all") ? [{}] : []),
+        // Otherwise, match specific geo targets
+        ...(geoTargets.includes("all") ? [] : [{ geo: { in: geoTargets } }]),
       ],
     },
   });
 
-  // Create alert recipients
-  await prisma.alertRecipient.createMany({
-    data: users.map((user) => ({
-      alertId: alert.id,
-      userId: user.id,
+  console.log("Found matching users:", users.length);
+  console.log("Alert criteria:", {
+    geoTargets,
+    referralCodes,
+    matchedUsers: users.map((u) => ({
+      email: u.email,
+      geo: u.geo,
+      refferal: u.refferal,
     })),
   });
+
+  if (users.length > 0) {
+    // Create alert recipients
+    await prisma.alertRecipient.createMany({
+      data: users.map((user) => ({
+        alertId: alert.id,
+        userId: user.id,
+      })),
+    });
+  }
 
   revalidatePath("/");
   return alert;
@@ -105,8 +124,45 @@ export async function getAlertsForUser() {
     return [];
   }
 
-  return user.alerts.map((recipient) => ({
-    ...recipient.alert,
-    read: recipient.read,
-  }));
+  // Filter alerts to only show relevant ones
+  const now = new Date();
+  const alerts = user.alerts
+    .filter((recipient) => {
+      const alert = recipient.alert;
+      if (!alert) return false;
+
+      // Check if alert is still valid
+      if (new Date(alert.endTime) < now) return false;
+
+      // Check if alert targets this user's geo
+      const geoMatch =
+        alert.geoTargets.includes("all") ||
+        alert.geoTargets.includes(user.geo || "");
+
+      // Check if alert targets this user's referral code
+      const referralMatch =
+        alert.referralCodes.includes("all") ||
+        alert.referralCodes.includes(user.refferal || "");
+
+      return geoMatch || referralMatch;
+    })
+    .map((recipient) => ({
+      ...recipient.alert!,
+      read: recipient.read,
+    }));
+
+  console.log("Retrieved alerts for user:", {
+    email: session.user.email,
+    geo: user.geo,
+    refferal: user.refferal,
+    alertCount: alerts.length,
+    alerts: alerts.map((a) => ({
+      id: a.id,
+      message: a.message,
+      geoTargets: a.geoTargets,
+      referralCodes: a.referralCodes,
+    })),
+  });
+
+  return alerts;
 }

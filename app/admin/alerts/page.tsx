@@ -17,7 +17,7 @@ interface AlertWithRecipients extends Alert {
 export default async function AlertManagementPage() {
   const session = await auth();
 
-  // Check if user is logged in and is an admin
+  // Check if user is logged in
   if (!session?.user?.email) {
     redirect("/auth/signin");
   }

@@ -37,7 +37,8 @@ export default async function SlotBot() {
     });
   }
 
-  // Get user data to check paid status and trial
+  // Get user data and alerts
+  const now = new Date();
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
@@ -45,19 +46,11 @@ export default async function SlotBot() {
         include: {
           alert: true,
         },
-        where: {
-          alert: {
-            endTime: {
-              gte: new Date(),
-            },
-          },
-        },
       },
     },
   });
 
   // Check if user has access
-  const now = new Date();
   const hasValidTrial = user?.trial ? new Date(user.trial) > now : false;
   const hasPaidAccess = user?.paid === true;
 
@@ -86,17 +79,27 @@ export default async function SlotBot() {
   }
 
   // Transform alerts data for the AlertDisplay component
-  const userAlerts: AlertWithRead[] =
-    user?.alerts?.map((recipient) => ({
-      ...recipient.alert,
+  const userAlerts: AlertWithRead[] = (user?.alerts || [])
+    .filter(
+      (recipient) =>
+        recipient.alert !== null && new Date(recipient.alert.endTime) >= now
+    )
+    .map((recipient) => ({
+      ...recipient.alert!,
       read: recipient.read,
-    })) || [];
+    }));
 
   // For debugging
   console.log("User:", {
     geo: user?.geo,
     refferal: user?.refferal,
     alertsCount: userAlerts.length,
+    alerts: userAlerts.map((a) => ({
+      id: a.id,
+      message: a.message,
+      geoTargets: a.geoTargets,
+      referralCodes: a.referralCodes,
+    })),
   });
 
   return (
