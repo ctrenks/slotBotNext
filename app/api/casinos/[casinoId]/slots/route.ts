@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 
-type Props = {
-  params: {
-    casinoId: string;
-  };
-};
-
-export async function GET(request: NextRequest, props: Props) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { casinoId: string } }
+) {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -19,7 +16,7 @@ export async function GET(request: NextRequest, props: Props) {
     // Get the casino with its software relations
     const casino = await prisma.casino_p_casinos.findUnique({
       where: {
-        id: parseInt(props.params.casinoId),
+        id: parseInt(params.casinoId),
       },
       select: {
         id: true,
