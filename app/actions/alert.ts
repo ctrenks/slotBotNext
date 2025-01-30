@@ -24,6 +24,14 @@ export async function createAlert(input: CreateAlertInput) {
   const referralCodes =
     input.referralCodes.length === 0 ? ["all"] : input.referralCodes;
 
+  console.log("Creating alert with:", {
+    geoTargets,
+    referralCodes,
+    message: input.message,
+    startTime: input.startTime,
+    endTime: input.endTime,
+  });
+
   // Create the alert
   const alert = await prisma.alert.create({
     data: {
@@ -36,22 +44,35 @@ export async function createAlert(input: CreateAlertInput) {
   });
 
   // Find all users that match the criteria
+  const whereClause =
+    geoTargets.includes("all") && referralCodes.includes("all")
+      ? // If both are 'all', don't filter by geo or referral
+        {}
+      : {
+          OR: [
+            // Match by geo if specified
+            ...(!geoTargets.includes("all")
+              ? [{ geo: { in: geoTargets } }]
+              : []),
+            // Match by referral if specified
+            ...(!referralCodes.includes("all")
+              ? [{ refferal: { in: referralCodes } }]
+              : []),
+          ],
+        };
+
   const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        // If targeting all, include everyone
-        ...(geoTargets.includes("all") ? [{}] : []),
-        // Otherwise, match specific geo targets
-        ...(geoTargets.includes("all") ? [] : [{ geo: { in: geoTargets } }]),
-      ],
-    },
+    where: whereClause,
   });
 
-  console.log("Found matching users:", users.length);
-  console.log("Alert criteria:", {
+  console.log("Alert creation details:", {
+    alertId: alert.id,
     geoTargets,
     referralCodes,
+    whereClause,
+    matchedUserCount: users.length,
     matchedUsers: users.map((u) => ({
+      id: u.id,
       email: u.email,
       geo: u.geo,
       refferal: u.refferal,
@@ -60,11 +81,16 @@ export async function createAlert(input: CreateAlertInput) {
 
   if (users.length > 0) {
     // Create alert recipients
-    await prisma.alertRecipient.createMany({
+    const recipients = await prisma.alertRecipient.createMany({
       data: users.map((user) => ({
         alertId: alert.id,
         userId: user.id,
       })),
+    });
+
+    console.log("Created recipients:", {
+      count: recipients.count,
+      alertId: alert.id,
     });
   }
 
@@ -109,6 +135,7 @@ export async function getAlertsForUser() {
     return [];
   }
 
+  const now = new Date();
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
@@ -124,43 +151,76 @@ export async function getAlertsForUser() {
     return [];
   }
 
+  console.log("User data for alerts:", {
+    id: user.id,
+    email: user.email,
+    geo: user.geo,
+    refferal: user.refferal,
+    totalAlerts: user.alerts.length,
+    alerts: user.alerts.map((ar) => ({
+      id: ar.alertId,
+      read: ar.read,
+      alert: ar.alert
+        ? {
+            id: ar.alert.id,
+            message: ar.alert.message,
+            geoTargets: ar.alert.geoTargets,
+            referralCodes: ar.alert.referralCodes,
+            endTime: ar.alert.endTime,
+          }
+        : null,
+    })),
+  });
+
   // Filter alerts to only show relevant ones
-  const now = new Date();
   const alerts = user.alerts
     .filter((recipient) => {
       const alert = recipient.alert;
       if (!alert) return false;
 
-      // Check if alert is still valid
+      // Check if alert is expired
       if (new Date(alert.endTime) < now) return false;
 
       // Check if alert targets this user's geo
       const geoMatch =
         alert.geoTargets.includes("all") ||
-        alert.geoTargets.includes(user.geo || "");
+        (user.geo && alert.geoTargets.includes(user.geo));
 
       // Check if alert targets this user's referral code
       const referralMatch =
         alert.referralCodes.includes("all") ||
-        alert.referralCodes.includes(user.refferal || "");
+        (user.refferal && alert.referralCodes.includes(user.refferal));
 
-      return geoMatch || referralMatch;
+      const isMatch = geoMatch || referralMatch;
+
+      console.log("Alert match check:", {
+        alertId: alert.id,
+        message: alert.message,
+        geoMatch,
+        referralMatch,
+        isMatch,
+        userGeo: user.geo,
+        userReferral: user.refferal,
+        alertGeoTargets: alert.geoTargets,
+        alertReferralCodes: alert.referralCodes,
+      });
+
+      return isMatch;
     })
     .map((recipient) => ({
       ...recipient.alert!,
       read: recipient.read,
     }));
 
-  console.log("Retrieved alerts for user:", {
-    email: session.user.email,
-    geo: user.geo,
-    refferal: user.refferal,
-    alertCount: alerts.length,
+  console.log("Final filtered alerts:", {
+    count: alerts.length,
     alerts: alerts.map((a) => ({
       id: a.id,
       message: a.message,
       geoTargets: a.geoTargets,
       referralCodes: a.referralCodes,
+      read: a.read,
+      endTime: a.endTime,
     })),
   });
 

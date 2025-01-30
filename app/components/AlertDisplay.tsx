@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import { Alert as PrismaAlert } from "@prisma/client";
 
@@ -29,6 +29,110 @@ export default function AlertDisplay({
   );
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
+  const [notificationSound] = useState(() =>
+    typeof Audio !== "undefined" ? new Audio("/notification.mp3") : null
+  );
+
+  const showNotification = useCallback(
+    (alert: AlertWithRead) => {
+      if (permission === "granted") {
+        // Show browser notification
+        const notification = new Notification("New Alert", {
+          body: alert.message,
+          icon: "/favicon.ico",
+          tag: alert.id, // Prevent duplicate notifications
+          requireInteraction: true, // Keep notification visible until user interacts
+        });
+
+        // Play sound
+        if (notificationSound) {
+          notificationSound
+            .play()
+            .catch((err) =>
+              console.error("Error playing notification sound:", err)
+            );
+        }
+
+        // Flash title
+        const originalTitle = document.title;
+        let isFlashing = true;
+        const flashInterval = setInterval(() => {
+          if (isFlashing) {
+            document.title = isFlashing
+              ? `🔔 New Alert! 🔔 - ${alert.message}`
+              : originalTitle;
+          } else {
+            clearInterval(flashInterval);
+            document.title = originalTitle;
+          }
+        }, 1000);
+
+        // Stop flashing when user focuses the window
+        window.addEventListener(
+          "focus",
+          () => {
+            isFlashing = false;
+            document.title = originalTitle;
+          },
+          { once: true }
+        );
+
+        // Handle notification click
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+          isFlashing = false;
+          document.title = originalTitle;
+        };
+      }
+    },
+    [permission, notificationSound]
+  );
+
+  // Check for new alerts every 10 seconds
+  useEffect(() => {
+    const checkNewAlerts = async () => {
+      try {
+        const response = await fetch("/api/alerts/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            lastAlertTime: Math.max(
+              ...alerts.map((a) => new Date(a.createdAt).getTime()),
+              0
+            ),
+          }),
+        });
+
+        if (!response.ok) return;
+
+        const newAlerts: AlertWithRead[] = await response.json();
+        if (newAlerts.length > 0) {
+          // Filter new alerts based on user's geo and referral
+          const filteredNewAlerts = newAlerts.filter(
+            (alert) =>
+              (alert.geoTargets.includes("all") ||
+                alert.geoTargets.includes(userGeo)) &&
+              (alert.referralCodes.includes("all") ||
+                (userReferral && alert.referralCodes.includes(userReferral)))
+          );
+
+          if (filteredNewAlerts.length > 0) {
+            setAlerts((prev) => [...prev, ...filteredNewAlerts]);
+            // Show notification for each new alert
+            filteredNewAlerts.forEach(showNotification);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking for new alerts:", error);
+      }
+    };
+
+    const interval = setInterval(checkNewAlerts, 10000);
+    return () => clearInterval(interval);
+  }, [alerts, userGeo, userReferral, showNotification]);
 
   useEffect(() => {
     // Check if browser supports notifications
@@ -50,18 +154,13 @@ export default function AlertDisplay({
   }, [permission]);
 
   useEffect(() => {
-    // Set up browser notifications for new alerts
-    if (permission === "granted") {
-      alerts.forEach((alert) => {
-        if (!alert.read) {
-          new Notification("New Alert", {
-            body: alert.message,
-            icon: "/favicon.ico", // Add your favicon path
-          });
-        }
-      });
-    }
-  }, [alerts, permission]);
+    // Show notifications for initial unread alerts
+    alerts.forEach((alert) => {
+      if (!alert.read) {
+        showNotification(alert);
+      }
+    });
+  }, []); // Only run once for initial alerts
 
   const handleMarkAsRead = async (alertId: string) => {
     await markAlertAsRead(alertId);
