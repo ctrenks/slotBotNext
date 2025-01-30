@@ -19,7 +19,7 @@ export default async function SlotBot() {
     // Get country from request headers
     const headersList = await headers();
     const visitorCountry = headersList.get("x-vercel-ip-country") || "US";
-    console.log("visitorCountry", visitorCountry);
+
     // Update user geo if not already set
     if (!session.user.geo) {
       await prisma.user.update({
