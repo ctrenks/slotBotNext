@@ -40,14 +40,17 @@ export default async function SlotBot() {
   // Get user data to check paid status and trial
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: {
-      paid: true,
-      trial: true,
-      geo: true,
-      refferal: true,
+    include: {
       alerts: {
         include: {
           alert: true,
+        },
+        where: {
+          alert: {
+            endTime: {
+              gte: new Date(),
+            },
+          },
         },
       },
     },
@@ -88,6 +91,13 @@ export default async function SlotBot() {
       ...recipient.alert,
       read: recipient.read,
     })) || [];
+
+  // For debugging
+  console.log("User:", {
+    geo: user?.geo,
+    refferal: user?.refferal,
+    alertsCount: userAlerts.length,
+  });
 
   return (
     <div className="max-w-4xl mx-auto p-6">
