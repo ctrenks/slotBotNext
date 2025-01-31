@@ -1,4 +1,4 @@
-import { prisma } from "@/client";
+import { prisma } from "@/prisma";
 /**
  *
  * type = 0: casino homescreen
@@ -11,7 +11,7 @@ import { prisma } from "@/client";
  * type = 7: user avatars
  */
 
-export const LoadImage = async (img, type): Promise<Blob> => {
+export const LoadImage = async (img: string, type: number): Promise<Blob> => {
   let result;
 
   if (type == 0) {
@@ -91,28 +91,6 @@ export const LoadImage = async (img, type): Promise<Blob> => {
     });
 
     result = game?.vercel_image_url;
-  } else if (type == 7) {
-    const user = await prisma.user.findFirst({
-      select: {
-        vercel_image_store: true,
-      },
-      where: {
-        image: decodeURIComponent(img),
-      },
-    });
-
-    result = user?.vercel_image_store;
-  } else if (type == 8) {
-    const news = await prisma.news.findFirst({
-      select: {
-        vercel_image_url: true,
-      },
-      where: {
-        image: decodeURIComponent(img),
-      },
-    });
-
-    result = news?.vercel_image_url;
   }
   if (result) return fetch(result).then((res) => res.blob());
   else return new Blob();
