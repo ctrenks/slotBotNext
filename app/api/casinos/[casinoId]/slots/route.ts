@@ -1,22 +1,22 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getSlots } from "@/app/actions/slots";
 
 export async function GET(
   request: NextRequest,
-  context: { params: { casinoId: string } }
-): Promise<NextResponse> {
+  { params }: { params: { casinoId: string } }
+) {
   try {
-    const casinoId = Number.parseInt(context.params.casinoId);
+    const casinoId = Number.parseInt(params.casinoId);
     if (isNaN(casinoId)) {
-      return NextResponse.json({ error: "Invalid casino ID" }, { status: 400 });
+      return Response.json({ error: "Invalid casino ID" }, { status: 400 });
     }
 
     const games = await getSlots(casinoId);
-    return NextResponse.json(games);
+    return Response.json(games);
   } catch (error) {
     console.error("Failed to fetch slots:", error);
     const message =
       error instanceof Error ? error.message : "Internal Server Error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }
