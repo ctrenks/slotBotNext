@@ -49,7 +49,9 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
       game_software: {
         in: softwareIds,
       },
-      status: 1,
+      vercel_image_url: {
+        not: null,
+      },
     },
     select: {
       game_name: true,
