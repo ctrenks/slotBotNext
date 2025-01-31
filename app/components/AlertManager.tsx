@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { createAlert } from "@/app/actions/alert";
-import { getSlots } from "@/app/actions/slots";
+import { getSlots, getSlotsForCasino } from "@/app/actions/slots";
 
 interface AlertFormData {
   message: string;
@@ -72,7 +72,7 @@ export default function AlertManager() {
 
     const fetchSlots = async () => {
       try {
-        const data = await getSlots(parseInt(selectedCasinoId.toString()));
+        const data = await getSlotsForCasino(selectedCasinoId.toString());
         console.log("Fetched slots:", data);
         setSlots(data);
       } catch (error) {

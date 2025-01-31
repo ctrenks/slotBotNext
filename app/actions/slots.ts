@@ -70,3 +70,17 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
     cleanName: game.game_clean_name || undefined,
   }));
 }
+
+export async function getSlotsForCasino(casinoId: string) {
+  try {
+    const parsedId = Number.parseInt(casinoId);
+    if (isNaN(parsedId)) {
+      throw new Error("Invalid casino ID");
+    }
+
+    return await getSlots(parsedId);
+  } catch (error) {
+    console.error("Failed to fetch slots:", error);
+    throw error;
+  }
+}
