@@ -2,7 +2,7 @@
 
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
-import { Slot } from "@/app/types/slot";
+import type { Slot } from "@/app/types/slot";
 
 export async function getSlots(casinoId: number): Promise<Slot[]> {
   const session = await auth();
