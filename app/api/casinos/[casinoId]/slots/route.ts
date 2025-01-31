@@ -3,7 +3,7 @@ import { getSlots } from "@/app/actions/slots";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { casinoId: string } }
+  { params }: { params: { casinoId: string } } & any
 ) {
   try {
     const casinoId = Number.parseInt(params.casinoId);
