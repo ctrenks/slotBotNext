@@ -2,8 +2,9 @@
 
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import { Slot } from "@/app/types/slot";
 
-export async function getSlots(casinoId: number) {
+export async function getSlots(casinoId: number): Promise<Slot[]> {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -20,7 +21,12 @@ export async function getSlots(casinoId: number) {
       casino: true,
       softwares: {
         select: {
-          software: true,
+          softwarelist: {
+            select: {
+              id: true,
+              software_name: true,
+            },
+          },
         },
       },
     },
@@ -30,77 +36,37 @@ export async function getSlots(casinoId: number) {
     throw new Error("Casino not found");
   }
 
-  console.log("Raw casino data:", JSON.stringify(casino, null, 2));
-
-  // Extract software IDs from the relations
+  // Get software IDs from the casino's software links
   const softwareIds = casino.softwares
-    .map((sw) => sw.software)
+    .map((sw) => sw.softwarelist?.id)
     .filter((id): id is number => id !== null && id !== undefined);
 
-  console.log("Software IDs:", softwareIds);
+  console.log(`Found software IDs for casino:`, softwareIds);
 
-  // First, let's count total games for these software IDs
-  const totalGamesCount = await prisma.casino_p_games.count({
-    where: {
-      game_software: {
-        in: softwareIds,
-      },
-    },
-  });
-
-  console.log(
-    `Total games found for software IDs ${softwareIds.join(
-      ", "
-    )}: ${totalGamesCount}`
-  );
-
-  // Now let's see games by status
-  const gamesByStatus = await prisma.casino_p_games.groupBy({
-    by: ["status"],
-    where: {
-      game_software: {
-        in: softwareIds,
-      },
-    },
-    _count: true,
-  });
-
-  console.log("Games by status:", gamesByStatus);
-
-  // Get all games for these software IDs
+  // Get games for these software IDs
   const games = await prisma.casino_p_games.findMany({
     where: {
       game_software: {
         in: softwareIds,
       },
+      status: 1,
     },
     select: {
       game_name: true,
       game_image: true,
       game_clean_name: true,
-      status: true,
     },
     orderBy: {
       game_name: "asc",
     },
   });
 
-  console.log(
-    `Found ${
-      games.length
-    } total games for casino with software IDs ${softwareIds.join(", ")}`
-  );
-  console.log(
-    "Sample of first few games with their status:",
-    games.slice(0, 5)
-  );
+  console.log(`Found ${games.length} games for casino`);
 
-  // Return only active games (we can adjust the status filter based on what we find)
-  const activeGames = games.map((game) => ({
+  // Transform the games to match the Slot interface
+  return games.map((game) => ({
     name: game.game_name,
     image: game.game_image || undefined,
     cleanName: game.game_clean_name || undefined,
   }));
-
-  return activeGames;
 }
