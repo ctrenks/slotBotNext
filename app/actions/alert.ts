@@ -2,7 +2,6 @@
 
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
-import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 interface CreateAlertData {
