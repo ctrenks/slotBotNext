@@ -45,11 +45,34 @@ export async function POST() {
       userEmail: user.email,
       userId: user.id,
       currentTime: now.toISOString(),
-      geo: user.geo,
-      refferal: user.refferal,
     });
 
-    // First find all active alerts
+    // First check all active alerts to see what's available
+    const allActiveAlerts = await prisma.alert.findMany({
+      where: {
+        startTime: { lte: now },
+        endTime: { gt: now },
+      },
+      include: {
+        recipients: true,
+      },
+    });
+
+    console.log("All active alerts:", {
+      count: allActiveAlerts.length,
+      alerts: allActiveAlerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        recipientCount: a.recipients.length,
+        recipientIds: a.recipients.map((r) => r.userId),
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
+      })),
+    });
+
+    // Find active alerts where this user is a recipient
     const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
@@ -58,21 +81,13 @@ export async function POST() {
             startTime: { lte: now },
             endTime: { gt: now },
           },
-          // Geo filter - match if alert targets 'all' or user's geo
+          // Must be a recipient
           {
-            OR: [
-              { geoTargets: { hasSome: ["all"] } },
-              ...(user.geo ? [{ geoTargets: { hasSome: [user.geo] } }] : []),
-            ],
-          },
-          // Referral filter - match if alert targets 'all' or user's referral
-          {
-            OR: [
-              { referralCodes: { hasSome: ["all"] } },
-              ...(user.refferal
-                ? [{ referralCodes: { hasSome: [user.refferal] } }]
-                : []),
-            ],
+            recipients: {
+              some: {
+                userId: user.id,
+              },
+            },
           },
         ],
       },
@@ -88,16 +103,16 @@ export async function POST() {
       },
     });
 
-    console.log("Found active alerts:", {
+    console.log("Found active alerts for user:", {
+      userId: user.id,
       count: activeAlerts.length,
       alerts: activeAlerts.map((a) => ({
         id: a.id,
         message: a.message,
         startTime: a.startTime,
         endTime: a.endTime,
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
         hasRecipient: a.recipients.length > 0,
+        recipientReadStatus: a.recipients[0]?.read,
       })),
     });
 
@@ -106,26 +121,6 @@ export async function POST() {
       ...alert,
       read: alert.recipients[0]?.read ?? false,
     }));
-
-    // Create missing alert recipients
-    const alertsNeedingRecipients = activeAlerts.filter(
-      (alert) => alert.recipients.length === 0
-    );
-    if (alertsNeedingRecipients.length > 0) {
-      console.log(
-        "Creating missing alert recipients for alerts:",
-        alertsNeedingRecipients.map((a) => a.id)
-      );
-
-      await prisma.alertRecipient.createMany({
-        data: alertsNeedingRecipients.map((alert) => ({
-          alertId: alert.id,
-          userId: user.id,
-          read: false,
-        })),
-        skipDuplicates: true,
-      });
-    }
 
     return NextResponse.json(alertsWithReadStatus);
   } catch (error) {
