@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { createAlert } from "@/app/actions/alert";
-import { getSlots, getSlotsForCasino } from "@/app/actions/slots";
+import { getSlotsForCasino } from "@/app/actions/slots";
 
 interface AlertFormData {
   message: string;
