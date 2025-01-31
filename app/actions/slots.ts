@@ -48,7 +48,7 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
       game_software: {
         in: softwareIds,
       },
-      vercel_image_url: {
+      game_image: {
         not: null,
       },
     },
@@ -56,7 +56,6 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
       game_name: true,
       game_image: true,
       game_clean_name: true,
-      vercel_image_url: true,
     },
     orderBy: {
       game_name: "asc",
@@ -66,7 +65,7 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
   // Transform the games to match the Slot interface
   return games.map((game) => ({
     name: game.game_name,
-    image: game.vercel_image_url || game.game_image || undefined,
+    image: game.game_image || undefined,
     cleanName: game.game_clean_name || undefined,
   }));
 }

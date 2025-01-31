@@ -58,7 +58,6 @@ export async function GET() {
             game_name: true,
             game_image: true,
             game_clean_name: true,
-            vercel_image_url: true,
           },
         });
 
@@ -70,7 +69,7 @@ export async function GET() {
           button: casino.button || "",
           validGames: games.map((game) => ({
             name: game.game_name,
-            image: game.vercel_image_url || game.game_image || undefined,
+            image: game.game_image || undefined,
             cleanName: game.game_clean_name || undefined,
           })),
         };

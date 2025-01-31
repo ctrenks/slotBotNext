@@ -69,14 +69,14 @@ function formatAlertMessage(data: AlertFormData): string {
   if (data.casinoName) {
     parts.push(`\n\nCasino: ${data.casinoName}`);
     if (data.casinoImage) {
-      parts.push(`Casino Image: /casino/${data.casinoImage}`);
+      parts.push(`Casino Image: image/casino/${data.casinoImage}`);
     }
   }
 
   if (data.slot) {
     parts.push(`Game: ${data.slot}`);
     if (data.slotImage) {
-      parts.push(`Game Image: /sloticonssquare/${data.slotImage}`);
+      parts.push(`Game Image: image/sloticonssquare/${data.slotImage}`);
     }
   }
 
@@ -202,10 +202,10 @@ export default function AlertManager() {
     }
 
     const selectedSlot = slots.find((s) => s.name === selectedSlotName);
-    if (selectedSlot) {
-      // Extract the filename from the image path if it exists
-      const imageFilename = selectedSlot.image?.split("/").pop();
-      setValue("slotImage", imageFilename);
+    if (selectedSlot && selectedSlot.image) {
+      // Extract just the filename from the game_image path
+      const imageFilename = selectedSlot.image.split("/").pop();
+      setValue("slotImage", imageFilename || "");
     }
   }, [selectedSlotName, slots, setValue]);
 
@@ -706,7 +706,7 @@ export default function AlertManager() {
                 <div>
                   <p className="text-sm font-medium mb-2">Casino Image:</p>
                   <img
-                    src={`/casino/${formValues.casinoImage}`}
+                    src={`/image/casino/${formValues.casinoImage}`}
                     alt={formValues.casinoName || "Casino"}
                     className="max-w-[200px] h-auto rounded border"
                   />
@@ -716,7 +716,7 @@ export default function AlertManager() {
                 <div>
                   <p className="text-sm font-medium mb-2">Slot Image:</p>
                   <img
-                    src={`/sloticonssquare/${formValues.slotImage}`}
+                    src={`/image/sloticonssquare/${formValues.slotImage}`}
                     alt={formValues.slot || "Slot"}
                     className="max-w-[200px] h-auto rounded border"
                   />
