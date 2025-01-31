@@ -11,81 +11,94 @@ export async function POST() {
 
   try {
     const now = new Date();
+    const userId = session.user.id;
+
+    if (!userId) {
+      return new NextResponse("User ID not found", { status: 400 });
+    }
+
     console.log("Alert check request:", {
       userEmail: session.user.email,
+      userId,
       currentTime: now.toISOString(),
     });
 
-    // Get user's alerts
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        geo: true,
-        refferal: true,
-        alerts: {
-          where: {
-            alert: {
-              AND: [
-                // Time filter
-                {
-                  startTime: { lte: now },
-                  endTime: { gt: now },
-                },
-                // Geo and referral filter
-                {
-                  OR: [
-                    { geoTargets: { has: "all" } },
-                    { geoTargets: { has: session.user.geo || "" } },
-                  ],
-                },
-                {
-                  OR: [
-                    { referralCodes: { has: "all" } },
-                    { referralCodes: { has: session.user.refferal || "" } },
-                  ],
-                },
-              ],
-            },
+    // First find all active alerts
+    const activeAlerts = await prisma.alert.findMany({
+      where: {
+        AND: [
+          // Time filter
+          {
+            startTime: { lte: now },
+            endTime: { gt: now },
           },
-          include: {
-            alert: true,
+          // Geo and referral filter
+          {
+            OR: [
+              { geoTargets: { has: "all" } },
+              { geoTargets: { has: session.user.geo || "" } },
+            ],
+          },
+          {
+            OR: [
+              { referralCodes: { has: "all" } },
+              { referralCodes: { has: session.user.refferal || "" } },
+            ],
+          },
+        ],
+      },
+      include: {
+        recipients: {
+          where: {
+            userId: userId,
+          },
+          select: {
+            read: true,
           },
         },
       },
     });
 
-    if (!user) {
-      console.log("User not found in alert check");
-      return new NextResponse("User not found", { status: 404 });
-    }
-
-    console.log("User data for alert check:", {
-      id: user.id,
-      geo: user.geo,
-      refferal: user.refferal,
-      alertCount: user.alerts.length,
-    });
-
-    // Transform alerts data
-    const alerts = user.alerts
-      .filter((recipient) => recipient.alert !== null)
-      .map((recipient) => ({
-        ...recipient.alert!,
-        read: recipient.read,
-      }));
-
-    console.log("Returning alerts:", {
-      alertCount: alerts.length,
-      alerts: alerts.map((a) => ({
+    console.log("Found active alerts:", {
+      count: activeAlerts.length,
+      alerts: activeAlerts.map((a) => ({
         id: a.id,
         message: a.message,
         startTime: a.startTime,
         endTime: a.endTime,
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
+        hasRecipient: a.recipients.length > 0,
       })),
     });
 
-    return NextResponse.json(alerts);
+    // Transform alerts and add read status
+    const alertsWithReadStatus = activeAlerts.map((alert) => ({
+      ...alert,
+      read: alert.recipients[0]?.read ?? false,
+    }));
+
+    // Create missing alert recipients
+    const alertsNeedingRecipients = activeAlerts.filter(
+      (alert) => alert.recipients.length === 0
+    );
+    if (alertsNeedingRecipients.length > 0) {
+      console.log(
+        "Creating missing alert recipients for alerts:",
+        alertsNeedingRecipients.map((a) => a.id)
+      );
+
+      await prisma.alertRecipient.createMany({
+        data: alertsNeedingRecipients.map((alert) => ({
+          alertId: alert.id,
+          userId: userId,
+          read: false,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return NextResponse.json(alertsWithReadStatus);
   } catch (error) {
     console.error("Error checking for new alerts:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
