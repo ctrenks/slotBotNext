@@ -3,17 +3,12 @@ import { prisma } from "@/prisma";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
-import AlertDisplay from "@/app/components/AlertDisplay";
-import { Alert } from "@prisma/client";
+import GlobalAlertDisplay from "@/app/components/GlobalAlertDisplay";
 
 export const metadata: Metadata = {
   title: "Slot Bot",
   description: "Access the slot bot system.",
 };
-
-interface AlertWithRead extends Alert {
-  read: boolean;
-}
 
 export default async function SlotBot() {
   const session = await auth();
@@ -78,38 +73,9 @@ export default async function SlotBot() {
     );
   }
 
-  // Transform alerts data for the AlertDisplay component
-  const userAlerts: AlertWithRead[] = (user?.alerts || [])
-    .filter(
-      (recipient) =>
-        recipient.alert !== null && new Date(recipient.alert.endTime) >= now
-    )
-    .map((recipient) => ({
-      ...recipient.alert!,
-      read: recipient.read,
-    }));
-
-  // For debugging
-  console.log("User:", {
-    geo: user?.geo,
-    refferal: user?.refferal,
-    alertsCount: userAlerts.length,
-    alerts: userAlerts.map((a) => ({
-      id: a.id,
-      message: a.message,
-      geoTargets: a.geoTargets,
-      referralCodes: a.referralCodes,
-    })),
-  });
-
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <AlertDisplay
-        initialAlerts={userAlerts}
-        userGeo={user?.geo || visitorCountry}
-        userReferral={user?.refferal || null}
-      />
-
+      <GlobalAlertDisplay />
       <h1 className="text-2xl font-bold mb-4 mt-8">Welcome to the Slot Bot</h1>
       <div className="text-lg border-y border-green-900 py-4">
         <p>

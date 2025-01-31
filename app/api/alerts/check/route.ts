@@ -3,24 +3,50 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 
 export async function POST() {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
   try {
-    const now = new Date();
-    const userId = session.user.id;
+    const session = await auth();
 
-    if (!userId) {
+    console.log("Session data:", {
+      exists: !!session,
+      hasUser: !!session?.user,
+      email: session?.user?.email,
+      id: session?.user?.id,
+      geo: session?.user?.geo,
+      refferal: session?.user?.refferal,
+    });
+
+    if (!session) {
+      return new NextResponse("No session found", { status: 401 });
+    }
+
+    if (!session.user) {
+      return new NextResponse("No user in session", { status: 401 });
+    }
+
+    if (!session.user.email) {
+      return new NextResponse("No email in session", { status: 401 });
+    }
+
+    // Get the user from the database to ensure we have the latest data
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return new NextResponse("User not found in database", { status: 404 });
+    }
+
+    if (!user.id) {
       return new NextResponse("User ID not found", { status: 400 });
     }
 
+    const now = new Date();
     console.log("Alert check request:", {
-      userEmail: session.user.email,
-      userId,
+      userEmail: user.email,
+      userId: user.id,
       currentTime: now.toISOString(),
+      geo: user.geo,
+      refferal: user.refferal,
     });
 
     // First find all active alerts
@@ -32,17 +58,20 @@ export async function POST() {
             startTime: { lte: now },
             endTime: { gt: now },
           },
-          // Geo and referral filter
+          // Geo filter - match if alert targets 'all' or user's geo
           {
             OR: [
-              { geoTargets: { has: "all" } },
-              { geoTargets: { has: session.user.geo || "" } },
+              { geoTargets: { hasSome: ["all"] } },
+              ...(user.geo ? [{ geoTargets: { hasSome: [user.geo] } }] : []),
             ],
           },
+          // Referral filter - match if alert targets 'all' or user's referral
           {
             OR: [
-              { referralCodes: { has: "all" } },
-              { referralCodes: { has: session.user.refferal || "" } },
+              { referralCodes: { hasSome: ["all"] } },
+              ...(user.refferal
+                ? [{ referralCodes: { hasSome: [user.refferal] } }]
+                : []),
             ],
           },
         ],
@@ -50,7 +79,7 @@ export async function POST() {
       include: {
         recipients: {
           where: {
-            userId: userId,
+            userId: user.id,
           },
           select: {
             read: true,
@@ -91,7 +120,7 @@ export async function POST() {
       await prisma.alertRecipient.createMany({
         data: alertsNeedingRecipients.map((alert) => ({
           alertId: alert.id,
-          userId: userId,
+          userId: user.id,
           read: false,
         })),
         skipDuplicates: true,
