@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSlots } from "@/app/actions/slots";
-import { Slot, SlotError } from "@/app/types/slot";
 
 export async function GET(
   req: NextRequest,
