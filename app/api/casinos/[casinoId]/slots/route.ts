@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSlots } from "@/app/actions/slots";
+import type { Slot, SlotError } from "@/app/types/slot";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { casinoId: string } }
-) {
+): Promise<NextResponse<Slot[] | SlotError>> {
   try {
     const casinoId = Number.parseInt(params.casinoId);
     if (isNaN(casinoId)) {
