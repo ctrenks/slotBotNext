@@ -1,12 +1,13 @@
 import type { NextRequest } from "next/server";
 import { getSlots } from "@/app/actions/slots";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { casinoId: string } } & any
-) {
+type RouteSegmentProps = {
+  params: { casinoId: string };
+};
+
+export async function GET(request: NextRequest, props: RouteSegmentProps) {
   try {
-    const casinoId = Number.parseInt(params.casinoId);
+    const casinoId = Number.parseInt(props.params.casinoId);
     if (isNaN(casinoId)) {
       return Response.json({ error: "Invalid casino ID" }, { status: 400 });
     }
