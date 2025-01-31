@@ -2,9 +2,15 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getSlots } from "@/app/actions/slots";
 import type { Slot, SlotError } from "@/app/types/slot";
 
+type RouteParams = {
+  params: {
+    casinoId: string;
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { casinoId: string } }
+  { params }: RouteParams
 ): Promise<NextResponse<Slot[] | SlotError>> {
   try {
     const casinoId = Number.parseInt(params.casinoId);
