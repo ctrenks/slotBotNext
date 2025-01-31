@@ -91,6 +91,7 @@ export default function AlertDisplay({
   useEffect(() => {
     const checkNewAlerts = async () => {
       try {
+        console.log("Checking for new alerts...");
         const response = await fetch("/api/alerts/check", {
           method: "POST",
           headers: {
@@ -122,17 +123,6 @@ export default function AlertDisplay({
               alert.referralCodes.includes("all") ||
               (userReferral && alert.referralCodes.includes(userReferral));
 
-            console.log("Alert filter check:", {
-              alertId: alert.id,
-              message: alert.message,
-              startTime: startTime.toISOString(),
-              endTime: endTime.toISOString(),
-              currentTime: new Date().toISOString(),
-              isTimeValid,
-              geoMatch,
-              referralMatch,
-            });
-
             return isTimeValid && (geoMatch || referralMatch);
           });
 
@@ -143,9 +133,7 @@ export default function AlertDisplay({
               // Filter out any duplicates
               const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
               const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
-              const updatedAlerts = [...existingAlerts, ...filteredNewAlerts];
-              console.log("Updated alerts:", updatedAlerts);
-              return updatedAlerts;
+              return [...existingAlerts, ...filteredNewAlerts];
             });
 
             // Show notification for each new alert

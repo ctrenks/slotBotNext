@@ -11,11 +11,8 @@ export async function POST() {
 
   try {
     const now = new Date();
-
     console.log("Alert check request:", {
       userEmail: session.user.email,
-      userGeo: session.user.geo,
-      userReferral: session.user.refferal,
       currentTime: now.toISOString(),
     });
 
@@ -23,6 +20,9 @@ export async function POST() {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
+        id: true,
+        geo: true,
+        refferal: true,
         alerts: {
           where: {
             alert: {
@@ -56,8 +56,16 @@ export async function POST() {
     });
 
     if (!user) {
+      console.log("User not found in alert check");
       return new NextResponse("User not found", { status: 404 });
     }
+
+    console.log("User data for alert check:", {
+      id: user.id,
+      geo: user.geo,
+      refferal: user.refferal,
+      alertCount: user.alerts.length,
+    });
 
     // Transform alerts data
     const alerts = user.alerts
@@ -68,17 +76,12 @@ export async function POST() {
       }));
 
     console.log("Returning alerts:", {
-      userEmail: session.user.email,
-      userGeo: session.user.geo,
-      userReferral: session.user.refferal,
       alertCount: alerts.length,
       alerts: alerts.map((a) => ({
         id: a.id,
         message: a.message,
         startTime: a.startTime,
         endTime: a.endTime,
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
       })),
     });
 
