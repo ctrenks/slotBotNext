@@ -21,6 +21,7 @@ export async function GET() {
         casino: true,
         clean_name: true,
         software: true,
+        button: true,
         softwares: {
           select: {
             softwarelist: {
@@ -61,15 +62,12 @@ export async function GET() {
           },
         });
 
-        console.log(
-          `Casino ${casino.casino} has ${games.length} games from ${softwareIds.length} software providers`
-        );
-
         return {
           id: casino.id,
           name: casino.casino || "",
           cleanName: casino.clean_name || "",
           software: casino.software || "",
+          button: casino.button || "",
           validGames: games.map((game) => ({
             name: game.game_name,
             image: game.vercel_image_url || game.game_image || undefined,

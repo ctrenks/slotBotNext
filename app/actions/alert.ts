@@ -40,6 +40,16 @@ export async function createAlert(data: CreateAlertData) {
     const referralCodes =
       data.referralCodes.length === 0 ? ["all"] : data.referralCodes;
 
+    console.log("Creating alert with data:", {
+      message: data.message,
+      geoTargets,
+      referralCodes,
+      startTime: new Date(data.startTime),
+      endTime: new Date(data.endTime),
+      casinoId: data.casinoId,
+      slot: data.slot,
+    });
+
     const alert = await prisma.alert.create({
       data: {
         message: data.message,
@@ -74,24 +84,38 @@ export async function createAlert(data: CreateAlertData) {
       },
     });
 
+    console.log("Alert created:", alert);
+
     // Find all users that should receive this alert
     const users = await prisma.user.findMany({
       where: {
-        // If both targets are 'all', match all users
-        ...(geoTargets.includes("all") && referralCodes.includes("all")
-          ? {}
-          : {
-              OR: [
-                // If only geo is 'all', match by referral
-                ...(geoTargets.includes("all")
-                  ? [{}]
-                  : [{ geo: { in: geoTargets } }]),
-                // If only referral is 'all', match by geo
-                ...(referralCodes.includes("all")
-                  ? [{}]
-                  : [{ refferal: { in: referralCodes } }]),
-              ],
-            }),
+        OR: [
+          // Match users with matching geo OR referral code
+          {
+            OR: [
+              // If geo targets include 'all' or user's geo matches
+              {
+                OR: [
+                  { geo: { in: geoTargets } },
+                  {
+                    geo: geoTargets.includes("all") ? { not: null } : undefined,
+                  },
+                ],
+              },
+              // If referral codes include 'all' or user's referral matches
+              {
+                OR: [
+                  { refferal: { in: referralCodes } },
+                  {
+                    refferal: referralCodes.includes("all")
+                      ? { not: null }
+                      : undefined,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
     });
 
@@ -101,6 +125,7 @@ export async function createAlert(data: CreateAlertData) {
       geoTargets,
       referralCodes,
       userDetails: users.map((u) => ({
+        id: u.id,
         email: u.email,
         geo: u.geo,
         refferal: u.refferal,
@@ -116,10 +141,13 @@ export async function createAlert(data: CreateAlertData) {
         })),
       });
 
-      console.log("Created recipients:", {
-        count: recipients.count,
+      console.log("Created alert recipients:", {
         alertId: alert.id,
+        recipientCount: recipients.count,
+        userIds: users.map((u) => u.id),
       });
+    } else {
+      console.log("No users found matching the alert criteria");
     }
 
     revalidatePath("/");
