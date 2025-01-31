@@ -604,10 +604,22 @@ model Alert {
   endTime       DateTime
   casino        casino_p_casinos? @relation(fields: [casinoId], references: [id])
   casinoId      Int?
+  casinoName    String?
+  casinoCleanName String?
   slot          String?          // Store slot name directly since we don't have a slots table
+  slotImage     String?
+  customUrl     String?
+  maxPotential  Float?
+  recommendedBet Float?
+  stopLimit     Float?
+  targetWin     Float?
+  maxWin        Float?
+  rtp           Float?
   recipients    AlertRecipient[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  @@index([casinoId])
 }
 
 model AlertRecipient {

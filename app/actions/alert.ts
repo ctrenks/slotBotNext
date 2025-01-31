@@ -2,19 +2,30 @@
 
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-interface CreateAlertInput {
+interface CreateAlertData {
   message: string;
   geoTargets: string[];
   referralCodes: string[];
   startTime: string;
   endTime: string;
   casinoId?: number;
+  casinoName?: string;
+  casinoCleanName?: string;
   slot?: string;
+  slotImage?: string;
+  customUrl?: string;
+  maxPotential?: number;
+  recommendedBet?: number;
+  stopLimit?: number;
+  targetWin?: number;
+  maxWin?: number;
+  rtp?: number;
 }
 
-export async function createAlert(input: CreateAlertInput) {
+export async function createAlert(data: CreateAlertData) {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -22,35 +33,37 @@ export async function createAlert(input: CreateAlertInput) {
   }
 
   // Normalize empty arrays to ['all']
-  const geoTargets =
-    input.geoTargets.includes("all") || input.geoTargets.length === 0
-      ? ["all"]
-      : input.geoTargets;
+  const geoTargets = data.geoTargets.length === 0 ? ["all"] : data.geoTargets;
   const referralCodes =
-    input.referralCodes.includes("all") || input.referralCodes.length === 0
-      ? ["all"]
-      : input.referralCodes;
+    data.referralCodes.length === 0 ? ["all"] : data.referralCodes;
 
-  console.log("Creating alert with:", {
-    geoTargets,
-    referralCodes,
-    message: input.message,
-    startTime: input.startTime,
-    endTime: input.endTime,
-    casinoId: input.casinoId,
-    slot: input.slot,
-  });
-
-  // Create the alert
   const alert = await prisma.alert.create({
     data: {
-      message: input.message,
+      message: data.message,
       geoTargets,
       referralCodes,
-      startTime: new Date(input.startTime),
-      endTime: new Date(input.endTime),
-      ...(input.casinoId && { casinoId: input.casinoId }),
-      ...(input.slot && { slot: input.slot }),
+      startTime: new Date(data.startTime),
+      endTime: new Date(data.endTime),
+      ...(data.casinoId && {
+        casino: {
+          connect: { id: data.casinoId },
+        },
+      }),
+      casinoName: data.casinoName,
+      casinoCleanName: data.casinoCleanName,
+      slot: data.slot,
+      slotImage: data.slotImage,
+      customUrl: data.customUrl,
+      maxPotential: data.maxPotential
+        ? parseFloat(data.maxPotential.toString())
+        : null,
+      recommendedBet: data.recommendedBet
+        ? parseFloat(data.recommendedBet.toString())
+        : null,
+      stopLimit: data.stopLimit ? parseFloat(data.stopLimit.toString()) : null,
+      targetWin: data.targetWin ? parseFloat(data.targetWin.toString()) : null,
+      maxWin: data.maxWin ? parseFloat(data.maxWin.toString()) : null,
+      rtp: data.rtp ? parseFloat(data.rtp.toString()) : null,
     },
   });
 

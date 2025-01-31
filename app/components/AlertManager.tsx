@@ -12,18 +12,35 @@ interface AlertFormData {
   startTime: string;
   endTime: string;
   casinoId?: number;
+  casinoName?: string;
+  casinoCleanName?: string;
   slot?: string;
+  slotImage?: string;
+  customUrl?: string;
+  maxPotential?: number;
+  recommendedBet?: number;
+  stopLimit?: number;
+  targetWin?: number;
+  maxWin?: number;
+  rtp?: number;
 }
 
 interface Casino {
   id: number;
   name: string;
+  cleanName?: string;
   software: string;
   validGames: Array<{
     name: string;
     image?: string;
     cleanName?: string;
   }>;
+}
+
+interface Slot {
+  name: string;
+  image?: string;
+  cleanName?: string;
 }
 
 export default function AlertManager() {
@@ -41,7 +58,7 @@ export default function AlertManager() {
   const [selectedGeos, setSelectedGeos] = useState<string[]>([]);
   const [selectedReferrals, setSelectedReferrals] = useState<string[]>([]);
   const [casinos, setCasinos] = useState<Casino[]>([]);
-  const [slots, setSlots] = useState<Array<{ name: string }>>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
 
   const selectedCasinoId = watch("casinoId");
 
@@ -51,7 +68,6 @@ export default function AlertManager() {
       try {
         const response = await fetch("/api/casinos");
         const data = await response.json();
-        console.log("Fetched casinos:", data); // Debug log
         setCasinos(data);
       } catch (error) {
         console.error("Failed to fetch casinos:", error);
@@ -62,18 +78,15 @@ export default function AlertManager() {
 
   // Update slots when casino is selected
   useEffect(() => {
-    console.log("Selected casino ID:", selectedCasinoId);
-
     if (!selectedCasinoId) {
       setSlots([]);
-      setValue("slot", ""); // Clear slot selection when casino changes
+      setValue("slot", "");
       return;
     }
 
     const fetchSlots = async () => {
       try {
         const data = await getSlotsForCasino(selectedCasinoId.toString());
-        console.log("Fetched slots:", data);
         setSlots(data);
       } catch (error) {
         console.error("Failed to fetch slots:", error);
@@ -83,6 +96,37 @@ export default function AlertManager() {
 
     fetchSlots();
   }, [selectedCasinoId, setValue]);
+
+  // Update casino details when selected
+  useEffect(() => {
+    if (!selectedCasinoId) {
+      setValue("casinoName", "");
+      setValue("casinoCleanName", "");
+      return;
+    }
+
+    const selectedCasino = casinos.find(
+      (c) => c.id === Number(selectedCasinoId)
+    );
+    if (selectedCasino) {
+      setValue("casinoName", selectedCasino.name);
+      setValue("casinoCleanName", selectedCasino.cleanName);
+    }
+  }, [selectedCasinoId, casinos, setValue]);
+
+  // Update slot details when selected
+  const selectedSlotName = watch("slot");
+  useEffect(() => {
+    if (!selectedSlotName) {
+      setValue("slotImage", "");
+      return;
+    }
+
+    const selectedSlot = slots.find((s) => s.name === selectedSlotName);
+    if (selectedSlot) {
+      setValue("slotImage", selectedSlot.image);
+    }
+  }, [selectedSlotName, slots, setValue]);
 
   const onSubmit = async (data: AlertFormData) => {
     setIsLoading(true);
@@ -142,8 +186,8 @@ export default function AlertManager() {
             {...register("casinoId")}
             className="w-full p-2 border rounded-md"
             onChange={(e) => {
-              register("casinoId").onChange(e); // Handle the registration
-              setValue("slot", ""); // Clear slot selection
+              register("casinoId").onChange(e);
+              setValue("slot", "");
             }}
           >
             <option value="">Select a casino...</option>
@@ -173,6 +217,96 @@ export default function AlertManager() {
             </select>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Custom URL (Optional)
+          </label>
+          <input
+            type="url"
+            {...register("customUrl")}
+            className="w-full p-2 border rounded-md"
+            placeholder="https://example.com/custom-slot-url"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Max Potential (x)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("maxPotential", { min: 0 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 5000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Recommended Bet ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("recommendedBet", { min: 0 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 0.40"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Stop Limit ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("stopLimit", { min: 0 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Target Win ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("targetWin", { min: 0 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Max Win ($)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("maxWin", { min: 0 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 1000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">RTP (%)</label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("rtp", { min: 0, max: 100 })}
+              className="w-full p-2 border rounded-md"
+              placeholder="e.g., 96.5"
+            />
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Geo Targets</label>

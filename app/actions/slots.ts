@@ -19,6 +19,7 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
     select: {
       id: true,
       casino: true,
+      clean_name: true,
       softwares: {
         select: {
           softwarelist: {
@@ -41,8 +42,6 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
     .map((sw) => sw.softwarelist?.id)
     .filter((id): id is number => id !== null && id !== undefined);
 
-  console.log(`Found software IDs for casino:`, softwareIds);
-
   // Get games for these software IDs
   const games = await prisma.casino_p_games.findMany({
     where: {
@@ -57,18 +56,17 @@ export async function getSlots(casinoId: number): Promise<Slot[]> {
       game_name: true,
       game_image: true,
       game_clean_name: true,
+      vercel_image_url: true,
     },
     orderBy: {
       game_name: "asc",
     },
   });
 
-  console.log(`Found ${games.length} games for casino`);
-
   // Transform the games to match the Slot interface
   return games.map((game) => ({
     name: game.game_name,
-    image: game.game_image || undefined,
+    image: game.vercel_image_url || game.game_image || undefined,
     cleanName: game.game_clean_name || undefined,
   }));
 }
