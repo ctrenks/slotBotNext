@@ -21,10 +21,6 @@ interface WakeLockSentinel {
   removeEventListener(type: string, listener: EventListener): void;
 }
 
-interface WakeLock {
-  request(type: "screen"): Promise<WakeLockSentinel>;
-}
-
 export default function GlobalAlertDisplay() {
   const { data: session, status } = useSession();
   const [initialAlerts, setInitialAlerts] = useState<AlertWithRead[]>([]);
