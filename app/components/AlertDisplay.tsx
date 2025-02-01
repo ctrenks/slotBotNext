@@ -52,10 +52,24 @@ export default function AlertDisplay({
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(true);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if device is mobile on component mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor;
+      const isMobileDevice =
+        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          userAgent.toLowerCase()
+        );
+      setIsMobile(isMobileDevice);
+    };
+    checkMobile();
+  }, []);
 
   const requestNotificationPermission = async () => {
-    if ("Notification" in window) {
+    if (!isMobile && "Notification" in window) {
       const result = await Notification.requestPermission();
       console.log("Notification permission:", result);
       setPermission(result);
@@ -67,7 +81,8 @@ export default function AlertDisplay({
     async (alert: AlertWithRead) => {
       console.log("Showing notification for:", alert);
 
-      if (permission === "granted") {
+      // Only show browser notifications on desktop
+      if (!isMobile && permission === "granted") {
         try {
           // Show browser notification
           const notification = new Notification("New Alert", {
@@ -112,9 +127,13 @@ export default function AlertDisplay({
         } catch (error) {
           console.log("Notification error:", error);
         }
+      } else {
+        // On mobile, just update the UI to show new alerts
+        // The alerts will be visible in the AlertDisplay component
+        console.log("Mobile device - skipping browser notification");
       }
     },
-    [permission]
+    [permission, isMobile]
   );
 
   // Check for new alerts every minute with rate limiting
@@ -210,9 +229,13 @@ export default function AlertDisplay({
     return endTime < now;
   });
 
+  // Only show notification permission prompt on desktop
+  const shouldShowPermissionPrompt =
+    showPermissionPrompt && !isMobile && permission === "default";
+
   return (
     <div className="space-y-6">
-      {showPermissionPrompt && permission === "default" && (
+      {shouldShowPermissionPrompt && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <p className="text-blue-800 mb-2">
             Would you like to receive notifications for new alerts?
