@@ -109,21 +109,35 @@ export async function createAlert(data: CreateAlertData) {
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          // Match if geo targets include 'all' and user has a geo
+          // Match if geo targets include 'all' AND user has a geo
           {
-            geo: { not: null },
+            AND: [{ geo: { not: null } }, { geo: { not: "" } }],
           },
-          // Match if user's geo is in geoTargets
+          // Match if user's geo is in geoTargets AND user has a geo
           {
-            geo: { in: geoTargets },
+            AND: [
+              { geo: { not: null } },
+              { geo: { not: "" } },
+              { geo: { in: geoTargets } },
+            ],
           },
-          // Match if referral targets include 'all' and user has a referral
+        ],
+        AND: [
           {
-            refferal: { not: null },
-          },
-          // Match if user's referral is in referralCodes
-          {
-            refferal: { in: referralCodes },
+            OR: [
+              // Match if referral targets include 'all' AND user has a referral
+              {
+                AND: [{ refferal: { not: null } }, { refferal: { not: "" } }],
+              },
+              // Match if user's referral is in referralCodes AND user has a referral
+              {
+                AND: [
+                  { refferal: { not: null } },
+                  { refferal: { not: "" } },
+                  { refferal: { in: referralCodes } },
+                ],
+              },
+            ],
           },
         ],
       },
@@ -294,15 +308,20 @@ export async function getAlertsForUser() {
 
         // Check if alert targets this user's geo
         const geoMatch =
-          alert.geoTargets.includes("all") ||
-          (user.geo && alert.geoTargets.includes(user.geo));
+          (alert.geoTargets.includes("all") && user.geo && user.geo !== "") ||
+          (user.geo && user.geo !== "" && alert.geoTargets.includes(user.geo));
 
         // Check if alert targets this user's referral code
         const referralMatch =
-          alert.referralCodes.includes("all") ||
-          (user.refferal && alert.referralCodes.includes(user.refferal));
+          (alert.referralCodes.includes("all") &&
+            user.refferal &&
+            user.refferal !== "") ||
+          (user.refferal &&
+            user.refferal !== "" &&
+            alert.referralCodes.includes(user.refferal));
 
-        const isMatch = geoMatch || referralMatch;
+        // Both conditions must match for the alert to be shown
+        const isMatch = geoMatch && referralMatch;
 
         console.log("Alert match check:", {
           alertId: alert.id,
