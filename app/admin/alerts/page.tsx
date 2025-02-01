@@ -18,8 +18,8 @@ export default async function AlertManagementPage() {
   const session = await auth();
 
   // Check if user is logged in
-  if (!session?.user?.email) {
-    redirect("/auth/signin");
+  if (session?.user?.email !== "chris@trenkas.com") {
+    redirect("/");
   }
 
   // Get all alerts for display
