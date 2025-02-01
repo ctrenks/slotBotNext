@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import SessionInfo from "./SessionInfo";
 import SlotBotButton from "./SlotBotButton";
+import EnableNotifications from "./EnableNotifications";
 
 const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
   const handleClick = () => {
@@ -80,6 +81,9 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
                 className="w-full justify-center"
                 onClick={handleClick}
               />
+            </li>
+            <li onClick={handleClick}>
+              <EnableNotifications />
             </li>
             <li onClick={handleClick} className="mt-4">
               <SessionInfo />
