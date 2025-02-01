@@ -41,52 +41,39 @@ export async function POST() {
     }
 
     const now = new Date();
+    const twentyFourHoursFromNow = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000
+    );
+
     console.log("Alert check request:", {
       userEmail: user.email,
       userId: user.id,
       currentTime: now.toISOString(),
+      checkingUntil: twentyFourHoursFromNow.toISOString(),
     });
 
-    // First check all active alerts to see what's available
-    const allActiveAlerts = await prisma.alert.findMany({
-      where: {
-        startTime: { lte: now },
-        endTime: { gt: now },
-      },
-      include: {
-        recipients: true,
-      },
-    });
-
-    console.log("All active alerts:", {
-      count: allActiveAlerts.length,
-      alerts: allActiveAlerts.map((a) => ({
-        id: a.id,
-        message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
-        recipientCount: a.recipients.length,
-        recipientIds: a.recipients.map((r) => r.userId),
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
-      })),
-    });
-
-    // Find active alerts where this user is a recipient
-    const activeAlerts = await prisma.alert.findMany({
+    // Find alerts where this user is a recipient and that haven't ended yet
+    const userAlerts = await prisma.alert.findMany({
       where: {
         AND: [
-          // Time filter
-          {
-            startTime: { lte: now },
-            endTime: { gt: now },
-          },
           // Must be a recipient
           {
             recipients: {
               some: {
                 userId: user.id,
               },
+            },
+          },
+          // Not ended yet
+          {
+            endTime: {
+              gt: now,
+            },
+          },
+          // Starts within next 24 hours
+          {
+            startTime: {
+              lte: twentyFourHoursFromNow,
             },
           },
         ],
@@ -103,21 +90,31 @@ export async function POST() {
       },
     });
 
-    console.log("Found active alerts for user:", {
+    console.log("Found alerts for user:", {
       userId: user.id,
-      count: activeAlerts.length,
-      alerts: activeAlerts.map((a) => ({
+      totalAlerts: userAlerts.length,
+      alerts: userAlerts.map((a) => ({
         id: a.id,
         message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
+        startTime: a.startTime.toISOString(),
+        endTime: a.endTime.toISOString(),
         hasRecipient: a.recipients.length > 0,
         recipientReadStatus: a.recipients[0]?.read,
+        timeInfo: {
+          startTime: a.startTime.toISOString(),
+          endTime: a.endTime.toISOString(),
+          now: now.toISOString(),
+          startDiff: (a.startTime.getTime() - now.getTime()) / (1000 * 60), // minutes until start
+          endDiff: (a.endTime.getTime() - now.getTime()) / (1000 * 60), // minutes until end
+          isActive: a.startTime <= now && a.endTime > now,
+          isUpcoming:
+            a.startTime > now && a.startTime <= twentyFourHoursFromNow,
+        },
       })),
     });
 
     // Transform alerts and add read status
-    const alertsWithReadStatus = activeAlerts.map((alert) => ({
+    const alertsWithReadStatus = userAlerts.map((alert) => ({
       ...alert,
       read: alert.recipients[0]?.read ?? false,
     }));

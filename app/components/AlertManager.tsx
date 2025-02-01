@@ -241,10 +241,19 @@ export default function AlertManager() {
         return;
       }
 
-      // Format dates properly
+      // Get current time for immediate alerts
+      const now = new Date();
+
+      // Format dates properly - use current time for start if it's in the past
       const startDate = new Date(data.startTime);
       const endDate = new Date(data.endTime);
-      const now = new Date();
+
+      // If start time is in the past, use current time
+      if (startDate < now) {
+        startDate.setTime(now.getTime());
+        // Add 45 minutes to the end time from the new start time
+        endDate.setTime(startDate.getTime() + 45 * 60 * 1000);
+      }
 
       // Date validation
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -255,12 +264,6 @@ export default function AlertManager() {
 
       if (endDate <= startDate) {
         setErrorMessage("End time must be after start time");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (startDate < now) {
-        setErrorMessage("Start time cannot be in the past");
         setIsSubmitting(false);
         return;
       }
@@ -309,13 +312,14 @@ export default function AlertManager() {
         throw new Error("Failed to create alert - no response from server");
       }
 
-      // Reset form on success
+      // Reset form on success with current time
+      const resetStartTime = new Date();
+      const resetEndTime = new Date(resetStartTime.getTime() + 45 * 60 * 1000);
+
       reset({
         message: "",
-        startTime: new Date().toISOString().slice(0, 16),
-        endTime: new Date(Date.now() + 45 * 60 * 1000)
-          .toISOString()
-          .slice(0, 16),
+        startTime: resetStartTime.toISOString().slice(0, 16),
+        endTime: resetEndTime.toISOString().slice(0, 16),
       });
       setSelectedGeos([]);
       setSelectedReferrals([]);

@@ -10,16 +10,13 @@ interface AlertWithRead extends PrismaAlert {
 
 export default function AlertDisplay({
   initialAlerts,
-  userGeo,
-  userReferral,
 }: {
   initialAlerts: AlertWithRead[];
-  userGeo: string;
-  userReferral: string | null;
 }) {
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(true);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize audio element
@@ -28,6 +25,15 @@ export default function AlertDisplay({
       notificationSoundRef.current = new Audio("/notification.mp3");
     }
   }, []);
+
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window) {
+      const result = await Notification.requestPermission();
+      console.log("Notification permission:", result);
+      setPermission(result);
+      setShowPermissionPrompt(false);
+    }
+  };
 
   const showNotification = useCallback(
     async (alert: AlertWithRead) => {
@@ -97,7 +103,6 @@ export default function AlertDisplay({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({}),
         });
 
         if (!response.ok) {
@@ -105,40 +110,25 @@ export default function AlertDisplay({
           return;
         }
 
-        const newAlerts: AlertWithRead[] = await response.json();
+        const newAlerts = await response.json();
         console.log("Received alerts:", newAlerts);
 
         if (newAlerts.length > 0) {
-          // Filter new alerts based on user's geo and referral
-          const filteredNewAlerts = newAlerts.filter((alert) => {
-            const startTime = new Date(alert.startTime);
-            const endTime = new Date(alert.endTime);
-            const isTimeValid =
-              startTime <= new Date() && endTime >= new Date();
-
-            const geoMatch =
-              alert.geoTargets.includes("all") ||
-              alert.geoTargets.includes(userGeo);
-            const referralMatch =
-              alert.referralCodes.includes("all") ||
-              (userReferral && alert.referralCodes.includes(userReferral));
-
-            return isTimeValid && (geoMatch || referralMatch);
+          setAlerts((prev) => {
+            // Filter out any duplicates
+            const newAlertIds = new Set(
+              newAlerts.map((a: AlertWithRead) => a.id)
+            );
+            const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
+            return [...existingAlerts, ...newAlerts];
           });
 
-          console.log("Filtered alerts:", filteredNewAlerts);
-
-          if (filteredNewAlerts.length > 0) {
-            setAlerts((prev) => {
-              // Filter out any duplicates
-              const newAlertIds = new Set(filteredNewAlerts.map((a) => a.id));
-              const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
-              return [...existingAlerts, ...filteredNewAlerts];
-            });
-
-            // Show notification for each new alert
-            for (const alert of filteredNewAlerts) {
-              await showNotification(alert);
+          // Show notification for each new alert if permission is granted
+          if (permission === "granted") {
+            for (const alert of newAlerts) {
+              if (!alert.read) {
+                await showNotification(alert);
+              }
             }
           }
         }
@@ -158,20 +148,7 @@ export default function AlertDisplay({
       console.log("Cleaning up alert polling...");
       clearInterval(interval);
     };
-  }, [userGeo, userReferral, showNotification]);
-
-  // Request notification permission
-  useEffect(() => {
-    const requestPermission = async () => {
-      if ("Notification" in window) {
-        const result = await Notification.requestPermission();
-        console.log("Notification permission:", result);
-        setPermission(result);
-      }
-    };
-
-    requestPermission();
-  }, []);
+  }, [permission, showNotification]);
 
   const handleMarkAsRead = async (alertId: string) => {
     await markAlertAsRead(alertId);
@@ -183,12 +160,27 @@ export default function AlertDisplay({
   };
 
   const now = new Date();
+
+  // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
     return startTime <= now && endTime >= now;
   });
 
+  // Upcoming alerts - starting within the next 24 hours
+  const upcomingAlerts = alerts.filter((alert) => {
+    const startTime = new Date(alert.startTime);
+    const endTime = new Date(alert.endTime);
+    const twentyFourHoursFromNow = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000
+    );
+    return (
+      startTime > now && startTime <= twentyFourHoursFromNow && endTime >= now
+    );
+  });
+
+  // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
     return endTime < now;
@@ -196,6 +188,42 @@ export default function AlertDisplay({
 
   return (
     <div className="space-y-6">
+      {showPermissionPrompt && permission === "default" && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p className="text-blue-800 mb-2">
+            Would you like to receive notifications for new alerts?
+          </p>
+          <button
+            onClick={requestNotificationPermission}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Enable Notifications
+          </button>
+        </div>
+      )}
+
+      {upcomingAlerts.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Upcoming Alerts</h3>
+          <div className="space-y-3">
+            {upcomingAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className="p-4 rounded-lg border bg-yellow-50 border-yellow-200"
+              >
+                <p className="text-gray-800">{alert.message}</p>
+                <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
+                  <span>
+                    Starts: {new Date(alert.startTime).toLocaleString()}
+                  </span>
+                  <span>Ends: {new Date(alert.endTime).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {activeAlerts.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Active Alerts</h3>

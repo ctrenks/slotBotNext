@@ -57,8 +57,6 @@ export default function GlobalAlertDisplay() {
           alerts: alerts.map((a: AlertWithRead) => ({
             id: a.id,
             message: a.message,
-            geoTargets: a.geoTargets,
-            referralCodes: a.referralCodes,
             startTime: a.startTime,
             endTime: a.endTime,
             read: a.read,
@@ -89,11 +87,7 @@ export default function GlobalAlertDisplay() {
       {error ? (
         <div className="p-4 text-red-500">{error}</div>
       ) : (
-        <AlertDisplay
-          initialAlerts={initialAlerts}
-          userGeo={session.user.geo || ""}
-          userReferral={session.user.refferal || null}
-        />
+        <AlertDisplay initialAlerts={initialAlerts} />
       )}
     </div>
   );

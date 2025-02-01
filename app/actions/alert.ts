@@ -84,36 +84,46 @@ export async function createAlert(data: CreateAlertData) {
       },
     });
 
-    console.log("Alert created:", alert);
+    console.log("Alert created:", {
+      id: alert.id,
+      message: alert.message,
+      geoTargets: alert.geoTargets,
+      referralCodes: alert.referralCodes,
+      startTime: alert.startTime,
+      endTime: alert.endTime,
+    });
+
+    // First get all users to see what's available
+    const allUsers = await prisma.user.findMany();
+    console.log("All users in system:", {
+      count: allUsers.length,
+      users: allUsers.map((u) => ({
+        id: u.id,
+        email: u.email,
+        geo: u.geo,
+        refferal: u.refferal,
+      })),
+    });
 
     // Find all users that should receive this alert
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          // Match users with matching geo OR referral code
+          // Match if geo targets include 'all' and user has a geo
           {
-            OR: [
-              // If geo targets include 'all' or user's geo matches
-              {
-                OR: [
-                  { geo: { in: geoTargets } },
-                  {
-                    geo: geoTargets.includes("all") ? { not: null } : undefined,
-                  },
-                ],
-              },
-              // If referral codes include 'all' or user's referral matches
-              {
-                OR: [
-                  { refferal: { in: referralCodes } },
-                  {
-                    refferal: referralCodes.includes("all")
-                      ? { not: null }
-                      : undefined,
-                  },
-                ],
-              },
-            ],
+            geo: { not: null },
+          },
+          // Match if user's geo is in geoTargets
+          {
+            geo: { in: geoTargets },
+          },
+          // Match if referral targets include 'all' and user has a referral
+          {
+            refferal: { not: null },
+          },
+          // Match if user's referral is in referralCodes
+          {
+            refferal: { in: referralCodes },
           },
         ],
       },
@@ -129,6 +139,11 @@ export async function createAlert(data: CreateAlertData) {
         email: u.email,
         geo: u.geo,
         refferal: u.refferal,
+        matchedByGeo:
+          u.geo && (geoTargets.includes("all") || geoTargets.includes(u.geo)),
+        matchedByReferral:
+          u.refferal &&
+          (referralCodes.includes("all") || referralCodes.includes(u.refferal)),
       })),
     });
 
@@ -149,6 +164,23 @@ export async function createAlert(data: CreateAlertData) {
     } else {
       console.log("No users found matching the alert criteria");
     }
+
+    // Verify recipients were created
+    const createdRecipients = await prisma.alertRecipient.findMany({
+      where: { alertId: alert.id },
+      include: { user: true },
+    });
+
+    console.log("Verified created recipients:", {
+      alertId: alert.id,
+      count: createdRecipients.length,
+      recipients: createdRecipients.map((r) => ({
+        userId: r.userId,
+        email: r.user.email,
+        geo: r.user.geo,
+        refferal: r.user.refferal,
+      })),
+    });
 
     revalidatePath("/");
     return alert;
