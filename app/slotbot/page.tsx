@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import GlobalAlertDisplay from "@/app/components/GlobalAlertDisplay";
+import EnableNotifications from "@/app/components/EnableNotifications";
 
 export const metadata: Metadata = {
   title: "Slot Bot",
@@ -81,7 +82,10 @@ export default async function SlotBot() {
           You have access to the slot bot system. Content will be added here.
         </p>
       </div>
-      <GlobalAlertDisplay />
+      <div className="mt-8">
+        <EnableNotifications variant="banner" />
+        <GlobalAlertDisplay />
+      </div>
     </div>
   );
 }
