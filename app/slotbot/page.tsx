@@ -75,13 +75,13 @@ export default async function SlotBot() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <GlobalAlertDisplay />
       <h1 className="text-2xl font-bold mb-4 mt-8">Welcome to the Slot Bot</h1>
       <div className="text-lg border-y border-green-900 py-4">
         <p>
           You have access to the slot bot system. Content will be added here.
         </p>
       </div>
+      <GlobalAlertDisplay />
     </div>
   );
 }

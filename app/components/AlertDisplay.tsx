@@ -363,6 +363,9 @@ export default function AlertDisplay({
           <div className="space-y-3">
             {expiredAlerts.map((alert) => (
               <div key={alert.id} className="p-4 rounded-lg border bg-gray-50">
+                <h5 className="text-lg font-semibold">
+                  {alert.casinoName} has {alert.slot} at {alert.rtp}%
+                </h5>
                 <p className="text-gray-600">{alert.message}</p>
                 <div className="mt-2 text-sm text-gray-500">
                   <span>Expired</span>
