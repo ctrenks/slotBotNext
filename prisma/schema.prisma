@@ -21,21 +21,21 @@ model BotUser {
 }
 
 model User {
-  id            String          @id @default(cuid())
+  id            String           @id @default(cuid())
   name          String?
-  email         String          @unique
+  email         String           @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
   birthday      DateTime?
   location      String?
-  bio           String?         @db.Text
-  paid          Boolean         @default(false)
+  bio           String?          @db.Text
+  paid          Boolean          @default(false)
   trial         DateTime?
-  refferal     String?
+  refferal      String?
   geo           String?
-  affiliate     String? @unique
+  affiliate     String?          @unique
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   alerts        AlertRecipient[]
@@ -267,7 +267,6 @@ model casino_p_software_link {
   software     Int?
   softwares    casino_p_casinos?  @relation(fields: [casino], references: [id], onDelete: Cascade)
   softwarelist casino_p_software? @relation(fields: [software], references: [id], onDelete: Cascade)
-
 
   @@index(fields: [casino, software])
 }
@@ -596,30 +595,29 @@ model ppc_links {
 }
 
 model Alert {
-  id            String           @id @default(cuid())
-  message       String
-  geoTargets    String[]
-  referralCodes String[]
-  startTime     DateTime
-  endTime       DateTime
-  casino        casino_p_casinos? @relation(fields: [casinoId], references: [id])
-  casinoId      Int?
-  casinoName    String?
+  id              String            @id @default(cuid())
+  message         String
+  geoTargets      String[]
+  referralCodes   String[]
+  startTime       DateTime
+  endTime         DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  casinoId        Int?
+  casino          casino_p_casinos? @relation(fields: [casinoId], references: [id])
+  casinoName      String?
   casinoCleanName String?
-  slot          String?          // Store slot name directly since we don't have a slots table
-  slotImage     String?
-  customUrl     String?
-  maxPotential  Float?
-  recommendedBet Float?
-  stopLimit     Float?
-  targetWin     Float?
-  maxWin        Float?
-  rtp           Float?
-  recipients    AlertRecipient[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  @@index([casinoId])
+  slot            String?
+  slotImage       String?
+  customUrl       String?
+  maxPotential    Float?
+  recommendedBet  Float?
+  stopLimit       Float?
+  targetWin       Float?
+  maxWin          Float?
+  rtp             Float?
+  recipients      AlertRecipient[]
+  clicks          AlertClick[]
 }
 
 model AlertRecipient {
@@ -633,4 +631,20 @@ model AlertRecipient {
   updatedAt DateTime @updatedAt
 
   @@unique([alertId, userId])
+}
+
+model AlertClick {
+  id        String   @id @default(cuid())
+  alertId   String
+  alert     Alert    @relation(fields: [alertId], references: [id])
+  userId    String?
+  userEmail String?
+  username  String?
+  geo       String?  @db.Char(2) // 2 letter country code
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([geo])
 }
