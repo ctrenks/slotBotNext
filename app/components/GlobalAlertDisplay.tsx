@@ -9,13 +9,64 @@ interface AlertWithRead extends Alert {
   read: boolean;
 }
 
+// Add types for iOS and Android specific features
+interface SafariNavigator extends Navigator {
+  standalone?: boolean;
+}
+
+interface WakeLockSentinel {
+  released: boolean;
+  release(): Promise<void>;
+  addEventListener(type: string, listener: EventListener): void;
+  removeEventListener(type: string, listener: EventListener): void;
+}
+
+interface WakeLock {
+  request(type: "screen"): Promise<WakeLockSentinel>;
+}
+
 export default function GlobalAlertDisplay() {
   const { data: session, status } = useSession();
   const [initialAlerts, setInitialAlerts] = useState<AlertWithRead[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
 
   useEffect(() => {
-    const fetchInitialAlerts = async () => {
+    // Check platform and PWA status
+    const isIOSStandalone = (window.navigator as SafariNavigator).standalone;
+    const isStandaloneMode = window.matchMedia(
+      "(display-mode: standalone)"
+    ).matches;
+    const isAndroidDevice = /Android/.test(window.navigator.userAgent);
+
+    setIsAndroid(isAndroidDevice);
+    setIsStandalone(isIOSStandalone || isStandaloneMode);
+
+    // Request wake lock for Android PWA
+    const requestWakeLock = async () => {
+      if (
+        isAndroidDevice &&
+        isStandaloneMode &&
+        "wakeLock" in navigator &&
+        navigator.wakeLock
+      ) {
+        try {
+          const lock = await navigator.wakeLock.request("screen");
+          setWakeLock(lock);
+          console.log("Wake Lock is active");
+        } catch (err) {
+          console.error("Failed to request wake lock:", err);
+        }
+      }
+    };
+
+    requestWakeLock();
+  }, []);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
       try {
         // Only fetch if session is authenticated
         if (status !== "authenticated") {
@@ -31,6 +82,8 @@ export default function GlobalAlertDisplay() {
           userEmail: session?.user?.email,
           userGeo: session?.user?.geo,
           userRefferal: session?.user?.refferal,
+          isPWA: isStandalone,
+          platform: isAndroid ? "Android" : "iOS/Other",
         });
 
         const response = await fetch("/api/alerts/check", {
@@ -42,7 +95,7 @@ export default function GlobalAlertDisplay() {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Error fetching initial alerts:", {
+          console.error("Error fetching alerts:", {
             status: response.status,
             statusText: response.statusText,
             error: errorText,
@@ -65,16 +118,84 @@ export default function GlobalAlertDisplay() {
         setInitialAlerts(alerts);
         setError(null);
       } catch (error) {
-        console.error("Error fetching initial alerts:", error);
+        console.error("Error fetching alerts:", error);
         setError(
           error instanceof Error ? error.message : "Unknown error occurred"
         );
       }
     };
 
-    fetchInitialAlerts();
-    // Re-fetch alerts when session changes
-  }, [session, status]);
+    // Initial fetch
+    fetchAlerts();
+
+    // Set up polling interval
+    let pollInterval: NodeJS.Timeout;
+
+    if (isStandalone) {
+      // More frequent polling for standalone PWA mode (every 30 seconds)
+      pollInterval = setInterval(fetchAlerts, 30000);
+
+      // Set up visibility change listener for PWA
+      const handleVisibilityChange = async () => {
+        if (document.visibilityState === "visible") {
+          // Re-request wake lock if needed
+          if (
+            isAndroid &&
+            !wakeLock &&
+            "wakeLock" in navigator &&
+            navigator.wakeLock
+          ) {
+            try {
+              const lock = await navigator.wakeLock.request("screen");
+              setWakeLock(lock);
+              console.log("Wake Lock reacquired");
+            } catch (err) {
+              console.error("Failed to reacquire wake lock:", err);
+            }
+          }
+          fetchAlerts();
+        } else if (document.visibilityState === "hidden" && wakeLock) {
+          // Release wake lock when app is hidden
+          try {
+            await wakeLock.release();
+            setWakeLock(null);
+            console.log("Wake Lock released");
+          } catch (err) {
+            console.error("Failed to release wake lock:", err);
+          }
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      // Set up online/offline listeners
+      const handleOnline = () => {
+        console.log("App is online, fetching alerts...");
+        fetchAlerts();
+      };
+      window.addEventListener("online", handleOnline);
+
+      return () => {
+        clearInterval(pollInterval);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+        window.removeEventListener("online", handleOnline);
+        // Release wake lock on cleanup
+        if (wakeLock) {
+          wakeLock
+            .release()
+            .catch((err) =>
+              console.error("Failed to release wake lock on cleanup:", err)
+            );
+        }
+      };
+    } else {
+      // Less frequent polling for browser mode (every 60 seconds)
+      pollInterval = setInterval(fetchAlerts, 60000);
+      return () => clearInterval(pollInterval);
+    }
+  }, [session, status, isStandalone, isAndroid, wakeLock]);
 
   // Don't render anything if not authenticated
   if (status !== "authenticated" || !session?.user) {
