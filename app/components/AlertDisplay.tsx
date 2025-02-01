@@ -1,11 +1,47 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import { Alert as PrismaAlert } from "@prisma/client";
+import { casino_p_casinos as Casino } from "@prisma/client";
+import Image from "next/image";
 
 interface AlertWithRead extends PrismaAlert {
   read: boolean;
+  casino?: Casino | null;
+}
+
+function CountdownTimer({ endTime }: { endTime: Date }) {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const difference = endTime.getTime() - now.getTime();
+
+      if (difference <= 0) {
+        setTimeLeft("Expired");
+        return;
+      }
+
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+      setTimeLeft(
+        `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [endTime]);
+
+  return <span>{timeLeft}</span>;
 }
 
 export default function AlertDisplay({
@@ -17,14 +53,6 @@ export default function AlertDisplay({
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(true);
-  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
-
-  // Initialize audio element
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      notificationSoundRef.current = new Audio("/notification.mp3");
-    }
-  }, []);
 
   const requestNotificationPermission = async () => {
     if ("Notification" in window) {
@@ -40,62 +68,68 @@ export default function AlertDisplay({
       console.log("Showing notification for:", alert);
 
       if (permission === "granted") {
-        // Show browser notification
-        const notification = new Notification("New Alert", {
-          body: alert.message,
-          icon: "/favicon.ico",
-          tag: alert.id,
-          requireInteraction: true,
-        });
-
-        // Play sound
         try {
-          if (notificationSoundRef.current) {
-            await notificationSoundRef.current.play();
-          }
-        } catch (err) {
-          console.error("Error playing notification sound:", err);
-        }
+          // Show browser notification
+          const notification = new Notification("New Alert", {
+            body: alert.message,
+            icon: "/favicon.ico",
+            tag: alert.id,
+            silent: true, // Disable sound
+            requireInteraction: true,
+          });
 
-        // Flash title
-        const originalTitle = document.title;
-        let isFlashing = true;
-        const flashInterval = setInterval(() => {
-          if (isFlashing) {
-            document.title = `🔔 New Alert! 🔔 - ${alert.message}`;
-          } else {
-            document.title = originalTitle;
-          }
-          isFlashing = !isFlashing;
-        }, 1000);
+          // Flash title
+          const originalTitle = document.title;
+          let isFlashing = true;
+          const flashInterval = setInterval(() => {
+            if (isFlashing) {
+              document.title = `🔔 New Alert! 🔔 - ${alert.message}`;
+            } else {
+              document.title = originalTitle;
+            }
+            isFlashing = !isFlashing;
+          }, 1000);
 
-        // Stop flashing when user focuses the window
-        window.addEventListener(
-          "focus",
-          () => {
+          // Stop flashing when user focuses the window
+          window.addEventListener(
+            "focus",
+            () => {
+              isFlashing = false;
+              document.title = originalTitle;
+              clearInterval(flashInterval);
+            },
+            { once: true }
+          );
+
+          // Handle notification click
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
             isFlashing = false;
             document.title = originalTitle;
             clearInterval(flashInterval);
-          },
-          { once: true }
-        );
-
-        // Handle notification click
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-          isFlashing = false;
-          document.title = originalTitle;
-          clearInterval(flashInterval);
-        };
+          };
+        } catch (error) {
+          console.log("Notification error:", error);
+        }
       }
     },
     [permission]
   );
 
-  // Check for new alerts every minute
+  // Check for new alerts every minute with rate limiting
   useEffect(() => {
+    let lastCheck = 0;
+    const MIN_CHECK_INTERVAL = 30000; // Minimum 30 seconds between checks
+
     const checkNewAlerts = async () => {
+      const now = Date.now();
+      if (now - lastCheck < MIN_CHECK_INTERVAL) {
+        console.log("Skipping alert check - too soon");
+        return;
+      }
+      lastCheck = now;
+
       try {
         console.log("Checking for new alerts...");
         const response = await fetch("/api/alerts/check", {
@@ -124,11 +158,13 @@ export default function AlertDisplay({
           });
 
           // Show notification for each new alert if permission is granted
+          // Only show one notification at a time
           if (permission === "granted") {
-            for (const alert of newAlerts) {
-              if (!alert.read) {
-                await showNotification(alert);
-              }
+            const unreadAlerts = newAlerts.filter(
+              (alert: AlertWithRead) => !alert.read
+            );
+            if (unreadAlerts.length > 0) {
+              await showNotification(unreadAlerts[0]);
             }
           }
         }
@@ -168,18 +204,6 @@ export default function AlertDisplay({
     return startTime <= now && endTime >= now;
   });
 
-  // Upcoming alerts - starting within the next 24 hours
-  const upcomingAlerts = alerts.filter((alert) => {
-    const startTime = new Date(alert.startTime);
-    const endTime = new Date(alert.endTime);
-    const twentyFourHoursFromNow = new Date(
-      now.getTime() + 24 * 60 * 60 * 1000
-    );
-    return (
-      startTime > now && startTime <= twentyFourHoursFromNow && endTime >= now
-    );
-  });
-
   // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
@@ -202,28 +226,6 @@ export default function AlertDisplay({
         </div>
       )}
 
-      {upcomingAlerts.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Upcoming Alerts</h3>
-          <div className="space-y-3">
-            {upcomingAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="p-4 rounded-lg border bg-yellow-50 border-yellow-200"
-              >
-                <p className="text-gray-800">{alert.message}</p>
-                <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
-                  <span>
-                    Starts: {new Date(alert.startTime).toLocaleString()}
-                  </span>
-                  <span>Ends: {new Date(alert.endTime).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {activeAlerts.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Active Alerts</h3>
@@ -235,19 +237,119 @@ export default function AlertDisplay({
                   alert.read ? "bg-gray-50" : "bg-green-50 border-green-200"
                 }`}
               >
-                <p className="text-gray-800">{alert.message}</p>
-                <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
-                  <span>
-                    Expires: {new Date(alert.endTime).toLocaleString()}
-                  </span>
-                  {!alert.read && (
-                    <button
-                      onClick={() => handleMarkAsRead(alert.id)}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      Mark as read
-                    </button>
-                  )}
+                <div className="flex gap-6">
+                  {/* Left Column - Images and Play Button */}
+                  <div className="flex flex-col gap-4 min-w-[200px]">
+                    {alert.casino && alert.casino.button && (
+                      <div className="flex flex-col items-center mb-4">
+                        <img
+                          src={`/image/casino/${alert.casino.button}`}
+                          alt={alert.casinoName || "Casino logo"}
+                          className="max-w-[100px] max-h-[80px] w-auto h-auto object-contain"
+                        />
+                        <a
+                          href={`/out/${alert.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                        >
+                          Play Now
+                        </a>
+                      </div>
+                    )}
+                    {alert.slotImage && (
+                      <div className="flex justify-center">
+                        <Image
+                          src={`/image/sloticonssquare/${alert.slotImage}`}
+                          alt={alert.slot || ""}
+                          className="w-[160px] h-[160px] object-contain"
+                          width={160}
+                          height={160}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column - Details */}
+                  <div className="flex-1">
+                    {/* Casino and Slot Names */}
+                    <div className="mb-3">
+                      {alert.casinoName && (
+                        <h4 className="text-lg font-semibold">
+                          {alert.casinoName} has {alert.slot} at {alert.rtp}%
+                        </h4>
+                      )}
+                    </div>
+
+                    {/* Alert Message */}
+                    <p className="text-gray-800 mb-4">{alert.message}</p>
+
+                    {/* Additional Details */}
+                    {(alert.maxPotential ||
+                      alert.recommendedBet ||
+                      alert.rtp) && (
+                      <div className="space-y-2 text-sm text-gray-600">
+                        {alert.maxPotential && (
+                          <div>
+                            <span className="font-medium">
+                              ✅Max Potential:
+                            </span>{" "}
+                            {alert.maxPotential}x
+                          </div>
+                        )}
+                        {alert.recommendedBet && (
+                          <div>
+                            <span className="font-medium">
+                              ✅Recommended Bet:
+                            </span>{" "}
+                            ${alert.recommendedBet}
+                          </div>
+                        )}
+                        {alert.rtp && (
+                          <div>
+                            <span className="font-medium">✅RTP:</span>{" "}
+                            {alert.rtp}%
+                          </div>
+                        )}
+                        {alert.rtp && (
+                          <div>
+                            <span className="font-medium">
+                              ☢️Stop Loss Limit:
+                            </span>{" "}
+                            ${alert.stopLimit}
+                          </div>
+                        )}
+                        {alert.maxPotential && (
+                          <div>
+                            <span className="font-medium">✅Win Target:</span> $
+                            {alert.targetWin}
+                          </div>
+                        )}
+                        {alert.maxWin && (
+                          <div>
+                            <span className="font-medium">✅Win Limit:</span> $
+                            {alert.maxWin}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Timer and Mark as Read */}
+                    <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+                      <span>
+                        Time remaining:{" "}
+                        <CountdownTimer endTime={new Date(alert.endTime)} />
+                      </span>
+                      {!alert.read && (
+                        <button
+                          onClick={() => handleMarkAsRead(alert.id)}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          Mark as read
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -263,9 +365,7 @@ export default function AlertDisplay({
               <div key={alert.id} className="p-4 rounded-lg border bg-gray-50">
                 <p className="text-gray-600">{alert.message}</p>
                 <div className="mt-2 text-sm text-gray-500">
-                  <span>
-                    Expired: {new Date(alert.endTime).toLocaleString()}
-                  </span>
+                  <span>Expired</span>
                 </div>
               </div>
             ))}

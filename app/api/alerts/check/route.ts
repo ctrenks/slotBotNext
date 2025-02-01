@@ -87,6 +87,7 @@ export async function POST() {
             read: true,
           },
         },
+        casino: true,
       },
     });
 

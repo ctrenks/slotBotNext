@@ -247,7 +247,11 @@ export async function getAlertsForUser() {
       include: {
         alerts: {
           include: {
-            alert: true,
+            alert: {
+              include: {
+                casino: true,
+              },
+            },
           },
         },
       },

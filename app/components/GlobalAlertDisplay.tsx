@@ -83,7 +83,7 @@ export default function GlobalAlertDisplay() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-96 max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg mb-8">
       {error ? (
         <div className="p-4 text-red-500">{error}</div>
       ) : (

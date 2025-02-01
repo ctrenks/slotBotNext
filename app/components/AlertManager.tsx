@@ -45,63 +45,20 @@ interface Slot {
   cleanName?: string;
 }
 
-function formatCurrency(value: number | undefined): string {
-  if (!value) return "";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-}
+function getDefaultTimes() {
+  // Get current time in local timezone
+  const now = new Date();
 
-function formatPercentage(value: number | undefined): string {
-  if (!value) return "";
-  return `${value}%`;
-}
+  // Convert to ISO string but keep local timezone
+  const localStartTime = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60000
+  );
+  const localEndTime = new Date(localStartTime.getTime() + 45 * 60 * 1000);
 
-function formatMultiplier(value: number | undefined): string {
-  if (!value) return "";
-  return `${value}x`;
-}
-
-function formatAlertMessage(data: AlertFormData): string {
-  const parts = [data.message];
-
-  if (data.casinoName) {
-    parts.push(`\n\nCasino: ${data.casinoName}`);
-    if (data.casinoImage) {
-      parts.push(`Casino Image: image/casino/${data.casinoImage}`);
-    }
-  }
-
-  if (data.slot) {
-    parts.push(`Game: ${data.slot}`);
-    if (data.slotImage) {
-      parts.push(`Game Image: image/sloticonssquare/${data.slotImage}`);
-    }
-  }
-
-  if (data.customUrl) {
-    parts.push(`URL: ${data.customUrl}`);
-  }
-
-  const details = [];
-  if (data.maxPotential)
-    details.push(`Max Potential: ${formatMultiplier(data.maxPotential)}`);
-  if (data.recommendedBet)
-    details.push(`Recommended Bet: ${formatCurrency(data.recommendedBet)}`);
-  if (data.stopLimit)
-    details.push(`Stop Limit: ${formatCurrency(data.stopLimit)}`);
-  if (data.targetWin)
-    details.push(`Target Win: ${formatCurrency(data.targetWin)}`);
-  if (data.maxWin) details.push(`Max Win: ${formatCurrency(data.maxWin)}`);
-  if (data.rtp) details.push(`RTP: ${formatPercentage(data.rtp)}`);
-
-  if (details.length > 0) {
-    parts.push("\nDetails:");
-    parts.push(details.join("\n"));
-  }
-
-  return parts.join("\n");
+  return {
+    startTime: localStartTime.toISOString().slice(0, 16),
+    endTime: localEndTime.toISOString().slice(0, 16),
+  };
 }
 
 export default function AlertManager() {
@@ -119,8 +76,7 @@ export default function AlertManager() {
       message: "",
       geoTargets: [],
       referralCodes: [],
-      startTime: new Date().toISOString().slice(0, 16),
-      endTime: new Date(Date.now() + 45 * 60 * 1000).toISOString().slice(0, 16),
+      ...getDefaultTimes(),
     },
     mode: "onSubmit",
     reValidateMode: "onSubmit",
@@ -135,7 +91,6 @@ export default function AlertManager() {
   const selectedCasinoId = watch("casinoId");
 
   const formValues = watch();
-  const formattedMessage = formatAlertMessage(formValues);
 
   // Fetch casinos on component mount
   useEffect(() => {
@@ -241,16 +196,28 @@ export default function AlertManager() {
         return;
       }
 
-      // Get current time for immediate alerts
+      // Get current time in EST
       const now = new Date();
+      const estOffset = -5; // EST is UTC-5
+      const localOffset = now.getTimezoneOffset() / 60;
+      const offsetDiff = localOffset + estOffset;
 
-      // Format dates properly - use current time for start if it's in the past
-      const startDate = new Date(data.startTime);
-      const endDate = new Date(data.endTime);
+      // Convert local input times to EST
+      const localStartDate = new Date(data.startTime);
+      const localEndDate = new Date(data.endTime);
 
-      // If start time is in the past, use current time
-      if (startDate < now) {
-        startDate.setTime(now.getTime());
+      // Add the offset difference to convert to EST
+      const startDate = new Date(
+        localStartDate.getTime() + offsetDiff * 60 * 60 * 1000
+      );
+      const endDate = new Date(
+        localEndDate.getTime() + offsetDiff * 60 * 60 * 1000
+      );
+
+      // If start time is in the past (in EST), use current EST time
+      const nowInEST = new Date(now.getTime() + offsetDiff * 60 * 60 * 1000);
+      if (startDate < nowInEST) {
+        startDate.setTime(nowInEST.getTime());
         // Add 45 minutes to the end time from the new start time
         endDate.setTime(startDate.getTime() + 45 * 60 * 1000);
       }
@@ -275,17 +242,13 @@ export default function AlertManager() {
         }
       }
 
-      // Create the formatted message
-      const formattedMessage = formatAlertMessage(data);
-
       // Clean and format the data for submission
       const formattedData = {
-        message: formattedMessage,
+        message: data.message,
         startTime: startDate.toISOString(),
         endTime: endDate.toISOString(),
         geoTargets: selectedGeos,
         referralCodes: selectedReferrals,
-        // Only include optional fields if they have values
         ...(data.casinoId && { casinoId: Number(data.casinoId) }),
         ...(data.casinoName && { casinoName: data.casinoName }),
         ...(data.casinoCleanName && { casinoCleanName: data.casinoCleanName }),
@@ -313,13 +276,9 @@ export default function AlertManager() {
       }
 
       // Reset form on success with current time
-      const resetStartTime = new Date();
-      const resetEndTime = new Date(resetStartTime.getTime() + 45 * 60 * 1000);
-
       reset({
         message: "",
-        startTime: resetStartTime.toISOString().slice(0, 16),
-        endTime: resetEndTime.toISOString().slice(0, 16),
+        ...getDefaultTimes(),
       });
       setSelectedGeos([]);
       setSelectedReferrals([]);
@@ -728,7 +687,7 @@ export default function AlertManager() {
               )}
             </div>
             <pre className="whitespace-pre-wrap font-mono text-sm">
-              {formattedMessage}
+              {formValues.message}
             </pre>
           </div>
         </div>
