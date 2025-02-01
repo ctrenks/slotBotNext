@@ -1,5 +1,12 @@
 import InfoBox from "./components/InfoBox";
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Beat Online Slots",
+  description: "Learn how to put the odds in your favor playing online slots.",
+};
+
 export default function Home() {
   return (
     <div className="flex">
