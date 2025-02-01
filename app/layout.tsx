@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { headers } from "next/headers";
-import AuthProvider from "@/app/components/AuthProvider";
-import SessionProvider from "./components/SessionProvider";
+import AuthContext from "./components/SessionProvider";
+import AuthWrapper from "./components/AuthWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -72,7 +71,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const headersList = headers();
   return (
     <html lang="en">
       <head>
@@ -132,9 +130,9 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <SessionProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </SessionProvider>
+        <AuthContext>
+          <AuthWrapper>{children}</AuthWrapper>
+        </AuthContext>
         <script
           dangerouslySetInnerHTML={{
             __html: `
