@@ -636,7 +636,7 @@ model AlertRecipient {
 model AlertClick {
   id        String   @id @default(cuid())
   alertId   String
-  alert     Alert    @relation(fields: [alertId], references: [id])
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
   userId    String?
   userEmail String?
   username  String?
