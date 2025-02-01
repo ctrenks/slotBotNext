@@ -260,21 +260,21 @@ export default function AlertDisplay({
                   alert.read ? "bg-gray-50" : "bg-green-50 border-green-200"
                 }`}
               >
-                <div className="flex gap-6">
+                <div className="flex flex-col md:flex-row gap-4">
                   {/* Left Column - Images and Play Button */}
-                  <div className="flex flex-col gap-4 min-w-[200px]">
+                  <div className="flex flex-row md:flex-col justify-between md:justify-start items-center md:items-start gap-4 md:min-w-[200px]">
                     {alert.casino && alert.casino.button && (
-                      <div className="flex flex-col items-center mb-4">
+                      <div className="flex flex-col items-center">
                         <img
                           src={`/image/casino/${alert.casino.button}`}
                           alt={alert.casinoName || "Casino logo"}
-                          className="max-w-[100px] max-h-[80px] w-auto h-auto object-contain"
+                          className="max-w-[80px] md:max-w-[100px] w-auto h-auto object-contain"
                         />
                         <a
                           href={`/out/${alert.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                          className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm whitespace-nowrap"
                         >
                           Play Now
                         </a>
@@ -285,7 +285,7 @@ export default function AlertDisplay({
                         <Image
                           src={`/image/sloticonssquare/${alert.slotImage}`}
                           alt={alert.slot || ""}
-                          className="w-[160px] h-[160px] object-contain"
+                          className="w-[100px] h-[100px] md:w-[160px] md:h-[160px] object-contain"
                           width={160}
                           height={160}
                         />
@@ -294,24 +294,26 @@ export default function AlertDisplay({
                   </div>
 
                   {/* Right Column - Details */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     {/* Casino and Slot Names */}
                     <div className="mb-3">
                       {alert.casinoName && (
-                        <h4 className="text-lg font-semibold">
+                        <h4 className="text-base md:text-lg font-semibold break-words">
                           {alert.casinoName} has {alert.slot} at {alert.rtp}%
                         </h4>
                       )}
                     </div>
 
                     {/* Alert Message */}
-                    <p className="text-gray-800 mb-4">{alert.message}</p>
+                    <p className="text-gray-800 mb-4 text-sm md:text-base break-words">
+                      {alert.message}
+                    </p>
 
                     {/* Additional Details */}
                     {(alert.maxPotential ||
                       alert.recommendedBet ||
                       alert.rtp) && (
-                      <div className="space-y-2 text-sm text-gray-600">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs md:text-sm text-gray-600">
                         {alert.maxPotential && (
                           <div>
                             <span className="font-medium">
@@ -322,10 +324,8 @@ export default function AlertDisplay({
                         )}
                         {alert.recommendedBet && (
                           <div>
-                            <span className="font-medium">
-                              ✅Recommended Bet:
-                            </span>{" "}
-                            ${alert.recommendedBet}
+                            <span className="font-medium">✅Bet:</span> $
+                            {alert.recommendedBet}
                           </div>
                         )}
                         {alert.rtp && (
@@ -334,23 +334,21 @@ export default function AlertDisplay({
                             {alert.rtp}%
                           </div>
                         )}
-                        {alert.rtp && (
+                        {alert.stopLimit && (
                           <div>
-                            <span className="font-medium">
-                              ☢️Stop Loss Limit:
-                            </span>{" "}
-                            ${alert.stopLimit}
+                            <span className="font-medium">☢️Stop:</span> $
+                            {alert.stopLimit}
                           </div>
                         )}
-                        {alert.maxPotential && (
+                        {alert.targetWin && (
                           <div>
-                            <span className="font-medium">✅Win Target:</span> $
+                            <span className="font-medium">✅Target:</span> $
                             {alert.targetWin}
                           </div>
                         )}
                         {alert.maxWin && (
                           <div>
-                            <span className="font-medium">✅Win Limit:</span> $
+                            <span className="font-medium">✅Max:</span> $
                             {alert.maxWin}
                           </div>
                         )}
@@ -358,7 +356,7 @@ export default function AlertDisplay({
                     )}
 
                     {/* Timer and Mark as Read */}
-                    <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+                    <div className="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 text-xs md:text-sm text-gray-500">
                       <span>
                         Time remaining:{" "}
                         <CountdownTimer endTime={new Date(alert.endTime)} />
@@ -386,11 +384,13 @@ export default function AlertDisplay({
           <div className="space-y-3">
             {expiredAlerts.map((alert) => (
               <div key={alert.id} className="p-4 rounded-lg border bg-gray-50">
-                <h5 className="text-lg font-semibold">
+                <h5 className="text-base md:text-lg font-semibold break-words">
                   {alert.casinoName} has {alert.slot} at {alert.rtp}%
                 </h5>
-                <p className="text-gray-600">{alert.message}</p>
-                <div className="mt-2 text-sm text-gray-500">
+                <p className="text-gray-600 text-sm md:text-base break-words">
+                  {alert.message}
+                </p>
+                <div className="mt-2 text-xs md:text-sm text-gray-500">
                   <span>Expired</span>
                 </div>
               </div>
