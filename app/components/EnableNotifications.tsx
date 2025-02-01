@@ -3,23 +3,35 @@
 import { useState, useEffect } from "react";
 
 export default function EnableNotifications() {
+  const [mounted, setMounted] = useState(false);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
 
   useEffect(() => {
-    if ("Notification" in window) {
+    setMounted(true);
+    if (typeof window !== "undefined" && "Notification" in window) {
       setPermission(Notification.permission);
     }
   }, []);
 
   const requestPermission = async () => {
-    if ("Notification" in window) {
+    if (typeof window !== "undefined" && "Notification" in window) {
       const result = await Notification.requestPermission();
       setPermission(result);
     }
   };
 
-  if (!("Notification" in window) || permission === "granted") {
+  // Don't render anything on the server side or if not mounted
+  if (!mounted) {
+    return null;
+  }
+
+  // Only show button if notifications are supported and not already granted
+  if (
+    typeof window === "undefined" ||
+    !("Notification" in window) ||
+    permission === "granted"
+  ) {
     return null;
   }
 
