@@ -76,7 +76,10 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
               </li>
             ))}
             <li>
-              <SlotBotButton className="w-full justify-center" />
+              <SlotBotButton
+                className="w-full justify-center"
+                onClick={handleClick}
+              />
             </li>
             <li onClick={handleClick} className="mt-4">
               <SessionInfo />

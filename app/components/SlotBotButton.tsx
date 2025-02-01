@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 
 export default function SlotBotButton({
   className = "",
+  onClick,
 }: {
   className?: string;
+  onClick?: () => void;
 }) {
   const { data: session } = useSession();
   const [hasAccess, setHasAccess] = useState(false);
@@ -33,6 +35,7 @@ export default function SlotBotButton({
   return (
     <Link
       href="/slotbot"
+      onClick={onClick}
       className={`px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-md
       transition-all duration-200 shadow-[0_0_10px_rgba(249,115,22,0.5)]
       hover:shadow-[0_0_20px_rgba(249,115,22,0.7)]

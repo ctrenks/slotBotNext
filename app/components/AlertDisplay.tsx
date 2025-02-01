@@ -52,28 +52,17 @@ export default function AlertDisplay({
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if device is mobile on component mount
-  useEffect(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor;
-      const isMobileDevice =
-        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-          userAgent.toLowerCase()
-        );
-      setIsMobile(isMobileDevice);
-    };
-    checkMobile();
-  }, []);
+  const [isMobile] = useState(
+    typeof window !== "undefined" &&
+      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        navigator.userAgent.toLowerCase()
+      )
+  );
 
   const requestNotificationPermission = async () => {
-    if (!isMobile && "Notification" in window) {
+    if ("Notification" in window) {
       const result = await Notification.requestPermission();
-      console.log("Notification permission:", result);
       setPermission(result);
-      setShowPermissionPrompt(false);
     }
   };
 
@@ -229,13 +218,9 @@ export default function AlertDisplay({
     return endTime < now;
   });
 
-  // Only show notification permission prompt on desktop
-  const shouldShowPermissionPrompt =
-    showPermissionPrompt && !isMobile && permission === "default";
-
   return (
     <div className="space-y-6">
-      {shouldShowPermissionPrompt && (
+      {!isMobile && permission === "default" && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <p className="text-blue-800 mb-2">
             Would you like to receive notifications for new alerts?
