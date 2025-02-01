@@ -25,14 +25,20 @@ interface CreateAlertData {
 }
 
 export async function createAlert(data: CreateAlertData) {
+  let session;
   try {
-    const session = await auth();
-    if (!session) {
-      throw new Error("No session found");
+    session = await auth();
+    if (!session?.user?.email) {
+      throw new Error("User email not found in session");
     }
 
-    if (!session.user?.email) {
-      throw new Error("No user email found in session");
+    // Get the user from the database to ensure we have the latest data
+    const currentUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!currentUser) {
+      throw new Error("User not found in database");
     }
 
     // Normalize empty arrays to ['all']
@@ -41,6 +47,7 @@ export async function createAlert(data: CreateAlertData) {
       data.referralCodes.length === 0 ? ["all"] : data.referralCodes;
 
     console.log("Creating alert with data:", {
+      userEmail: session.user.email,
       message: data.message,
       geoTargets,
       referralCodes,
@@ -106,37 +113,23 @@ export async function createAlert(data: CreateAlertData) {
     });
 
     // Find all users that should receive this alert
+    const now = new Date();
     const users = await prisma.user.findMany({
       where: {
-        OR: [
-          // Match if geo targets include 'all' AND user has a geo
+        AND: [
+          // User must have either paid access or valid trial
           {
-            AND: [{ geo: { not: null } }, { geo: { not: "" } }],
+            OR: [{ paid: true }, { trial: { gt: now } }],
           },
-          // Match if user's geo is in geoTargets AND user has a geo
+          // Target matching
           {
             AND: [
-              { geo: { not: null } },
-              { geo: { not: "" } },
-              { geo: { in: geoTargets } },
-            ],
-          },
-        ],
-        AND: [
-          {
-            OR: [
-              // Match if referral targets include 'all' AND user has a referral
-              {
-                AND: [{ refferal: { not: null } }, { refferal: { not: "" } }],
-              },
-              // Match if user's referral is in referralCodes AND user has a referral
-              {
-                AND: [
-                  { refferal: { not: null } },
-                  { refferal: { not: "" } },
-                  { refferal: { in: referralCodes } },
-                ],
-              },
+              // Geo targeting
+              geoTargets.includes("all") ? {} : { geo: { in: geoTargets } },
+              // Referral targeting
+              referralCodes.includes("all")
+                ? {}
+                : { refferal: { in: referralCodes } },
             ],
           },
         ],
@@ -154,10 +147,10 @@ export async function createAlert(data: CreateAlertData) {
         geo: u.geo,
         refferal: u.refferal,
         matchedByGeo:
-          u.geo && (geoTargets.includes("all") || geoTargets.includes(u.geo)),
+          geoTargets.includes("all") || (u.geo && geoTargets.includes(u.geo)),
         matchedByReferral:
-          u.refferal &&
-          (referralCodes.includes("all") || referralCodes.includes(u.refferal)),
+          referralCodes.includes("all") ||
+          (u.refferal && referralCodes.includes(u.refferal)),
       })),
     });
 
@@ -198,21 +191,21 @@ export async function createAlert(data: CreateAlertData) {
 
     revalidatePath("/");
     return alert;
-  } catch (error) {
-    console.error("Error in createAlert:", error);
-    throw error;
+  } catch (err) {
+    console.error("Failed to create alert:", {
+      error: err,
+      userEmail: session?.user?.email,
+      errorMessage: err instanceof Error ? err.message : "Unknown error",
+    });
+    throw err;
   }
 }
 
 export async function markAlertAsRead(alertId: string) {
   try {
     const session = await auth();
-    if (!session) {
-      throw new Error("No session found");
-    }
-
-    if (!session.user?.email) {
-      throw new Error("No user email found in session");
+    if (!session?.user?.email) {
+      throw new Error("User email not found in session");
     }
 
     const user = await prisma.user.findUnique({
@@ -276,6 +269,21 @@ export async function getAlertsForUser() {
       return [];
     }
 
+    // Check if user has access
+    const hasValidTrial = user.trial ? new Date(user.trial) > now : false;
+    const hasPaidAccess = user.paid === true;
+
+    if (!hasValidTrial && !hasPaidAccess) {
+      console.log("User does not have access:", {
+        email: user.email,
+        hasValidTrial,
+        hasPaidAccess,
+        trial: user.trial,
+        paid: user.paid,
+      });
+      return [];
+    }
+
     console.log("User data for alerts:", {
       id: user.id,
       email: user.email,
@@ -306,22 +314,32 @@ export async function getAlertsForUser() {
         // Check if alert is expired
         if (new Date(alert.endTime) < now) return false;
 
+        // If both targets are 'all', show to all users
+        if (
+          alert.geoTargets.includes("all") &&
+          alert.referralCodes.includes("all")
+        ) {
+          return true;
+        }
+
         // Check if alert targets this user's geo
         const geoMatch =
-          (alert.geoTargets.includes("all") && user.geo && user.geo !== "") ||
+          alert.geoTargets.includes("all") ||
           (user.geo && user.geo !== "" && alert.geoTargets.includes(user.geo));
 
         // Check if alert targets this user's referral code
         const referralMatch =
-          (alert.referralCodes.includes("all") &&
-            user.refferal &&
-            user.refferal !== "") ||
+          alert.referralCodes.includes("all") ||
           (user.refferal &&
             user.refferal !== "" &&
             alert.referralCodes.includes(user.refferal));
 
-        // Both conditions must match for the alert to be shown
-        const isMatch = geoMatch && referralMatch;
+        // If not both 'all', then match based on individual targeting
+        const isMatch = alert.geoTargets.includes("all")
+          ? referralMatch
+          : alert.referralCodes.includes("all")
+          ? geoMatch
+          : geoMatch && referralMatch;
 
         console.log("Alert match check:", {
           alertId: alert.id,
@@ -333,6 +351,13 @@ export async function getAlertsForUser() {
           userReferral: user.refferal,
           alertGeoTargets: alert.geoTargets,
           alertReferralCodes: alert.referralCodes,
+          hasValidReferral: user.refferal && user.refferal !== "",
+          isAllReferral: alert.referralCodes.includes("all"),
+          referralInList:
+            user.refferal && alert.referralCodes.includes(user.refferal),
+          bothAll:
+            alert.geoTargets.includes("all") &&
+            alert.referralCodes.includes("all"),
         });
 
         return isMatch;
