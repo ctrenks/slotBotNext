@@ -6,6 +6,12 @@ import { sendPushNotification } from "@/app/utils/pushNotifications";
 export async function POST() {
   try {
     const session = await auth();
+    console.log("Session check:", {
+      hasSession: !!session,
+      userEmail: session?.user?.email,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -19,6 +25,15 @@ export async function POST() {
           },
         },
       },
+    });
+
+    console.log("User data:", {
+      found: !!user,
+      email: user?.email,
+      geo: user?.geo,
+      referral: user?.refferal,
+      existingAlerts: user?.alerts?.length || 0,
+      timestamp: new Date().toISOString(),
     });
 
     if (!user) {
@@ -50,11 +65,36 @@ export async function POST() {
       },
     });
 
+    console.log("Active alerts query result:", {
+      count: activeAlerts.length,
+      alerts: activeAlerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
+        startTime: a.startTime,
+        endTime: a.endTime,
+      })),
+      userGeo: user.geo || "US",
+      userReferral: user.refferal || "",
+      timestamp: new Date().toISOString(),
+    });
+
     // Check for new alerts that the user hasn't seen yet
     const existingAlertIds = new Set(user.alerts.map((ua) => ua.alertId));
     const newAlerts = activeAlerts.filter(
       (alert) => !existingAlertIds.has(alert.id)
     );
+
+    console.log("New alerts check:", {
+      existingAlertIds: Array.from(existingAlertIds),
+      newAlertsCount: newAlerts.length,
+      newAlerts: newAlerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+      })),
+      timestamp: new Date().toISOString(),
+    });
 
     // Create UserAlert entries for new alerts
     if (newAlerts.length > 0) {
@@ -80,9 +120,23 @@ export async function POST() {
       read: existingAlertIds.has(alert.id),
     }));
 
+    console.log("Final response:", {
+      totalAlerts: alertsWithRead.length,
+      alerts: alertsWithRead.map((a) => ({
+        id: a.id,
+        message: a.message,
+        read: a.read,
+      })),
+      timestamp: new Date().toISOString(),
+    });
+
     return NextResponse.json(alertsWithRead);
   } catch (error) {
-    console.error("Error checking alerts:", error);
+    console.error("Error checking alerts:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { error: "Failed to check alerts" },
       { status: 500 }
