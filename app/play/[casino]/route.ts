@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/prisma";
 
-export async function GET(
-  req: NextRequest,
-  props: { params: { casino: string } }
-) {
+interface RouteParams {
+  params: {
+    casino: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { casino } = props.params;
+    const { casino } = params;
 
     // Find the casino by clean_name
     const casinoData = await prisma.casino_p_casinos.findFirst({

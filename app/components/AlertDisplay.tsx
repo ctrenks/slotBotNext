@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import { Alert as PrismaAlert } from "@prisma/client";
 import Image from "next/image";
+import { useNotifications } from "@/app/hooks/useNotifications";
 
 interface AlertWithRead extends PrismaAlert {
   read: boolean;
@@ -53,8 +54,6 @@ export default function AlertDisplay({
   initialAlerts: AlertWithRead[];
 }) {
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
-  const [permission, setPermission] =
-    useState<NotificationPermission>("default");
   const [isMobile] = useState(
     typeof window !== "undefined" &&
       /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
@@ -62,140 +61,7 @@ export default function AlertDisplay({
       )
   );
 
-  const requestNotificationPermission = async () => {
-    if ("Notification" in window) {
-      const result = await Notification.requestPermission();
-      setPermission(result);
-    }
-  };
-
-  const showNotification = useCallback(
-    async (alert: AlertWithRead) => {
-      console.log("Showing notification for:", alert);
-
-      // Only show browser notifications on desktop
-      if (!isMobile && permission === "granted") {
-        try {
-          // Show browser notification
-          const notification = new Notification("New Alert", {
-            body: alert.message,
-            icon: "/favicon.ico",
-            tag: alert.id,
-            silent: true, // Disable sound
-            requireInteraction: true,
-          });
-
-          // Flash title
-          const originalTitle = document.title;
-          let isFlashing = true;
-          const flashInterval = setInterval(() => {
-            if (isFlashing) {
-              document.title = `🔔 New Alert! 🔔 - ${alert.message}`;
-            } else {
-              document.title = originalTitle;
-            }
-            isFlashing = !isFlashing;
-          }, 1000);
-
-          // Stop flashing when user focuses the window
-          window.addEventListener(
-            "focus",
-            () => {
-              isFlashing = false;
-              document.title = originalTitle;
-              clearInterval(flashInterval);
-            },
-            { once: true }
-          );
-
-          // Handle notification click
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-            isFlashing = false;
-            document.title = originalTitle;
-            clearInterval(flashInterval);
-          };
-        } catch (error) {
-          console.log("Notification error:", error);
-        }
-      } else {
-        // On mobile, just update the UI to show new alerts
-        // The alerts will be visible in the AlertDisplay component
-        console.log("Mobile device - skipping browser notification");
-      }
-    },
-    [permission, isMobile]
-  );
-
-  // Check for new alerts every minute with rate limiting
-  useEffect(() => {
-    let lastCheck = 0;
-    const MIN_CHECK_INTERVAL = 30000; // Minimum 30 seconds between checks
-
-    const checkNewAlerts = async () => {
-      const now = Date.now();
-      if (now - lastCheck < MIN_CHECK_INTERVAL) {
-        console.log("Skipping alert check - too soon");
-        return;
-      }
-      lastCheck = now;
-
-      try {
-        console.log("Checking for new alerts...");
-        const response = await fetch("/api/alerts/check", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          console.error("Error response from alert check:", response.status);
-          return;
-        }
-
-        const newAlerts = await response.json();
-        console.log("Received alerts:", newAlerts);
-
-        if (newAlerts.length > 0) {
-          setAlerts((prev) => {
-            // Filter out any duplicates
-            const newAlertIds = new Set(
-              newAlerts.map((a: AlertWithRead) => a.id)
-            );
-            const existingAlerts = prev.filter((a) => !newAlertIds.has(a.id));
-            return [...existingAlerts, ...newAlerts];
-          });
-
-          // Show notification for each new alert if permission is granted
-          // Only show one notification at a time
-          if (permission === "granted") {
-            const unreadAlerts = newAlerts.filter(
-              (alert: AlertWithRead) => !alert.read
-            );
-            if (unreadAlerts.length > 0) {
-              await showNotification(unreadAlerts[0]);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error checking for new alerts:", error);
-      }
-    };
-
-    // Initial check
-    checkNewAlerts();
-
-    // Set up polling interval (60000ms = 1 minute)
-    const interval = setInterval(checkNewAlerts, 60000);
-
-    // Cleanup
-    return () => {
-      console.log("Cleaning up alert polling...");
-      clearInterval(interval);
-    };
-  }, [permission, showNotification]);
+  const { permission, isSupported, requestPermission } = useNotifications();
 
   const handleMarkAsRead = async (alertId: string) => {
     await markAlertAsRead(alertId);
@@ -223,13 +89,13 @@ export default function AlertDisplay({
 
   return (
     <div className="space-y-6">
-      {!isMobile && permission === "default" && (
+      {!isMobile && isSupported && permission === "default" && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <p className="text-blue-800 mb-2">
             Would you like to receive notifications for new alerts?
           </p>
           <button
-            onClick={requestNotificationPermission}
+            onClick={requestPermission}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Enable Notifications

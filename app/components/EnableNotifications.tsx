@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNotifications } from "@/app/hooks/useNotifications";
 
 interface EnableNotificationsProps {
   variant?: "button" | "banner";
@@ -16,13 +17,18 @@ export default function EnableNotifications({
   variant = "button",
 }: EnableNotificationsProps) {
   const [mounted, setMounted] = useState(false);
-  const [permission, setPermission] =
-    useState<NotificationPermission>("default");
   const [isIOS, setIsIOS] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<DebugLog[]>([]);
   const [showDebug, setShowDebug] = useState(false);
+
+  const {
+    permission,
+    isSupported,
+    requestPermission,
+    registerPushSubscription,
+  } = useNotifications();
 
   const addDebugLog = (
     message: string,
@@ -48,12 +54,8 @@ export default function EnableNotifications({
     setIsPWA(isStandalone);
     addDebugLog(`PWA detection: ${isStandalone ? "PWA" : "Browser"}`, "info");
 
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPermission(Notification.permission);
-      addDebugLog(
-        `Current notification permission: ${Notification.permission}`,
-        "info"
-      );
+    if (isSupported) {
+      addDebugLog(`Current notification permission: ${permission}`, "info");
     } else {
       addDebugLog("Notifications not supported in this environment", "error");
     }
@@ -71,117 +73,21 @@ export default function EnableNotifications({
     } else {
       addDebugLog("Push API not supported", "error");
     }
-  }, []);
+  }, [isSupported, permission]);
 
-  const registerPushSubscription = async () => {
+  const handleEnableNotifications = async () => {
     try {
-      addDebugLog("Starting push subscription registration");
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        const errorMsg = "Push notifications not supported";
-        addDebugLog(errorMsg, "error");
-        setError(errorMsg);
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-      addDebugLog("Service Worker ready", "success");
-
-      let subscription = await registration.pushManager.getSubscription();
-      addDebugLog(
-        subscription
-          ? "Found existing subscription"
-          : "No existing subscription"
-      );
-
-      if (!subscription) {
-        addDebugLog("Fetching VAPID public key");
-        const response = await fetch("/api/push/vapid-public-key");
-        if (!response.ok) {
-          throw new Error("Failed to fetch VAPID key: " + response.statusText);
-        }
-        const vapidPublicKey = await response.text();
-        addDebugLog("Received VAPID public key", "success");
-
-        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-        addDebugLog("Converted VAPID key", "success");
-
-        addDebugLog("Requesting push subscription");
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedVapidKey,
-        });
-        addDebugLog("Push subscription created", "success");
-
-        const sessionResponse = await fetch("/api/auth/session");
-        const session = await sessionResponse.json();
-        const userEmail = session?.user?.email;
-        addDebugLog(`User email from session: ${userEmail || "not found"}`);
-
-        if (!userEmail) {
-          throw new Error("User email not found in session");
-        }
-
-        addDebugLog("Sending subscription to server");
-        const registerResponse = await fetch("/api/push/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ subscription, userEmail }),
-        });
-
-        if (!registerResponse.ok) {
-          throw new Error(
-            "Failed to register subscription with server: " +
-              registerResponse.statusText
-          );
-        }
-
-        await registerResponse.json();
-        addDebugLog("Server registration successful", "success");
-      } else {
-        addDebugLog("Using existing push subscription", "info");
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      addDebugLog(errorMessage, "error");
-      setError(errorMessage);
-    }
-  };
-
-  const requestPermission = async () => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      console.log("Requesting notification permission");
-      const result = await Notification.requestPermission();
-      console.log("Permission result:", result);
-      setPermission(result);
-
+      const result = await requestPermission();
       if (result === "granted") {
         await registerPushSubscription();
-      } else {
-        console.log("Permission not granted:", result);
-        setError("Notification permission not granted");
       }
-    } else {
-      console.log("Notifications not supported");
-      setError("Notifications not supported in this browser");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to enable notifications"
+      );
     }
-  };
-
-  // Helper function for VAPID key conversion
-  const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
   };
 
   // Don't render anything on the server side or if not mounted
@@ -288,11 +194,7 @@ export default function EnableNotifications({
   }
 
   // Only show button if notifications are supported and not already granted
-  if (
-    typeof window === "undefined" ||
-    !("Notification" in window) ||
-    permission === "granted"
-  ) {
+  if (!isSupported || permission === "granted") {
     return null;
   }
 
@@ -325,7 +227,7 @@ export default function EnableNotifications({
             </div>
           </div>
           <button
-            onClick={requestPermission}
+            onClick={handleEnableNotifications}
             className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
           >
             Enable Alerts
@@ -338,7 +240,7 @@ export default function EnableNotifications({
   return (
     <>
       <button
-        onClick={requestPermission}
+        onClick={handleEnableNotifications}
         className="flex items-center text-white hover:text-emerald-500 transition-colors"
       >
         <svg
