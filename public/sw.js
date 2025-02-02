@@ -89,10 +89,29 @@ self.addEventListener("push", async function (event) {
         tag: notificationId, // Use unique ID as tag to prevent duplicates
         renotify: false, // Prevent renotification for same tag
         requireInteraction: true,
+        icon: data.casino?.button
+          ? `/image/casino/${data.casino.button}`
+          : "/icons/icon-192x192.png",
+        badge: "/icons/icon-192x192.png",
+        image: data.slotImage
+          ? `/image/sloticonssquare/${data.slotImage}`
+          : undefined,
+        actions: [
+          {
+            action: "play",
+            title: "▶️ Play Now",
+          },
+        ],
         data: {
-          url: "/slotbot", // Always redirect to slotbot page
+          url: "/slotbot", // Default redirect to slotbot
+          playUrl:
+            data.customUrl ||
+            (data.casino?.url ? `/out/${notificationId}` : undefined), // URL for play button
           id: notificationId,
           timestamp: Date.now(),
+          casinoName: data.casinoName,
+          slotName: data.slot,
+          rtp: data.rtp,
         },
       };
 
@@ -119,8 +138,16 @@ self.addEventListener("push", async function (event) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
-  // Always redirect to /slotbot
-  const urlToOpen = new URL("/slotbot", self.location.origin).href;
+  let urlToOpen;
+
+  // Handle play button click
+  if (event.action === "play" && event.notification.data.playUrl) {
+    urlToOpen = new URL(event.notification.data.playUrl, self.location.origin)
+      .href;
+  } else {
+    // Default to slotbot page
+    urlToOpen = new URL("/slotbot", self.location.origin).href;
+  }
 
   event.waitUntil(
     clients
