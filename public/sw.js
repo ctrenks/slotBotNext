@@ -8,9 +8,6 @@ const urlsToCache = [
   "/icons/icon-512x512.png",
 ];
 
-// Keep track of shown notifications to prevent duplicates
-const shownNotificationIds = new Set();
-
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
   event.waitUntil(
@@ -42,120 +39,101 @@ self.addEventListener("push", (event) => {
   console.log("Push event received in service worker");
 
   if (!event.data) {
-    console.log("No message data in push event");
+    console.log("No data in push event");
     return;
   }
 
   try {
     const pushData = event.data.json();
-    console.log("Push message data received:", pushData);
+    console.log("Push data received:", pushData);
 
-    // Generate a unique ID for this notification
-    const notificationId =
-      pushData.data?.id || pushData.body || Date.now().toString();
-
-    // Check if we've already shown a notification for this message
-    if (shownNotificationIds.has(notificationId)) {
-      console.log(
-        "Duplicate notification prevented for message:",
-        notificationId
-      );
-      return;
-    }
-
-    // Track this notification
-    shownNotificationIds.add(notificationId);
-    // Limit set size to prevent memory issues
-    if (shownNotificationIds.size > 100) {
-      const firstItem = shownNotificationIds.values().next().value;
-      shownNotificationIds.delete(firstItem);
-    }
-
+    // iOS-optimized notification options
     const notificationOptions = {
-      body: pushData.body,
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-192x192.png",
-      vibrate: [100, 50, 100],
+      // Required for iOS
+      title: "SlotBot", // Keep title short for iOS
+      body: pushData.message || pushData.body || "New message available", // Simple message text
+      badge: "/icons/icon-192x192.png", // iOS badge icon
+      icon: "/icons/icon-192x192.png", // iOS notification icon
+
+      // iOS-specific options
+      sound: "default", // Enable sound on iOS
+      vibrate: true, // Enable vibration
+      timestamp: Date.now(),
+
+      // Data for handling clicks
       data: {
-        id: notificationId,
         url: "/slotbot",
-        messageData: pushData.data?.messageData || pushData, // Store original message data
-        timestamp: new Date().toISOString(),
+        messageId: pushData.id || Date.now().toString(),
       },
-      tag: notificationId,
-      renotify: true, // Show notification even if one with same tag exists
+
+      // Make sure notification appears even in foreground
+      requireInteraction: true,
+      renotify: true,
+      tag: "slotbot-message",
+
+      // Actions for iOS
       actions: [
         {
           action: "open",
-          title: "View Message",
+          title: "Open",
         },
       ],
-      // iOS specific options
-      timestamp: Date.now(),
-      requireInteraction: true,
-      silent: false, // Ensure notification sound plays
     };
 
-    console.log("Creating notification for message:", {
-      title: pushData.title,
-      options: notificationOptions,
-    });
+    console.log("Showing notification with options:", notificationOptions);
 
     event.waitUntil(
       (async () => {
         try {
-          // Check if we have permission to show notifications
-          if (self.Notification && self.Notification.permission === "granted") {
-            await self.registration.showNotification(
-              pushData.title,
-              notificationOptions
-            );
-            console.log(
-              "Notification shown successfully for message:",
-              notificationId
-            );
-          } else {
-            console.log(
-              "Cannot show notification - permission not granted:",
-              self.Notification?.permission
-            );
-          }
+          await self.registration.showNotification(
+            notificationOptions.title,
+            notificationOptions
+          );
+          console.log("Notification shown successfully");
         } catch (err) {
-          console.error("Error showing notification for message:", err);
+          console.error("Error showing notification:", err);
+          // Try fallback notification for iOS
+          try {
+            await self.registration.showNotification("SlotBot", {
+              body: pushData.message || "New message",
+              badge: "/icons/icon-192x192.png",
+              sound: "default",
+            });
+          } catch (fallbackErr) {
+            console.error("Fallback notification failed:", fallbackErr);
+          }
         }
       })()
     );
   } catch (err) {
-    console.error("Error processing push message:", err);
+    console.error("Error processing push event:", err);
   }
 });
 
 self.addEventListener("notificationclick", (event) => {
-  console.log("Notification clicked for message:", event.notification.tag);
+  console.log("Notification clicked");
   event.notification.close();
 
-  // Get the message data
-  const messageData = event.notification.data;
-  const urlToOpen = messageData?.url || "/slotbot";
-
-  if (event.action === "open" || event.action === "") {
-    // Open the app and navigate to the messages page
-    event.waitUntil(
-      clients
-        .matchAll({ type: "window", includeUncontrolled: true })
-        .then((windowClients) => {
-          // Check if there is already a window/tab open with the target URL
-          for (var i = 0; i < windowClients.length; i++) {
-            var client = windowClients[i];
-            if (client.url.includes(urlToOpen) && "focus" in client) {
-              return client.focus();
-            }
+  // For iOS, try to focus existing window first
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // If we have an existing window, focus it
+        for (const client of clientList) {
+          if (client.url.includes("/slotbot") && "focus" in client) {
+            return client.focus();
           }
-          // If no window/tab is already open, open a new one
-          if (clients.openWindow) {
-            return clients.openWindow(urlToOpen);
-          }
-        })
-    );
-  }
+        }
+        // If no existing window, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow("/slotbot");
+        }
+      })
+      .catch((err) => {
+        console.error("Error handling notification click:", err);
+        // Fallback: try direct window open
+        return clients.openWindow("/slotbot");
+      })
+  );
 });
