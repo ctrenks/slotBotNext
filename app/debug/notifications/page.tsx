@@ -349,7 +349,10 @@ export default function NotificationDebug() {
               )}
               {permission === "granted" && !subscription && (
                 <button
-                  onClick={subscribeToNotifications}
+                  onClick={() => {
+                    console.log("Subscribe button clicked in UI");
+                    subscribeToNotifications();
+                  }}
                   className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
                 >
                   Subscribe to Notifications
