@@ -42,6 +42,13 @@ export async function POST() {
 
     // Get active alerts for user's geo and referral code
     const now = new Date();
+    console.log("Querying alerts with conditions:", {
+      currentTime: now.toISOString(),
+      userGeo: user.geo || "US",
+      userReferral: user.refferal || "",
+      timestamp: new Date().toISOString(),
+    });
+
     const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
@@ -63,6 +70,26 @@ export async function POST() {
           },
         ],
       },
+    });
+
+    // Log all alerts in the system for debugging
+    const allAlerts = await prisma.alert.findMany({
+      where: {
+        endTime: { gte: now },
+      },
+    });
+
+    console.log("All future alerts in system:", {
+      count: allAlerts.length,
+      alerts: allAlerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
+      })),
+      timestamp: new Date().toISOString(),
     });
 
     console.log("Active alerts query result:", {
