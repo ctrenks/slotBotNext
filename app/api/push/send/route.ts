@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     const { userEmail, title, body, data } = await request.json();
     console.log("Notification data:", { userEmail, title, body, data });
 
-    if (!userEmail || !title || !body) {
-      console.log("Missing required fields:", { userEmail, title, body });
+    if (!userEmail || !body) {
+      console.log("Missing required fields:", { userEmail, body });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -54,11 +54,19 @@ export async function POST(request: Request) {
             "Attempting to send notification to endpoint:",
             subscription.endpoint
           );
-          const payload = JSON.stringify({
-            title,
-            body,
-            data,
-          });
+
+          // Prepare notification payload
+          const payload = {
+            title: title || "SlotBot Alert",
+            message: body, // Use message for consistency
+            body: body, // Include body as fallback
+            data: {
+              ...data,
+              url: "/slotbot",
+              timestamp: new Date().toISOString(),
+            },
+          };
+
           console.log("Notification payload:", payload);
 
           const pushResult = await webpush.sendNotification(
@@ -69,7 +77,7 @@ export async function POST(request: Request) {
                 auth: subscription.auth,
               },
             },
-            payload
+            JSON.stringify(payload)
           );
           console.log("Push notification sent successfully:", pushResult);
           return { success: true, endpoint: subscription.endpoint };
