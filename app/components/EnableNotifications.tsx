@@ -137,7 +137,7 @@ export default function EnableNotifications({
           );
         }
 
-        const result = await registerResponse.json();
+        await registerResponse.json();
         addDebugLog("Server registration successful", "success");
       } else {
         addDebugLog("Using existing push subscription", "info");

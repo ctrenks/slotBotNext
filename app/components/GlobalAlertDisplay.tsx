@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import AlertDisplay from "./AlertDisplay";
 import { Alert } from "@prisma/client";
@@ -66,7 +66,7 @@ export default function GlobalAlertDisplay() {
   }, []);
 
   // Register for push notifications if iOS PWA
-  const registerForPush = async () => {
+  const registerForPush = useCallback(async () => {
     if (isIOS && isStandalone && "Notification" in window) {
       try {
         console.log("Requesting notification permission for iOS...");
@@ -123,7 +123,7 @@ export default function GlobalAlertDisplay() {
         console.error("Failed to register for push notifications:", err);
       }
     }
-  };
+  }, [isIOS, isStandalone, session?.user?.email]);
 
   // Push notification registration effect
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function GlobalAlertDisplay() {
         );
       };
     }
-  }, [session?.user?.email, isIOS, isStandalone]);
+  }, [session?.user?.email, isIOS, isStandalone, registerForPush]);
 
   // Request wake lock for Android PWA
   useEffect(() => {
