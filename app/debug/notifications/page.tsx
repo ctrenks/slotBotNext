@@ -263,23 +263,18 @@ export default function NotificationDebug() {
 
       // Get the server's public key
       console.log("Fetching VAPID key...");
-      const response = await fetch("/api/push/vapidkey");
+      const response = await fetch("/api/push/vapid-public-key");
       if (!response.ok) {
         throw new Error(
           `Failed to fetch VAPID key: ${response.status} ${response.statusText}`
         );
       }
-      const data = await response.json();
-      console.log("Got VAPID key response:", data);
+      const vapidPublicKey = await response.text();
+      console.log("Got VAPID key:", vapidPublicKey);
 
-      if (!data.publicKey) {
-        throw new Error("No public key in response");
-      }
-      const publicKey = data.publicKey;
-
-      // Convert VAPID key to Uint8Array if it's base64
+      // Convert VAPID key to Uint8Array
       console.log("Converting VAPID key...");
-      const applicationServerKey = urlBase64ToUint8Array(publicKey);
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
       console.log("Converted VAPID key to Uint8Array");
 
       // Subscribe to push notifications
@@ -291,14 +286,23 @@ export default function NotificationDebug() {
         });
         console.log("Push subscription created:", subscription);
 
+        // Get user email from session
+        const sessionResponse = await fetch("/api/auth/session");
+        const session = await sessionResponse.json();
+        const userEmail = session?.user?.email;
+
+        if (!userEmail) {
+          throw new Error("User email not found in session");
+        }
+
         // Send the subscription to your server
         console.log("Sending subscription to server...");
-        const serverResponse = await fetch("/api/push/subscribe", {
+        const serverResponse = await fetch("/api/push/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ subscription }),
+          body: JSON.stringify({ subscription, userEmail }),
         });
 
         if (!serverResponse.ok) {
@@ -310,7 +314,7 @@ export default function NotificationDebug() {
 
         console.log("Subscription sent to server successfully");
         setSubscription(subscription);
-        window.location.reload();
+        alert("Successfully subscribed to push notifications!");
       } catch (subscribeError) {
         console.error("Error during subscription:", subscribeError);
         if (subscribeError instanceof Error) {
