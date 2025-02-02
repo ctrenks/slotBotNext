@@ -13,6 +13,7 @@ export default function EnableNotifications({
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
   const [isIOS, setIsIOS] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -20,16 +21,84 @@ export default function EnableNotifications({
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
+    // Check if running as PWA
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in window.navigator &&
+        (window.navigator as { standalone?: boolean }).standalone) ||
+      document.referrer.includes("ios-app://");
+    setIsPWA(isStandalone);
+
     if (typeof window !== "undefined" && "Notification" in window) {
       setPermission(Notification.permission);
     }
   }, []);
 
+  const registerPushSubscription = async () => {
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        console.error("Push notifications not supported");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        // Get public VAPID key
+        const response = await fetch("/api/push/vapid-public-key");
+        const vapidPublicKey = await response.text();
+
+        // Convert VAPID key
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+        // Subscribe
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey,
+        });
+
+        // Register with server
+        await fetch("/api/push/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(subscription),
+        });
+
+        console.log("Push notification subscription successful");
+      }
+    } catch (err) {
+      console.error("Failed to register push subscription:", err);
+    }
+  };
+
   const requestPermission = async () => {
     if (typeof window !== "undefined" && "Notification" in window) {
       const result = await Notification.requestPermission();
       setPermission(result);
+
+      if (result === "granted") {
+        await registerPushSubscription();
+      }
     }
+  };
+
+  // Helper function for VAPID key conversion
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   };
 
   // Don't render anything on the server side or if not mounted
@@ -37,8 +106,8 @@ export default function EnableNotifications({
     return null;
   }
 
-  // Show iOS-specific instructions
-  if (isIOS) {
+  // Show iOS-specific instructions when not in PWA mode
+  if (isIOS && !isPWA) {
     if (variant === "banner") {
       return (
         <div className="w-full bg-black/90 p-4 rounded-lg shadow-lg mb-4">
