@@ -24,22 +24,49 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  const options = {
-    body: event.data.text(),
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-192x192.png",
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1,
-    },
-    actions: [
-      {
-        action: "explore",
-        title: "View Alert",
-      },
-    ],
-  };
+  if (!event.data) return;
 
-  event.waitUntil(self.registration.showNotification("SlotBot Alert", options));
+  try {
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-192x192.png",
+      vibrate: [100, 50, 100],
+      data: data.data,
+      actions: [
+        {
+          action: "open",
+          title: "View Alert",
+        },
+      ],
+    };
+
+    event.waitUntil(self.registration.showNotification(data.title, options));
+  } catch (err) {
+    console.error("Error showing notification:", err);
+  }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "open" || event.action === "") {
+    // Open the app and navigate to the alerts page
+    event.waitUntil(
+      clients.matchAll({ type: "window" }).then((windowClients) => {
+        // Check if there is already a window/tab open with the target URL
+        for (var i = 0; i < windowClients.length; i++) {
+          var client = windowClients[i];
+          if (client.url === "/slotbot" && "focus" in client) {
+            return client.focus();
+          }
+        }
+        // If no window/tab is already open, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow("/slotbot");
+        }
+      })
+    );
+  }
 });

@@ -1,128 +1,91 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
+import { sendPushNotification } from "@/app/utils/pushNotifications";
 
 export async function POST() {
   try {
     const session = await auth();
-
-    console.log("Session data:", {
-      exists: !!session,
-      hasUser: !!session?.user,
-      email: session?.user?.email,
-      id: session?.user?.id,
-      geo: session?.user?.geo,
-      refferal: session?.user?.refferal,
-    });
-
-    if (!session) {
-      return new NextResponse("No session found", { status: 401 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user) {
-      return new NextResponse("No user in session", { status: 401 });
-    }
-
-    if (!session.user.email) {
-      return new NextResponse("No email in session", { status: 401 });
-    }
-
-    // Get the user from the database to ensure we have the latest data
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      include: {
+        alerts: {
+          include: {
+            alert: true,
+          },
+        },
+      },
     });
 
     if (!user) {
-      return new NextResponse("User not found in database", { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (!user.id) {
-      return new NextResponse("User ID not found", { status: 400 });
-    }
-
+    // Get active alerts for user's geo and referral code
     const now = new Date();
-    const twentyFourHoursFromNow = new Date(
-      now.getTime() + 24 * 60 * 60 * 1000
-    );
-
-    console.log("Alert check request:", {
-      userEmail: user.email,
-      userId: user.id,
-      currentTime: now.toISOString(),
-      checkingUntil: twentyFourHoursFromNow.toISOString(),
-    });
-
-    // Find alerts where this user is a recipient and that haven't ended yet
-    const userAlerts = await prisma.alert.findMany({
+    const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
-          // Must be a recipient
           {
-            recipients: {
-              some: {
-                userId: user.id,
-              },
-            },
+            startTime: { lte: now },
+            endTime: { gte: now },
           },
-          // Not ended yet
           {
-            endTime: {
-              gt: now,
-            },
+            OR: [
+              { geoTargets: { has: user.geo || "US" } },
+              { geoTargets: { isEmpty: true } },
+            ],
           },
-          // Starts within next 24 hours
           {
-            startTime: {
-              lte: twentyFourHoursFromNow,
-            },
+            OR: [
+              { referralCodes: { has: user.refferal || "" } },
+              { referralCodes: { isEmpty: true } },
+            ],
           },
         ],
       },
-      include: {
-        recipients: {
-          where: {
-            userId: user.id,
-          },
-          select: {
-            read: true,
-          },
-        },
-        casino: true,
-      },
     });
 
-    console.log("Found alerts for user:", {
-      userId: user.id,
-      totalAlerts: userAlerts.length,
-      alerts: userAlerts.map((a) => ({
-        id: a.id,
-        message: a.message,
-        startTime: a.startTime.toISOString(),
-        endTime: a.endTime.toISOString(),
-        hasRecipient: a.recipients.length > 0,
-        recipientReadStatus: a.recipients[0]?.read,
-        timeInfo: {
-          startTime: a.startTime.toISOString(),
-          endTime: a.endTime.toISOString(),
-          now: now.toISOString(),
-          startDiff: (a.startTime.getTime() - now.getTime()) / (1000 * 60), // minutes until start
-          endDiff: (a.endTime.getTime() - now.getTime()) / (1000 * 60), // minutes until end
-          isActive: a.startTime <= now && a.endTime > now,
-          isUpcoming:
-            a.startTime > now && a.startTime <= twentyFourHoursFromNow,
-        },
-      })),
-    });
+    // Check for new alerts that the user hasn't seen yet
+    const existingAlertIds = new Set(user.alerts.map((ua) => ua.alertId));
+    const newAlerts = activeAlerts.filter(
+      (alert) => !existingAlertIds.has(alert.id)
+    );
 
-    // Transform alerts and add read status
-    const alertsWithReadStatus = userAlerts.map((alert) => ({
+    // Create UserAlert entries for new alerts
+    if (newAlerts.length > 0) {
+      await prisma.userAlert.createMany({
+        data: newAlerts.map((alert) => ({
+          userId: user.id,
+          alertId: alert.id,
+          read: false,
+          createdAt: new Date(),
+          geo: user.geo || "US",
+        })),
+      });
+
+      // Send push notifications for new alerts
+      for (const alert of newAlerts) {
+        await sendPushNotification(user.email, alert);
+      }
+    }
+
+    // Return all active alerts with read status
+    const alertsWithRead = activeAlerts.map((alert) => ({
       ...alert,
-      read: alert.recipients[0]?.read ?? false,
+      read: existingAlertIds.has(alert.id),
     }));
 
-    return NextResponse.json(alertsWithReadStatus);
+    return NextResponse.json(alertsWithRead);
   } catch (error) {
-    console.error("Error checking for new alerts:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("Error checking alerts:", error);
+    return NextResponse.json(
+      { error: "Failed to check alerts" },
+      { status: 500 }
+    );
   }
 }

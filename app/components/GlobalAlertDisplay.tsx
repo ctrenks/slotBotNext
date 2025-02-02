@@ -27,6 +27,7 @@ export default function GlobalAlertDisplay() {
   const [error, setError] = useState<string | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
 
   // Platform detection effect
@@ -36,17 +37,61 @@ export default function GlobalAlertDisplay() {
     const isStandaloneMode = window.matchMedia(
       "(display-mode: standalone)"
     ).matches;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent);
     const isAndroidDevice = /Android/.test(window.navigator.userAgent);
 
     setIsAndroid(isAndroidDevice);
+    setIsIOS(isIOSDevice);
     setIsStandalone(isIOSStandalone || isStandaloneMode);
 
     console.log("Platform detection:", {
       isIOSStandalone,
       isStandaloneMode,
+      isIOSDevice,
       isAndroidDevice,
       userAgent: window.navigator.userAgent,
     });
+
+    // Register for push notifications if iOS PWA
+    const registerForPush = async () => {
+      if (
+        isIOSDevice &&
+        (isIOSStandalone || isStandaloneMode) &&
+        "Notification" in window
+      ) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === "granted") {
+            // Register the service worker for push notifications
+            const registration = await navigator.serviceWorker.register(
+              "/sw.js"
+            );
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+            });
+
+            // Send the subscription to your server
+            await fetch("/api/push/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                subscription,
+                userEmail: session?.user?.email,
+              }),
+            });
+
+            console.log("Push notification subscription successful");
+          }
+        } catch (err) {
+          console.error("Failed to register for push notifications:", err);
+        }
+      }
+    };
+
+    registerForPush();
 
     // Request wake lock for Android PWA
     const requestWakeLock = async () => {
@@ -67,7 +112,7 @@ export default function GlobalAlertDisplay() {
     };
 
     requestWakeLock();
-  }, []);
+  }, [session?.user?.email]);
 
   // Alert polling effect
   useEffect(() => {
@@ -87,7 +132,7 @@ export default function GlobalAlertDisplay() {
           userEmail: session?.user?.email,
           userGeo: session?.user?.geo,
           isPWA: isStandalone,
-          platform: isAndroid ? "Android" : "iOS/Other",
+          platform: isAndroid ? "Android" : isIOS ? "iOS" : "Other",
           timestamp: new Date().toISOString(),
         });
 
@@ -96,7 +141,6 @@ export default function GlobalAlertDisplay() {
           headers: {
             "Content-Type": "application/json",
           },
-          // Add cache busting query parameter
           cache: "no-store",
         });
 
@@ -136,13 +180,20 @@ export default function GlobalAlertDisplay() {
     // Initial fetch
     fetchAlerts();
 
-    // Set up polling interval - use shorter interval for all authenticated users
-    const pollInterval = setInterval(fetchAlerts, 30000);
+    // Set up polling interval - but don't poll in background on iOS PWA
+    let pollInterval: NodeJS.Timeout | null = null;
+    if (!isIOS || !isStandalone || document.visibilityState === "visible") {
+      pollInterval = setInterval(fetchAlerts, 30000);
+    }
 
     // Set up visibility change listener
     const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
         console.log("App became visible, fetching alerts...");
+        // Start polling when visible on iOS PWA
+        if (isIOS && isStandalone && !pollInterval) {
+          pollInterval = setInterval(fetchAlerts, 30000);
+        }
         // Re-request wake lock if needed for Android PWA
         if (
           isAndroid &&
@@ -160,14 +211,21 @@ export default function GlobalAlertDisplay() {
           }
         }
         fetchAlerts();
-      } else if (wakeLock) {
-        // Release wake lock when app is hidden
-        try {
-          await wakeLock.release();
-          setWakeLock(null);
-          console.log("Wake Lock released");
-        } catch (err) {
-          console.error("Failed to release wake lock:", err);
+      } else {
+        // Stop polling when hidden on iOS PWA
+        if (isIOS && isStandalone && pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        // Release wake lock when hidden
+        if (wakeLock) {
+          try {
+            await wakeLock.release();
+            setWakeLock(null);
+            console.log("Wake Lock released");
+          } catch (err) {
+            console.error("Failed to release wake lock:", err);
+          }
         }
       }
     };
@@ -181,10 +239,9 @@ export default function GlobalAlertDisplay() {
     window.addEventListener("online", handleOnline);
 
     return () => {
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", handleOnline);
-      // Release wake lock on cleanup
       if (wakeLock) {
         wakeLock
           .release()
@@ -193,7 +250,7 @@ export default function GlobalAlertDisplay() {
           );
       }
     };
-  }, [session, status, isStandalone, isAndroid, wakeLock]);
+  }, [session, status, isStandalone, isAndroid, isIOS, wakeLock]);
 
   // Don't render anything if not authenticated
   if (status !== "authenticated" || !session?.user) {

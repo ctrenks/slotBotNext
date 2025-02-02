@@ -648,3 +648,30 @@ model AlertClick {
   @@index([createdAt])
   @@index([geo])
 }
+
+model PushSubscription {
+  userEmail   String
+  endpoint    String
+  auth        String
+  p256dh      String
+  lastUpdated DateTime
+
+  @@id([userEmail, endpoint])
+  @@index([userEmail])
+  @@map("push_subscriptions")
+}
+
+model UserAlert {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  alertId   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  geo       String
+
+  @@index([userId])
+  @@index([alertId])
+  @@index([createdAt])
+  @@index([geo])
+  @@map("user_alerts")
+}
