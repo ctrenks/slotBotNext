@@ -220,10 +220,34 @@ export default function NotificationDebug() {
         throw new Error("Push API not supported");
       }
 
+      // First check notification permission
+      if (Notification.permission === "default") {
+        console.log("Requesting notification permission...");
+        const permissionResult = await Notification.requestPermission();
+        console.log("Permission result:", permissionResult);
+        setPermission(permissionResult);
+
+        if (permissionResult !== "granted") {
+          throw new Error("Notification permission not granted");
+        }
+      } else if (Notification.permission !== "granted") {
+        throw new Error(
+          "Notification permission denied. Please enable notifications in your browser settings."
+        );
+      }
+
       // Wait for service worker to be ready
       console.log("Waiting for service worker to be ready...");
       const registration = await navigator.serviceWorker.ready;
       console.log("Service worker is ready:", registration);
+
+      // Check for existing subscription first
+      const existingSubscription =
+        await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        console.log("Found existing subscription, unsubscribing first...");
+        await existingSubscription.unsubscribe();
+      }
 
       // Get the server's public key
       console.log("Fetching VAPID key...");
