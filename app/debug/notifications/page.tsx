@@ -174,8 +174,12 @@ export default function NotificationDebug() {
       const permission = await Notification.requestPermission();
       setPermission(permission);
       window.location.reload(); // Reload to update all states
-    } catch (error) {
-      console.error("Error requesting permission:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error requesting permission:", error.message);
+      } else {
+        console.error("Unknown error requesting permission");
+      }
     }
   };
 
@@ -224,7 +228,7 @@ export default function NotificationDebug() {
       console.log("Subscription sent to server successfully");
       setSubscription(subscription);
       window.location.reload();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error subscribing to notifications:", error);
       if (error instanceof Error) {
         alert(`Error subscribing to notifications: ${error.message}`);
