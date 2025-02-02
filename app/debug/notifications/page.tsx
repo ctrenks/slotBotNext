@@ -212,12 +212,11 @@ export default function NotificationDebug() {
       // Update state
       setSubscription(subscription);
       window.location.reload(); // Reload to update all states
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error("Error subscribing to notifications:", error);
-      alert(
-        "Error subscribing to notifications: " +
-          (error.message || "Unknown error")
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      alert(`Error subscribing to notifications: ${errorMessage}`);
     }
   };
 
