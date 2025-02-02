@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthContext from "./components/SessionProvider";
@@ -8,11 +8,18 @@ import Footer from "./components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+  themeColor: "#4ADE80",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "SlotBot Alerts",
   description: "Real-time slot machine alerts and notifications",
   manifest: "/manifest.json",
-  themeColor: "#4ADE80",
   viewport:
     "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
   appleWebApp: {
