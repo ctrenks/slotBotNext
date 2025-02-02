@@ -17,12 +17,12 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    console.log("Starting push notification send process");
-    const { userEmail, title, body, data } = await request.json();
-    console.log("Notification data:", { userEmail, title, body, data });
+    console.log("Starting notification send process");
+    const { userEmail, message } = await request.json();
+    console.log("Message to notify:", { userEmail, message });
 
-    if (!userEmail || !body) {
-      console.log("Missing required fields:", { userEmail, body });
+    if (!userEmail || !message) {
+      console.log("Missing required fields:", { userEmail, message });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -36,11 +36,11 @@ export async function POST(request: Request) {
       },
     });
     console.log(
-      `Found ${subscriptions.length} subscriptions for user ${userEmail}`
+      `Found ${subscriptions.length} push subscriptions for user ${userEmail}`
     );
 
     if (!subscriptions.length) {
-      console.log("No subscriptions found for user:", userEmail);
+      console.log("No push subscriptions found for user:", userEmail);
       return NextResponse.json(
         { error: "No push subscriptions found for user" },
         { status: 404 }
@@ -51,23 +51,23 @@ export async function POST(request: Request) {
       subscriptions.map(async (subscription) => {
         try {
           console.log(
-            "Attempting to send notification to endpoint:",
+            "Attempting to send push notification to endpoint:",
             subscription.endpoint
           );
 
           // Prepare notification payload
           const payload = {
-            title: title || "SlotBot Alert",
-            message: body, // Use message for consistency
-            body: body, // Include body as fallback
+            title: "New SlotBot Message", // Clear title for notification
+            body: message.message || message, // Support both object and string formats
             data: {
-              ...data,
+              id: message.id, // If message is an object with ID
               url: "/slotbot",
               timestamp: new Date().toISOString(),
+              messageData: message, // Store full message data for reference
             },
           };
 
-          console.log("Notification payload:", payload);
+          console.log("Push notification payload:", payload);
 
           const pushResult = await webpush.sendNotification(
             {
@@ -86,13 +86,16 @@ export async function POST(request: Request) {
           // If subscription is expired or invalid, delete it
           if (error && typeof error === "object" && "statusCode" in error) {
             const webPushError = error as { statusCode?: number };
-            console.log("WebPush error status code:", webPushError.statusCode);
+            console.log(
+              "Push subscription error status code:",
+              webPushError.statusCode
+            );
             if (
               webPushError.statusCode === 404 ||
               webPushError.statusCode === 410
             ) {
               console.log(
-                "Deleting invalid subscription:",
+                "Deleting invalid push subscription:",
                 subscription.endpoint
               );
               await prisma.pushSubscription.delete({
@@ -118,7 +121,7 @@ export async function POST(request: Request) {
       (r) => r.status === "fulfilled" && (r.value as NotificationResult).success
     ).length;
     console.log(
-      `Successfully sent ${successCount} out of ${results.length} notifications`
+      `Successfully sent ${successCount} out of ${results.length} push notifications`
     );
 
     return NextResponse.json({

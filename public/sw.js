@@ -9,7 +9,7 @@ const urlsToCache = [
 ];
 
 // Keep track of shown notifications to prevent duplicates
-const shownNotifications = new Set();
+const shownNotificationIds = new Set();
 
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
@@ -42,92 +42,104 @@ self.addEventListener("push", (event) => {
   console.log("Push event received in service worker");
 
   if (!event.data) {
-    console.log("No data in push event");
+    console.log("No message data in push event");
     return;
   }
 
   try {
-    const data = event.data.json();
-    console.log("Push data parsed:", data);
+    const pushData = event.data.json();
+    console.log("Push message data received:", pushData);
 
-    // Check if we've already shown this notification
-    const notificationId = data.id || data.body; // Use alert ID or message as unique identifier
-    if (shownNotifications.has(notificationId)) {
-      console.log("Duplicate notification prevented:", notificationId);
+    // Generate a unique ID for this notification
+    const notificationId =
+      pushData.data?.id || pushData.body || Date.now().toString();
+
+    // Check if we've already shown a notification for this message
+    if (shownNotificationIds.has(notificationId)) {
+      console.log(
+        "Duplicate notification prevented for message:",
+        notificationId
+      );
       return;
     }
 
-    // Add to shown notifications set
-    shownNotifications.add(notificationId);
+    // Track this notification
+    shownNotificationIds.add(notificationId);
     // Limit set size to prevent memory issues
-    if (shownNotifications.size > 100) {
-      const firstItem = shownNotifications.values().next().value;
-      shownNotifications.delete(firstItem);
+    if (shownNotificationIds.size > 100) {
+      const firstItem = shownNotificationIds.values().next().value;
+      shownNotificationIds.delete(firstItem);
     }
 
-    // Ensure we have a title
-    const title = data.title || "SlotBot Alert";
-    const body = data.message || data.body || "New alert available";
-
-    const options = {
-      body: body,
+    const notificationOptions = {
+      body: pushData.body,
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-192x192.png",
       vibrate: [100, 50, 100],
       data: {
-        ...data,
         id: notificationId,
-        url: "/slotbot", // URL to open when clicked
+        url: "/slotbot",
+        messageData: pushData.data?.messageData || pushData, // Store original message data
+        timestamp: new Date().toISOString(),
       },
-      tag: notificationId, // Use unique ID as tag to prevent duplicates
-      renotify: true, // Force notification even if tag exists
+      tag: notificationId,
+      renotify: true, // Show notification even if one with same tag exists
       actions: [
         {
           action: "open",
-          title: "View Alert",
+          title: "View Message",
         },
       ],
       // iOS specific options
-      timestamp: Date.now(), // Add timestamp for iOS
+      timestamp: Date.now(),
       requireInteraction: true,
-      silent: false, // Ensure sound plays
+      silent: false, // Ensure notification sound plays
     };
 
-    console.log("Attempting to show notification:", { title, options });
+    console.log("Creating notification for message:", {
+      title: pushData.title,
+      options: notificationOptions,
+    });
 
     event.waitUntil(
       (async () => {
         try {
-          // Check if we have permission first
+          // Check if we have permission to show notifications
           if (self.Notification && self.Notification.permission === "granted") {
-            await self.registration.showNotification(title, options);
-            console.log("Notification shown successfully");
+            await self.registration.showNotification(
+              pushData.title,
+              notificationOptions
+            );
+            console.log(
+              "Notification shown successfully for message:",
+              notificationId
+            );
           } else {
             console.log(
-              "Notification permission not granted:",
+              "Cannot show notification - permission not granted:",
               self.Notification?.permission
             );
           }
         } catch (err) {
-          console.error("Error showing notification:", err);
+          console.error("Error showing notification for message:", err);
         }
       })()
     );
   } catch (err) {
-    console.error("Error processing push event:", err);
+    console.error("Error processing push message:", err);
   }
 });
 
 self.addEventListener("notificationclick", (event) => {
-  console.log("Notification clicked:", event.notification.tag);
+  console.log("Notification clicked for message:", event.notification.tag);
   event.notification.close();
 
-  // Get the notification data
-  const data = event.notification.data;
-  const urlToOpen = data?.url || "/slotbot";
+  // Get the message data
+  const messageData = event.notification.data;
+  const urlToOpen = messageData?.url || "/slotbot";
 
   if (event.action === "open" || event.action === "") {
-    // Open the app and navigate to the alerts page
+    // Open the app and navigate to the messages page
     event.waitUntil(
       clients
         .matchAll({ type: "window", includeUncontrolled: true })
