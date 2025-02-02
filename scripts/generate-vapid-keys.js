@@ -1,14 +1,16 @@
-import webpush from "web-push";
+const webpush = require("web-push");
 
 // Generate VAPID keys
 const vapidKeys = webpush.generateVAPIDKeys();
 
 console.log("VAPID Keys generated:");
-console.log("Public Key:", vapidKeys.publicKey);
-console.log("Private Key:", vapidKeys.privateKey);
+console.log("==================");
+console.log("Public Key:");
+console.log(vapidKeys.publicKey);
+console.log("\nPrivate Key:");
+console.log(vapidKeys.privateKey);
 console.log("\nAdd these to your .env.local file:");
-console.log(`NEXT_PUBLIC_VAPID_PUBLIC_KEY=${vapidKeys.publicKey}`);
-console.log(`VAPID_PRIVATE_KEY=${vapidKeys.privateKey}`);
-console.log(
-  `VAPID_SUBJECT=mailto:your-email@example.com  # Replace with your email`
-);
+console.log("==================");
+console.log(`VAPID_SUBJECT="https://www.beatonlineslots.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="${vapidKeys.publicKey}"
+VAPID_PRIVATE_KEY="${vapidKeys.privateKey}"`);
