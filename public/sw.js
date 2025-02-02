@@ -47,40 +47,19 @@ self.addEventListener("push", (event) => {
     const pushData = event.data.json();
     console.log("Push data received:", pushData);
 
-    // Ensure we have a message
-    const message = pushData.message || pushData.body || "New SlotBot Alert";
-
-    // iOS-optimized notification options
+    // Simple notification options for iOS
     const notificationOptions = {
-      // Basic notification info
-      title: "SlotBot Alert", // Keep consistent branding
-      body: message,
+      body: pushData.message || pushData.body || "New message",
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-192x192.png",
-
-      // iOS specific options
-      timestamp: Date.now(), // Required for iOS background notifications
-      tag: `slotbot-${Date.now()}`, // Unique tag to prevent duplicates
-      renotify: true, // Force notification even if same tag
-      silent: false, // Enable sound
-      vibrate: [200, 100, 200], // Vibration pattern
-
-      // Data for handling clicks
+      tag: Date.now().toString(), // Unique tag for each notification
+      timestamp: Date.now(),
       data: {
-        url: pushData.url || "/slotbot",
-        messageId: pushData.id || Date.now().toString(),
-        openTime: Date.now(),
+        url: "/slotbot",
       },
-
-      // Actions
-      actions: [
-        {
-          action: "open",
-          title: "View",
-        },
-      ],
-
-      // Critical for iOS background notifications
+      // iOS specific
+      sound: true,
+      renotify: true,
       requireInteraction: true,
     };
 
@@ -89,29 +68,19 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
       (async () => {
         try {
-          // Play notification sound for iOS
-          const audio = new Audio("/notification.mp3");
-          await audio
-            .play()
-            .catch((err) => console.log("Audio play failed:", err));
-
-          // Show the notification
+          // Show the notification with minimal options first
           await self.registration.showNotification(
-            notificationOptions.title,
+            "SlotBot",
             notificationOptions
           );
           console.log("Notification shown successfully");
         } catch (err) {
           console.error("Error showing notification:", err);
-          // Fallback notification for iOS
+          // Ultra minimal fallback
           try {
             await self.registration.showNotification("SlotBot", {
-              body: message,
-              badge: "/icons/icon-192x192.png",
-              sound: "default",
-              data: { url: "/slotbot" },
-              timestamp: Date.now(),
-              requireInteraction: true,
+              body: pushData.message || "New message",
+              tag: Date.now().toString(),
             });
           } catch (fallbackErr) {
             console.error("Fallback notification failed:", fallbackErr);
@@ -124,35 +93,9 @@ self.addEventListener("push", (event) => {
   }
 });
 
+// Simplified click handler for iOS
 self.addEventListener("notificationclick", (event) => {
-  console.log("Notification clicked:", event);
   event.notification.close();
 
-  // Handle notification click
-  event.waitUntil(
-    (async () => {
-      try {
-        // Get all windows
-        const windowClients = await clients.matchAll({
-          type: "window",
-          includeUncontrolled: true,
-        });
-
-        // If we have a window open, focus it
-        for (const client of windowClients) {
-          if (client.url.includes("/slotbot")) {
-            await client.focus();
-            return;
-          }
-        }
-
-        // If no window is open, open a new one
-        await clients.openWindow("/slotbot");
-      } catch (err) {
-        console.error("Error handling notification click:", err);
-        // Fallback: direct window open
-        await clients.openWindow("/slotbot");
-      }
-    })()
-  );
+  event.waitUntil(clients.openWindow("/slotbot"));
 });
