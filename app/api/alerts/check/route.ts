@@ -49,6 +49,26 @@ export async function POST() {
       timestamp: new Date().toISOString(),
     });
 
+    // First get all alerts without geo/referral filtering
+    const timeFilteredAlerts = await prisma.alert.findMany({
+      where: {
+        startTime: { lte: now },
+        endTime: { gte: now },
+      },
+    });
+
+    console.log("Time filtered alerts:", {
+      count: timeFilteredAlerts.length,
+      alerts: timeFilteredAlerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        geoTargets: a.geoTargets,
+        referralCodes: a.referralCodes,
+      })),
+    });
+
     const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
@@ -58,17 +78,34 @@ export async function POST() {
           },
           {
             OR: [
-              { geoTargets: { has: user.geo || "US" } },
+              { geoTargets: { has: user.geo } },
               { geoTargets: { isEmpty: true } },
+              { geoTargets: { has: "all" } },
             ],
           },
           {
             OR: [
               { referralCodes: { has: user.refferal || "" } },
               { referralCodes: { isEmpty: true } },
+              { referralCodes: { has: "all" } },
             ],
           },
         ],
+      },
+    });
+
+    console.log("Geo/referral targeting check:", {
+      userGeo: user.geo,
+      geoCondition: {
+        hasUserGeo: { has: user.geo },
+        isEmpty: { isEmpty: true },
+        hasAll: { has: "all" },
+      },
+      userReferral: user.refferal || "",
+      referralCondition: {
+        hasUserReferral: { has: user.refferal || "" },
+        isEmpty: { isEmpty: true },
+        hasAll: { has: "all" },
       },
     });
 
