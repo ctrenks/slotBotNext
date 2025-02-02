@@ -47,43 +47,81 @@ self.addEventListener("push", (event) => {
     const pushData = event.data.json();
     console.log("Push data received:", pushData);
 
-    // Simple notification options for iOS
+    // Generate unique ID for this notification
+    const notificationId = Date.now().toString();
+
+    // Simple notification options that work on both desktop and iOS
     const notificationOptions = {
       body: pushData.message || pushData.body || "New message",
       icon: "/icons/icon-192x192.png",
       badge: "/icons/icon-192x192.png",
-      tag: Date.now().toString(), // Unique tag for each notification
+      tag: notificationId,
       timestamp: Date.now(),
+      renotify: true, // Force new notification even if same tag
+      silent: false, // Enable sound
       data: {
         url: "/slotbot",
+        id: notificationId,
+        timestamp: Date.now(),
       },
-      // iOS specific
-      sound: true,
-      renotify: true,
-      requireInteraction: true,
     };
 
     console.log("Showing notification with options:", notificationOptions);
 
+    // Store notification data in IndexedDB for debug page
     event.waitUntil(
       (async () => {
         try {
-          // Show the notification with minimal options first
+          // First try to show the notification
           await self.registration.showNotification(
             "SlotBot",
             notificationOptions
           );
           console.log("Notification shown successfully");
+
+          // Then try to store it for debugging
+          const db = await openDatabase();
+          await storeNotification(db, {
+            id: notificationId,
+            timestamp: Date.now(),
+            data: pushData,
+            status: "shown",
+            platform: navigator.platform,
+          });
+          console.log("Notification stored in debug database");
         } catch (err) {
-          console.error("Error showing notification:", err);
-          // Ultra minimal fallback
+          console.error("Error in push event:", err);
+
+          // Try ultra minimal fallback
           try {
             await self.registration.showNotification("SlotBot", {
               body: pushData.message || "New message",
-              tag: Date.now().toString(),
+              tag: notificationId + "-fallback",
+            });
+
+            // Store fallback attempt
+            const db = await openDatabase();
+            await storeNotification(db, {
+              id: notificationId,
+              timestamp: Date.now(),
+              data: pushData,
+              status: "fallback-shown",
+              error: err.message,
+              platform: navigator.platform,
             });
           } catch (fallbackErr) {
             console.error("Fallback notification failed:", fallbackErr);
+
+            // Store failure
+            const db = await openDatabase();
+            await storeNotification(db, {
+              id: notificationId,
+              timestamp: Date.now(),
+              data: pushData,
+              status: "failed",
+              error: fallbackErr.message,
+              platform: navigator.platform,
+            });
           }
         }
       })()
@@ -99,3 +137,34 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(clients.openWindow("/slotbot"));
 });
+
+// IndexedDB setup for debug logging
+const DB_NAME = "PushNotificationDebug";
+const STORE_NAME = "notifications";
+
+async function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+  });
+}
+
+async function storeNotification(db, data) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(data);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
