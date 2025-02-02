@@ -39,7 +39,7 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
         htmlFor="mobile-menu"
         className="fixed inset-0 bg-black bg-opacity-80 hidden peer-checked:block md:hidden cursor-pointer z-40"
       ></label>
-      <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-zinc-950 shadow-lg transform translate-x-full peer-checked:translate-x-0 transition-transform duration-200 ease-in-out md:hidden z-50">
+      <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-zinc-900 shadow-lg transform translate-x-full peer-checked:translate-x-0 transition-transform duration-200 ease-in-out md:hidden z-50">
         <nav className="p-6">
           <ul className="flex flex-col space-y-4">
             <li>
@@ -76,6 +76,15 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/debug/notifications"
+                onClick={handleClick}
+                className="block w-full py-3 px-4 text-lg font-medium text-white hover:bg-emerald-500/10 hover:text-emerald-500 rounded-lg transition-colors"
+              >
+                Debug Notifications
+              </Link>
+            </li>
             <li>
               <SlotBotButton
                 className="w-full justify-center"
