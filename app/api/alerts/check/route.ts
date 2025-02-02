@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
-import { sendPushNotification } from "@/app/utils/pushNotifications";
 
 export async function POST() {
   try {
@@ -49,26 +48,7 @@ export async function POST() {
       timestamp: new Date().toISOString(),
     });
 
-    // First get all alerts without geo/referral filtering
-    const timeFilteredAlerts = await prisma.alert.findMany({
-      where: {
-        startTime: { lte: now },
-        endTime: { gte: now },
-      },
-    });
-
-    console.log("Time filtered alerts:", {
-      count: timeFilteredAlerts.length,
-      alerts: timeFilteredAlerts.map((a) => ({
-        id: a.id,
-        message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
-      })),
-    });
-
+    // Get all active alerts assigned to this user
     const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
@@ -77,56 +57,21 @@ export async function POST() {
             endTime: { gte: now },
           },
           {
-            OR: [
-              { geoTargets: { has: user.geo } },
-              { geoTargets: { isEmpty: true } },
-              { geoTargets: { has: "all" } },
-            ],
-          },
-          {
-            OR: [
-              { referralCodes: { has: user.refferal || "" } },
-              { referralCodes: { isEmpty: true } },
-              { referralCodes: { has: "all" } },
-            ],
+            recipients: {
+              some: {
+                userId: user.id,
+              },
+            },
           },
         ],
       },
-    });
-
-    console.log("Geo/referral targeting check:", {
-      userGeo: user.geo,
-      geoCondition: {
-        hasUserGeo: { has: user.geo },
-        isEmpty: { isEmpty: true },
-        hasAll: { has: "all" },
+      include: {
+        recipients: {
+          where: {
+            userId: user.id,
+          },
+        },
       },
-      userReferral: user.refferal || "",
-      referralCondition: {
-        hasUserReferral: { has: user.refferal || "" },
-        isEmpty: { isEmpty: true },
-        hasAll: { has: "all" },
-      },
-    });
-
-    // Log all alerts in the system for debugging
-    const allAlerts = await prisma.alert.findMany({
-      where: {
-        endTime: { gte: now },
-      },
-    });
-
-    console.log("All future alerts in system:", {
-      count: allAlerts.length,
-      alerts: allAlerts.map((a) => ({
-        id: a.id,
-        message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
-      })),
-      timestamp: new Date().toISOString(),
     });
 
     console.log("Active alerts query result:", {
@@ -138,50 +83,15 @@ export async function POST() {
         referralCodes: a.referralCodes,
         startTime: a.startTime,
         endTime: a.endTime,
-      })),
-      userGeo: user.geo || "US",
-      userReferral: user.refferal || "",
-      timestamp: new Date().toISOString(),
-    });
-
-    // Check for new alerts that the user hasn't seen yet
-    const existingAlertIds = new Set(user.alerts.map((ua) => ua.alertId));
-    const newAlerts = activeAlerts.filter(
-      (alert) => !existingAlertIds.has(alert.id)
-    );
-
-    console.log("New alerts check:", {
-      existingAlertIds: Array.from(existingAlertIds),
-      newAlertsCount: newAlerts.length,
-      newAlerts: newAlerts.map((a) => ({
-        id: a.id,
-        message: a.message,
+        recipientCount: a.recipients.length,
       })),
       timestamp: new Date().toISOString(),
     });
-
-    // Create UserAlert entries for new alerts
-    if (newAlerts.length > 0) {
-      await prisma.userAlert.createMany({
-        data: newAlerts.map((alert) => ({
-          userId: Number(user.id),
-          alertId: alert.id,
-          read: false,
-          createdAt: new Date(),
-          geo: user.geo || "US",
-        })),
-      });
-
-      // Send push notifications for new alerts
-      for (const alert of newAlerts) {
-        await sendPushNotification(user.email, alert);
-      }
-    }
 
     // Return all active alerts with read status
     const alertsWithRead = activeAlerts.map((alert) => ({
       ...alert,
-      read: existingAlertIds.has(alert.id),
+      read: alert.recipients[0]?.read || false,
     }));
 
     console.log("Final response:", {
