@@ -21,6 +21,20 @@ interface WakeLockSentinel {
   removeEventListener(type: string, listener: EventListener): void;
 }
 
+// Add helper function for VAPID key conversion
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
 export default function GlobalAlertDisplay() {
   const { data: session, status } = useSession();
   const [initialAlerts, setInitialAlerts] = useState<AlertWithRead[]>([]);
@@ -89,34 +103,43 @@ export default function GlobalAlertDisplay() {
 
           if (!subscription) {
             console.log("Creating new push subscription...");
+            // Get VAPID key from server
+            const vapidResponse = await fetch("/api/push/vapid-public-key");
+            if (!vapidResponse.ok) {
+              throw new Error("Failed to fetch VAPID key");
+            }
+            const vapidPublicKey = await vapidResponse.text();
+            console.log("Received VAPID key");
+
+            // Convert VAPID key
+            const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+            console.log("Converted VAPID key");
+
             subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+              applicationServerKey: convertedVapidKey,
             });
             console.log("Push subscription created:", subscription);
-          } else {
-            console.log("Using existing push subscription");
-          }
 
-          // Send the subscription to your server
-          const response = await fetch("/api/push/register", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              subscription,
-              userEmail: session?.user?.email,
-            }),
-          });
+            // Send the subscription to your server
+            const response = await fetch("/api/push/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                subscription,
+                userEmail: session?.user?.email,
+              }),
+            });
 
-          if (response.ok) {
+            if (!response.ok) {
+              throw new Error("Failed to register subscription with server");
+            }
+
             console.log("Push notification subscription successful");
           } else {
-            console.error(
-              "Failed to register subscription with server:",
-              await response.text()
-            );
+            console.log("Using existing push subscription");
           }
         }
       } catch (err) {
