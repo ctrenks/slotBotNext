@@ -135,9 +135,7 @@ export default function NotificationDebug() {
           );
 
           // Wait for the service worker to be activated
-          if (registration.active) {
-            debugSteps.push("✅ Service Worker is already active");
-          } else {
+          if (!registration.active) {
             debugSteps.push("ℹ️ Waiting for Service Worker to activate...");
             await new Promise<void>((resolve) => {
               registration.addEventListener("activate", () => {
@@ -145,15 +143,71 @@ export default function NotificationDebug() {
                 resolve();
               });
             });
+          } else {
+            debugSteps.push("✅ Service Worker is already active");
           }
 
-          // Check for existing push subscription
-          const subscription = await registration.pushManager.getSubscription();
-          if (subscription) {
-            debugSteps.push("✅ Found existing push subscription");
-            setSubscription(subscription);
+          // Check notification permission
+          if (Notification.permission === "granted") {
+            debugSteps.push("✅ Notification permission already granted");
+
+            // Get VAPID key and create subscription
+            try {
+              debugSteps.push("ℹ️ Fetching VAPID key...");
+              const response = await fetch("/api/push/vapid-public-key");
+              if (!response.ok) {
+                throw new Error(
+                  `Failed to fetch VAPID key: ${response.status}`
+                );
+              }
+              const vapidPublicKey = await response.text();
+              debugSteps.push("✅ Got VAPID key");
+
+              // Convert VAPID key
+              const applicationServerKey =
+                urlBase64ToUint8Array(vapidPublicKey);
+
+              // Create push subscription
+              debugSteps.push("ℹ️ Creating push subscription...");
+              const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey,
+              });
+
+              // Get user email from session
+              const sessionResponse = await fetch("/api/auth/session");
+              const session = await sessionResponse.json();
+              const userEmail = session?.user?.email;
+
+              if (!userEmail) {
+                throw new Error("User email not found in session");
+              }
+
+              // Register subscription with server
+              debugSteps.push("ℹ️ Registering subscription with server...");
+              const serverResponse = await fetch("/api/push/register", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ subscription, userEmail }),
+              });
+
+              if (!serverResponse.ok) {
+                throw new Error(
+                  `Failed to register subscription: ${serverResponse.status}`
+                );
+              }
+
+              debugSteps.push("✅ Push subscription active and registered");
+              setSubscription(subscription);
+            } catch (error) {
+              debugSteps.push(
+                `❌ Error setting up push subscription: ${error}`
+              );
+            }
           } else {
-            debugSteps.push("ℹ️ No existing push subscription found");
+            debugSteps.push("ℹ️ Notification permission not granted yet");
           }
         } catch (error) {
           debugSteps.push(`❌ Service Worker error: ${error}`);
