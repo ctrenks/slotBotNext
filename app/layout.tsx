@@ -6,7 +6,6 @@ import AuthWrapper from "./components/AuthWrapper";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SafeAreaStyles from "./components/SafeAreaStyles";
-import ClientProviders from "./components/ClientProviders";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -97,6 +96,27 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-orientations" content="portrait" />
         <meta name="theme-color" content="#4ADE80" />
 
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', async function() {
+                  try {
+                    console.log('Registering service worker...');
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                  } catch(error) {
+                    console.error('ServiceWorker registration failed: ', error);
+                  }
+                });
+              } else {
+                console.log('Service workers are not supported');
+              }
+            `,
+          }}
+        />
+
         {/* iOS icons */}
         <link rel="apple-touch-icon" href="/icons/apple-icon-180.png" />
         <link
@@ -142,15 +162,13 @@ export default function RootLayout({
         <SafeAreaStyles />
       </head>
       <body className={`${inter.className} bg-black text-[#4ADE80]`}>
-        <ClientProviders>
-          <AuthContext>
-            <AuthWrapper>
-              <Header />
-              <main className="container mx-auto px-4">{children}</main>
-              <Footer />
-            </AuthWrapper>
-          </AuthContext>
-        </ClientProviders>
+        <AuthContext>
+          <AuthWrapper>
+            <Header />
+            <main className="container mx-auto px-4">{children}</main>
+            <Footer />
+          </AuthWrapper>
+        </AuthContext>
       </body>
     </html>
   );
