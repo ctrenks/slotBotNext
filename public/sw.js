@@ -58,7 +58,7 @@ self.addEventListener("push", async function (event) {
   try {
     const data = event.data.json();
     console.log("Received push data:", data); // Debug log
-    const notificationId = data.id || Date.now().toString();
+    const notificationId = data.data?.alertId || Date.now().toString();
 
     // Check if we've already shown this notification
     if (shownNotifications.has(notificationId)) {
@@ -75,28 +75,28 @@ self.addEventListener("push", async function (event) {
       shownNotifications.delete(oldestId);
     }
 
-    // Check if any clients are focused
-    const clientList = await clients.matchAll({
-      type: "window",
-      includeUncontrolled: true,
-    });
+    // Always show notification on iOS, regardless of focus state
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    let shouldShowNotification = true;
 
-    const isClientFocused = clientList.some((client) => client.focused);
+    if (!isIOS) {
+      // On non-iOS, check if any clients are focused
+      const clientList = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      shouldShowNotification = !clientList.some((client) => client.focused);
+    }
 
-    // Only show notification if app is not focused
-    if (!isClientFocused) {
-      // Debug log the image paths we're trying to use
-      console.log("Casino button path:", data.casinoImage);
-      console.log("Slot image path:", data.slotImage);
-
+    // Show notification if conditions are met
+    if (shouldShowNotification) {
       const options = {
-        body: data.message || data.body || "New notification",
+        body: data.body || "New notification",
         tag: notificationId, // Use unique ID as tag to prevent duplicates
-        renotify: false, // Prevent renotification for same tag
-        requireInteraction: true,
-        icon: data.casinoImage || "/icons/icon-192x192.png",
+        renotify: true, // Enable renotification for iOS
+        requireInteraction: !isIOS, // Don't require interaction on iOS
+        icon: data.data?.icon || "/icons/icon-192x192.png",
         badge: "/icons/icon-192x192.png",
-        image: data.slotImage,
         actions: [
           {
             action: "play",
@@ -108,9 +108,6 @@ self.addEventListener("push", async function (event) {
           playUrl: `/out/${notificationId}`, // Always use the outbound link
           id: notificationId,
           timestamp: Date.now(),
-          casinoName: data.casinoName,
-          slotName: data.slot,
-          rtp: data.rtp,
         },
       };
 
@@ -127,7 +124,7 @@ self.addEventListener("push", async function (event) {
         timestamp: Date.now(),
         data: data,
         status: "shown",
-        platform: "web",
+        platform: isIOS ? "ios" : "web",
       });
     }
   } catch (error) {
