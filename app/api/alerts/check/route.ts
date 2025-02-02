@@ -116,10 +116,7 @@ export async function POST() {
       // Send push notifications for unread alerts
       for (const alert of unreadAlerts) {
         try {
-          await sendPushNotification(user.email, {
-            ...alert,
-            casinoImage: alert.casino?.button,
-          });
+          await sendPushNotification(user.email, alert);
         } catch (error) {
           console.error("Failed to send push notification:", {
             alertId: alert.id,

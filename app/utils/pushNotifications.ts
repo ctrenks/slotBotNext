@@ -2,6 +2,14 @@ import webpush from "web-push";
 import { prisma } from "@/prisma";
 import { Alert } from "@prisma/client";
 
+interface AlertWithCasino extends Alert {
+  casino?: {
+    id: number;
+    url: string | null;
+    button: string | null;
+  } | null;
+}
+
 // Configure web-push with your VAPID keys
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT!,
@@ -13,7 +21,10 @@ interface WebPushError extends Error {
   statusCode?: number;
 }
 
-export async function sendPushNotification(userEmail: string, alert: Alert) {
+export async function sendPushNotification(
+  userEmail: string,
+  alert: AlertWithCasino
+) {
   try {
     // Get all push subscriptions for this user
     const subscriptions = await prisma.pushSubscription.findMany({
@@ -29,6 +40,9 @@ export async function sendPushNotification(userEmail: string, alert: Alert) {
           data: {
             url: "/slotbot",
             alertId: alert.id,
+            icon: alert.casino?.button
+              ? `/image/casino/${alert.casino.button}`
+              : undefined,
           },
         });
 
