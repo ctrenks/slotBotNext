@@ -14,10 +14,26 @@ let shownNotifications = new Set();
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("Service Worker caching files");
-      return cache.addAll(urlsToCache);
-    })
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        console.log("Service Worker caching files");
+
+        // Cache files one by one to handle failures gracefully
+        for (const url of urlsToCache) {
+          try {
+            await cache.add(url);
+            console.log(`Cached: ${url}`);
+          } catch (error) {
+            console.warn(`Failed to cache: ${url}`, error);
+            // Continue with other files even if one fails
+          }
+        }
+        console.log("Service Worker installation complete");
+      } catch (error) {
+        console.error("Service Worker installation failed:", error);
+      }
+    })()
   );
   // Activate worker immediately
   self.skipWaiting();

@@ -114,31 +114,49 @@ export default function NotificationDebug() {
       } else {
         debugSteps.push("✅ Service Workers are supported");
         try {
-          const registrations =
+          // Unregister any existing service workers
+          const existingRegistrations =
             await navigator.serviceWorker.getRegistrations();
-          if (registrations.length > 0) {
-            debugSteps.push("✅ Service Worker is registered");
-            const registration = registrations[0];
-            debugSteps.push(`✅ Service Worker scope: ${registration.scope}`);
-          } else {
-            debugSteps.push("❌ No Service Worker registered");
-            debugSteps.push("ℹ️ Attempting to register service worker...");
-            try {
-              const newRegistration = await navigator.serviceWorker.register(
-                "/sw.js"
-              );
-              debugSteps.push("✅ Service Worker registered successfully");
-              debugSteps.push(
-                `✅ Service Worker scope: ${newRegistration.scope}`
-              );
-            } catch (error) {
-              debugSteps.push(
-                `❌ Service Worker registration failed: ${error}`
-              );
+          for (const reg of existingRegistrations) {
+            await reg.unregister();
+            debugSteps.push("ℹ️ Unregistered existing service worker");
+          }
+
+          // Register new service worker
+          debugSteps.push("ℹ️ Registering new service worker...");
+          const registration = await navigator.serviceWorker.register(
+            "/sw.js",
+            {
+              scope: "/",
             }
+          );
+          debugSteps.push(
+            `✅ Service Worker registered with scope: ${registration.scope}`
+          );
+
+          // Wait for the service worker to be activated
+          if (registration.active) {
+            debugSteps.push("✅ Service Worker is already active");
+          } else {
+            debugSteps.push("ℹ️ Waiting for Service Worker to activate...");
+            await new Promise<void>((resolve) => {
+              registration.addEventListener("activate", () => {
+                debugSteps.push("✅ Service Worker activated");
+                resolve();
+              });
+            });
+          }
+
+          // Check for existing push subscription
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            debugSteps.push("✅ Found existing push subscription");
+            setSubscription(subscription);
+          } else {
+            debugSteps.push("ℹ️ No existing push subscription found");
           }
         } catch (error) {
-          debugSteps.push(`❌ Error checking service worker: ${error}`);
+          debugSteps.push(`❌ Service Worker error: ${error}`);
         }
       }
 
@@ -152,47 +170,6 @@ export default function NotificationDebug() {
         }
       } else {
         debugSteps.push("✅ Push API is supported");
-      }
-
-      // iOS specific checks
-      if (isIOSDevice) {
-        debugSteps.push("📱 iOS device detected");
-        if (!isPWAMode) {
-          debugSteps.push(
-            "❌ Not running as PWA - Add to Home Screen required for notifications"
-          );
-        } else {
-          debugSteps.push("✅ Running as PWA");
-        }
-      }
-
-      // Check notification permission
-      if ("Notification" in window) {
-        setPermission(Notification.permission);
-        debugSteps.push(
-          `🔔 Notification permission status: ${Notification.permission}`
-        );
-      }
-
-      // Get push subscription
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.ready
-          .then(async (registration) => {
-            try {
-              const sub = await registration.pushManager.getSubscription();
-              setSubscription(sub);
-              if (sub) {
-                debugSteps.push("✅ Push subscription active");
-              } else {
-                debugSteps.push("❌ No active push subscription");
-              }
-            } catch (error) {
-              debugSteps.push(`❌ Error getting push subscription: ${error}`);
-            }
-          })
-          .catch((error) => {
-            debugSteps.push(`❌ Service Worker registration error: ${error}`);
-          });
       }
 
       setDebugInfo(debugSteps);
@@ -236,30 +213,17 @@ export default function NotificationDebug() {
     console.log("Subscribe button clicked");
     try {
       if (!("serviceWorker" in navigator)) {
-        console.error("Service Worker not supported");
-        alert("Service Worker not supported");
-        return;
+        throw new Error("Service Worker not supported");
       }
 
       if (!("PushManager" in window)) {
-        console.error("Push API not supported");
-        alert("Push API not supported");
-        return;
+        throw new Error("Push API not supported");
       }
 
-      // Check if service worker is registered
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      console.log("Current service worker registrations:", registrations);
-
-      if (registrations.length === 0) {
-        console.error("No service worker registered");
-        alert("No service worker registered. Please reload the page.");
-        return;
-      }
-
-      console.log("Getting service worker registration...");
+      // Wait for service worker to be ready
+      console.log("Waiting for service worker to be ready...");
       const registration = await navigator.serviceWorker.ready;
-      console.log("Service worker ready, registration:", registration);
+      console.log("Service worker is ready:", registration);
 
       // Get the server's public key
       console.log("Fetching VAPID key...");
@@ -275,66 +239,53 @@ export default function NotificationDebug() {
       // Convert VAPID key to Uint8Array
       console.log("Converting VAPID key...");
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-      console.log("Converted VAPID key to Uint8Array");
 
       // Subscribe to push notifications
       console.log("Subscribing to push notifications...");
-      try {
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey,
-        });
-        console.log("Push subscription created:", subscription);
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey,
+      });
+      console.log("Push subscription created:", subscription);
 
-        // Get user email from session
-        const sessionResponse = await fetch("/api/auth/session");
-        const session = await sessionResponse.json();
-        const userEmail = session?.user?.email;
+      // Get user email from session
+      const sessionResponse = await fetch("/api/auth/session");
+      const session = await sessionResponse.json();
+      const userEmail = session?.user?.email;
 
-        if (!userEmail) {
-          throw new Error("User email not found in session");
-        }
-
-        // Send the subscription to your server
-        console.log("Sending subscription to server...");
-        const serverResponse = await fetch("/api/push/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ subscription, userEmail }),
-        });
-
-        if (!serverResponse.ok) {
-          const errorText = await serverResponse.text();
-          throw new Error(
-            `Failed to send subscription to server: ${serverResponse.status} ${errorText}`
-          );
-        }
-
-        console.log("Subscription sent to server successfully");
-        setSubscription(subscription);
-        alert("Successfully subscribed to push notifications!");
-      } catch (subscribeError) {
-        console.error("Error during subscription:", subscribeError);
-        if (subscribeError instanceof Error) {
-          if (subscribeError.message.includes("permission")) {
-            alert(
-              "Permission denied for push notifications. Please check your browser settings."
-            );
-          } else {
-            alert(`Error subscribing: ${subscribeError.message}`);
-          }
-        }
-        throw subscribeError;
+      if (!userEmail) {
+        throw new Error("User email not found in session");
       }
-    } catch (error: unknown) {
+
+      // Send the subscription to your server
+      console.log("Sending subscription to server...");
+      const serverResponse = await fetch("/api/push/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subscription, userEmail }),
+      });
+
+      if (!serverResponse.ok) {
+        const errorText = await serverResponse.text();
+        throw new Error(
+          `Failed to send subscription to server: ${serverResponse.status} ${errorText}`
+        );
+      }
+
+      console.log("Subscription sent to server successfully");
+      setSubscription(subscription);
+      setDebugInfo((prev) => [
+        ...prev,
+        "✅ Successfully subscribed to push notifications",
+      ]);
+    } catch (error) {
       console.error("Error in subscription process:", error);
-      if (error instanceof Error) {
-        alert(`Error subscribing to notifications: ${error.message}`);
-      } else {
-        alert("An unknown error occurred while subscribing to notifications");
-      }
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      setDebugInfo((prev) => [...prev, `❌ Error: ${errorMessage}`]);
+      alert(`Error subscribing to notifications: ${errorMessage}`);
     }
   };
 
