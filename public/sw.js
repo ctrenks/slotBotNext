@@ -8,6 +8,9 @@ const urlsToCache = [
   "/icons/icon-512x512.png",
 ];
 
+// Keep track of shown notifications
+let shownNotifications = new Set();
+
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
   event.waitUntil(
@@ -35,136 +38,94 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-self.addEventListener("push", (event) => {
-  console.log("Push event received in service worker");
-
-  if (!event.data) {
-    console.log("No data in push event");
-    return;
-  }
-
+self.addEventListener("push", async function (event) {
   try {
-    const pushData = event.data.json();
-    console.log("Push data received:", pushData);
+    const data = event.data.json();
+    const notificationId = data.id || Date.now().toString();
 
-    // Generate unique ID for this notification
-    const notificationId = Date.now().toString();
+    // Check if we've already shown this notification
+    if (shownNotifications.has(notificationId)) {
+      console.log("Notification already shown:", notificationId);
+      return;
+    }
 
-    // Simple notification options that work on both desktop and iOS
-    const notificationOptions = {
-      body: pushData.message || pushData.body || "New message",
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-192x192.png",
-      tag: notificationId,
-      timestamp: Date.now(),
-      renotify: true, // Force new notification even if same tag
-      silent: false, // Enable sound
+    // Add to shown notifications set
+    shownNotifications.add(notificationId);
+
+    // Limit the size of the set to prevent memory issues
+    if (shownNotifications.size > 100) {
+      const oldestId = shownNotifications.values().next().value;
+      shownNotifications.delete(oldestId);
+    }
+
+    const options = {
+      body: data.message || data.body || "New notification",
+      tag: notificationId, // Use unique ID as tag to prevent duplicates
+      renotify: false, // Prevent renotification for same tag
+      requireInteraction: true,
       data: {
-        url: "/slotbot",
+        url: data.url || "/",
         id: notificationId,
         timestamp: Date.now(),
       },
     };
 
-    console.log("Showing notification with options:", notificationOptions);
+    await self.registration.showNotification("SlotBot Message", options);
 
-    // Store notification data in IndexedDB for debug page
-    event.waitUntil(
-      (async () => {
-        try {
-          // First try to show the notification
-          await self.registration.showNotification(
-            "SlotBot",
-            notificationOptions
-          );
-          console.log("Notification shown successfully");
-
-          // Then try to store it for debugging
-          const db = await openDatabase();
-          await storeNotification(db, {
-            id: notificationId,
-            timestamp: Date.now(),
-            data: pushData,
-            status: "shown",
-            platform: navigator.platform,
-          });
-          console.log("Notification stored in debug database");
-        } catch (err) {
-          console.error("Error in push event:", err);
-
-          // Try ultra minimal fallback
-          try {
-            await self.registration.showNotification("SlotBot", {
-              body: pushData.message || "New message",
-              tag: notificationId + "-fallback",
-            });
-
-            // Store fallback attempt
-            const db = await openDatabase();
-            await storeNotification(db, {
-              id: notificationId,
-              timestamp: Date.now(),
-              data: pushData,
-              status: "fallback-shown",
-              error: err.message,
-              platform: navigator.platform,
-            });
-          } catch (fallbackErr) {
-            console.error("Fallback notification failed:", fallbackErr);
-
-            // Store failure
-            const db = await openDatabase();
-            await storeNotification(db, {
-              id: notificationId,
-              timestamp: Date.now(),
-              data: pushData,
-              status: "failed",
-              error: fallbackErr.message,
-              platform: navigator.platform,
-            });
-          }
-        }
-      })()
-    );
-  } catch (err) {
-    console.error("Error processing push event:", err);
+    // Store notification in IndexedDB
+    const db = await openLogsDB();
+    const tx = db.transaction("logs", "readwrite");
+    const store = tx.objectStore("logs");
+    await store.put({
+      id: notificationId,
+      timestamp: Date.now(),
+      data: data,
+      status: "shown",
+      platform: "web",
+    });
+  } catch (error) {
+    console.error("Error showing notification:", error);
   }
 });
 
 // Simplified click handler for iOS
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
-  event.waitUntil(clients.openWindow("/slotbot"));
+  const urlToOpen = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    clients
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      .then(function (clientList) {
+        // If we have a matching client, focus it
+        for (const client of clientList) {
+          if (client.url === urlToOpen && "focus" in client) {
+            return client.focus();
+          }
+        }
+        // If no matching client, open new window
+        return clients.openWindow(urlToOpen);
+      })
+  );
 });
 
-// IndexedDB setup for debug logging
-const DB_NAME = "PushNotificationDebug";
-const STORE_NAME = "notifications";
-
-async function openDatabase() {
+// Helper function to open IndexedDB
+async function openLogsDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open("NotificationLogs", 1);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      if (!db.objectStoreNames.contains("logs")) {
+        db.createObjectStore("logs", { keyPath: "id" });
       }
     };
-  });
-}
-
-async function storeNotification(db, data) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, "readwrite");
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(data);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
   });
 }
