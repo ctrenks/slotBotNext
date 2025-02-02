@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
+import { sendPushNotification } from "@/app/utils/pushNotifications";
 
 export async function POST() {
   try {
@@ -84,9 +85,37 @@ export async function POST() {
         startTime: a.startTime,
         endTime: a.endTime,
         recipientCount: a.recipients.length,
+        read: a.recipients[0]?.read || false,
       })),
       timestamp: new Date().toISOString(),
     });
+
+    // Find unread alerts and send push notifications
+    const unreadAlerts = activeAlerts.filter(
+      (alert) => !alert.recipients[0]?.read
+    );
+
+    if (unreadAlerts.length > 0) {
+      console.log("Sending push notifications for unread alerts:", {
+        count: unreadAlerts.length,
+        alerts: unreadAlerts.map((a) => ({
+          id: a.id,
+          message: a.message,
+        })),
+      });
+
+      // Send push notifications for unread alerts
+      for (const alert of unreadAlerts) {
+        try {
+          await sendPushNotification(user.email, alert);
+        } catch (error) {
+          console.error("Failed to send push notification:", {
+            alertId: alert.id,
+            error,
+          });
+        }
+      }
+    }
 
     // Return all active alerts with read status
     const alertsWithRead = activeAlerts.map((alert) => ({
