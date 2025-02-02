@@ -63,53 +63,95 @@ export default function GlobalAlertDisplay() {
       isAndroidDevice,
       userAgent: window.navigator.userAgent,
     });
+  }, []);
 
-    // Register for push notifications if iOS PWA
-    const registerForPush = async () => {
-      if (
-        isIOSDevice &&
-        (isIOSStandalone || isStandaloneMode) &&
-        "Notification" in window
-      ) {
-        try {
-          const permission = await Notification.requestPermission();
-          if (permission === "granted") {
-            // Register the service worker for push notifications
-            const registration = await navigator.serviceWorker.register(
-              "/sw.js"
-            );
-            const subscription = await registration.pushManager.subscribe({
+  // Register for push notifications if iOS PWA
+  const registerForPush = async () => {
+    if (isIOS && isStandalone && "Notification" in window) {
+      try {
+        console.log("Requesting notification permission for iOS...");
+        const permission = await Notification.requestPermission();
+        console.log("Notification permission result:", permission);
+
+        if (permission === "granted") {
+          // Check if service worker is already registered
+          const existingReg = await navigator.serviceWorker.getRegistration();
+          const registration =
+            existingReg || (await navigator.serviceWorker.register("/sw.js"));
+
+          console.log(
+            "Service worker registration status:",
+            registration.active ? "active" : "inactive"
+          );
+
+          // Check for existing push subscription
+          let subscription = await registration.pushManager.getSubscription();
+
+          if (!subscription) {
+            console.log("Creating new push subscription...");
+            subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
             });
-
-            // Send the subscription to your server
-            await fetch("/api/push/register", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                subscription,
-                userEmail: session?.user?.email,
-              }),
-            });
-
-            console.log("Push notification subscription successful");
+            console.log("Push subscription created:", subscription);
+          } else {
+            console.log("Using existing push subscription");
           }
-        } catch (err) {
-          console.error("Failed to register for push notifications:", err);
+
+          // Send the subscription to your server
+          const response = await fetch("/api/push/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              subscription,
+              userEmail: session?.user?.email,
+            }),
+          });
+
+          if (response.ok) {
+            console.log("Push notification subscription successful");
+          } else {
+            console.error(
+              "Failed to register subscription with server:",
+              await response.text()
+            );
+          }
         }
+      } catch (err) {
+        console.error("Failed to register for push notifications:", err);
       }
-    };
+    }
+  };
 
-    registerForPush();
+  // Push notification registration effect
+  useEffect(() => {
+    if (session?.user?.email && isIOS && isStandalone) {
+      registerForPush();
 
-    // Request wake lock for Android PWA
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          registerForPush();
+        }
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      return () => {
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
+    }
+  }, [session?.user?.email, isIOS, isStandalone]);
+
+  // Request wake lock for Android PWA
+  useEffect(() => {
     const requestWakeLock = async () => {
       if (
-        isAndroidDevice &&
-        isStandaloneMode &&
+        isAndroid &&
+        isStandalone &&
         "wakeLock" in navigator &&
         navigator.wakeLock
       ) {
@@ -124,7 +166,7 @@ export default function GlobalAlertDisplay() {
     };
 
     requestWakeLock();
-  }, [session?.user?.email]);
+  }, [isAndroid, isStandalone]);
 
   // Alert polling effect
   useEffect(() => {
