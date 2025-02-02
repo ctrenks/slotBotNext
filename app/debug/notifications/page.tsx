@@ -2,13 +2,26 @@
 
 import { useEffect, useState } from "react";
 
+interface PushData {
+  message?: string;
+  body?: string;
+  id?: string;
+  url?: string;
+  timestamp?: number;
+}
+
 interface NotificationLog {
   id: string;
   timestamp: number;
-  data: any;
+  data: PushData;
   status: string;
   error?: string;
   platform: string;
+}
+
+// Type for Safari/iOS specific navigator
+interface SafariNavigator extends Navigator {
+  standalone?: boolean;
 }
 
 export default function NotificationDebug() {
@@ -27,7 +40,7 @@ export default function NotificationDebug() {
     setIsPWA(
       window.matchMedia("(display-mode: standalone)").matches ||
         ("standalone" in window.navigator &&
-          (window.navigator as any).standalone)
+          (window.navigator as SafariNavigator).standalone === true)
     );
 
     // Check notification permission
