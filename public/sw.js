@@ -57,6 +57,7 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", async function (event) {
   try {
     const data = event.data.json();
+    console.log("Received push data:", data); // Debug log
     const notificationId = data.id || Date.now().toString();
 
     // Check if we've already shown this notification
@@ -84,18 +85,18 @@ self.addEventListener("push", async function (event) {
 
     // Only show notification if app is not focused
     if (!isClientFocused) {
+      // Debug log the image paths we're trying to use
+      console.log("Casino button path:", data.casinoImage);
+      console.log("Slot image path:", data.slotImage);
+
       const options = {
         body: data.message || data.body || "New notification",
         tag: notificationId, // Use unique ID as tag to prevent duplicates
         renotify: false, // Prevent renotification for same tag
         requireInteraction: true,
-        icon: data.casino?.button
-          ? `/image/casino/${data.casino.button}`
-          : "/icons/icon-192x192.png",
+        icon: data.casinoImage || "/icons/icon-192x192.png",
         badge: "/icons/icon-192x192.png",
-        image: data.slotImage
-          ? `/image/sloticonssquare/${data.slotImage}`
-          : undefined,
+        image: data.slotImage,
         actions: [
           {
             action: "play",
@@ -104,9 +105,7 @@ self.addEventListener("push", async function (event) {
         ],
         data: {
           url: "/slotbot", // Default redirect to slotbot
-          playUrl:
-            data.customUrl ||
-            (data.casino?.url ? `/out/${notificationId}` : undefined), // URL for play button
+          playUrl: `/out/${notificationId}`, // Always use the outbound link
           id: notificationId,
           timestamp: Date.now(),
           casinoName: data.casinoName,
@@ -114,6 +113,8 @@ self.addEventListener("push", async function (event) {
           rtp: data.rtp,
         },
       };
+
+      console.log("Notification options:", options); // Debug log
 
       await self.registration.showNotification("SlotBot Message", options);
 
