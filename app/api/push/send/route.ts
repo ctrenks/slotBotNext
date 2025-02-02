@@ -17,9 +17,12 @@ webpush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
+    console.log("Starting push notification send process");
     const { userEmail, title, body, data } = await request.json();
+    console.log("Notification data:", { userEmail, title, body, data });
 
     if (!userEmail || !title || !body) {
+      console.log("Missing required fields:", { userEmail, title, body });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -32,8 +35,12 @@ export async function POST(request: Request) {
         userEmail: userEmail,
       },
     });
+    console.log(
+      `Found ${subscriptions.length} subscriptions for user ${userEmail}`
+    );
 
     if (!subscriptions.length) {
+      console.log("No subscriptions found for user:", userEmail);
       return NextResponse.json(
         { error: "No push subscriptions found for user" },
         { status: 404 }
@@ -43,7 +50,18 @@ export async function POST(request: Request) {
     const results = await Promise.allSettled(
       subscriptions.map(async (subscription) => {
         try {
-          await webpush.sendNotification(
+          console.log(
+            "Attempting to send notification to endpoint:",
+            subscription.endpoint
+          );
+          const payload = JSON.stringify({
+            title,
+            body,
+            data,
+          });
+          console.log("Notification payload:", payload);
+
+          const pushResult = await webpush.sendNotification(
             {
               endpoint: subscription.endpoint,
               keys: {
@@ -51,21 +69,24 @@ export async function POST(request: Request) {
                 auth: subscription.auth,
               },
             },
-            JSON.stringify({
-              title,
-              body,
-              data,
-            })
+            payload
           );
+          console.log("Push notification sent successfully:", pushResult);
           return { success: true, endpoint: subscription.endpoint };
         } catch (error: unknown) {
+          console.error("Error sending push notification:", error);
           // If subscription is expired or invalid, delete it
           if (error && typeof error === "object" && "statusCode" in error) {
             const webPushError = error as { statusCode?: number };
+            console.log("WebPush error status code:", webPushError.statusCode);
             if (
               webPushError.statusCode === 404 ||
               webPushError.statusCode === 410
             ) {
+              console.log(
+                "Deleting invalid subscription:",
+                subscription.endpoint
+              );
               await prisma.pushSubscription.delete({
                 where: {
                   userEmail_endpoint: {
@@ -85,15 +106,19 @@ export async function POST(request: Request) {
       })
     );
 
+    const successCount = results.filter(
+      (r) => r.status === "fulfilled" && (r.value as NotificationResult).success
+    ).length;
+    console.log(
+      `Successfully sent ${successCount} out of ${results.length} notifications`
+    );
+
     return NextResponse.json({
       results,
-      successCount: results.filter(
-        (r) =>
-          r.status === "fulfilled" && (r.value as NotificationResult).success
-      ).length,
+      successCount,
     });
   } catch (error) {
-    console.error("Error sending push notification:", error);
+    console.error("Error in push notification process:", error);
     return NextResponse.json(
       { error: "Failed to send push notification" },
       { status: 500 }
