@@ -3,12 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import { Alert as PrismaAlert } from "@prisma/client";
-import { casino_p_casinos as Casino } from "@prisma/client";
 import Image from "next/image";
 
 interface AlertWithRead extends PrismaAlert {
   read: boolean;
-  casino?: Casino | null;
+  casino?: {
+    id: number;
+    url: string;
+    button: string;
+  } | null;
 }
 
 function CountdownTimer({ endTime }: { endTime: Date }) {
@@ -248,7 +251,8 @@ export default function AlertDisplay({
                 <div className="flex flex-col md:flex-row gap-4">
                   {/* Left Column - Images and Play Button */}
                   <div className="flex flex-row md:flex-col justify-between md:justify-start items-center md:items-start gap-4 md:min-w-[200px]">
-                    {alert.casino && alert.casino.button && (
+                    {/* Casino Logo and Play Button */}
+                    {alert.casino?.button && (
                       <div className="flex flex-col items-center">
                         <img
                           src={`/image/casino/${alert.casino.button}`}
@@ -265,6 +269,7 @@ export default function AlertDisplay({
                         </a>
                       </div>
                     )}
+                    {/* Slot Image */}
                     {alert.slotImage && (
                       <div className="flex justify-center">
                         <Image

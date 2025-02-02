@@ -72,6 +72,13 @@ export async function POST() {
             userId: user.id,
           },
         },
+        casino: {
+          select: {
+            id: true,
+            url: true,
+            button: true,
+          },
+        },
       },
     });
 
@@ -86,6 +93,7 @@ export async function POST() {
         endTime: a.endTime,
         recipientCount: a.recipients.length,
         read: a.recipients[0]?.read || false,
+        casinoImage: a.casino?.button,
       })),
       timestamp: new Date().toISOString(),
     });
@@ -101,13 +109,17 @@ export async function POST() {
         alerts: unreadAlerts.map((a) => ({
           id: a.id,
           message: a.message,
+          casinoImage: a.casino?.button,
         })),
       });
 
       // Send push notifications for unread alerts
       for (const alert of unreadAlerts) {
         try {
-          await sendPushNotification(user.email, alert);
+          await sendPushNotification(user.email, {
+            ...alert,
+            casinoImage: alert.casino?.button,
+          });
         } catch (error) {
           console.error("Failed to send push notification:", {
             alertId: alert.id,
@@ -121,6 +133,7 @@ export async function POST() {
     const alertsWithRead = activeAlerts.map((alert) => ({
       ...alert,
       read: alert.recipients[0]?.read || false,
+      casinoImage: alert.casino?.button,
     }));
 
     console.log("Final response:", {
@@ -129,6 +142,7 @@ export async function POST() {
         id: a.id,
         message: a.message,
         read: a.read,
+        casinoImage: a.casino?.button,
       })),
       timestamp: new Date().toISOString(),
     });
