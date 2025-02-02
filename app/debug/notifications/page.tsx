@@ -184,52 +184,99 @@ export default function NotificationDebug() {
   };
 
   const subscribeToNotifications = async () => {
+    console.log("Subscribe button clicked");
     try {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        alert("Push notifications are not supported");
+      if (!("serviceWorker" in navigator)) {
+        console.error("Service Worker not supported");
+        alert("Service Worker not supported");
+        return;
+      }
+
+      if (!("PushManager" in window)) {
+        console.error("Push API not supported");
+        alert("Push API not supported");
+        return;
+      }
+
+      // Check if service worker is registered
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log("Current service worker registrations:", registrations);
+
+      if (registrations.length === 0) {
+        console.error("No service worker registered");
+        alert("No service worker registered. Please reload the page.");
         return;
       }
 
       console.log("Getting service worker registration...");
       const registration = await navigator.serviceWorker.ready;
-      console.log("Service worker ready");
+      console.log("Service worker ready, registration:", registration);
 
       // Get the server's public key
       console.log("Fetching VAPID key...");
       const response = await fetch("/api/push/vapidkey");
-      const { publicKey } = await response.json();
-      console.log("Got VAPID key:", publicKey);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch VAPID key: ${response.status} ${response.statusText}`
+        );
+      }
+      const data = await response.json();
+      console.log("Got VAPID key response:", data);
+
+      if (!data.publicKey) {
+        throw new Error("No public key in response");
+      }
+      const publicKey = data.publicKey;
 
       // Convert VAPID key to Uint8Array if it's base64
+      console.log("Converting VAPID key...");
       const applicationServerKey = urlBase64ToUint8Array(publicKey);
+      console.log("Converted VAPID key to Uint8Array");
 
       // Subscribe to push notifications
       console.log("Subscribing to push notifications...");
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey,
-      });
-      console.log("Push subscription created:", subscription);
+      try {
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey,
+        });
+        console.log("Push subscription created:", subscription);
 
-      // Send the subscription to your server
-      console.log("Sending subscription to server...");
-      const serverResponse = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ subscription }),
-      });
+        // Send the subscription to your server
+        console.log("Sending subscription to server...");
+        const serverResponse = await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ subscription }),
+        });
 
-      if (!serverResponse.ok) {
-        throw new Error("Failed to send subscription to server");
+        if (!serverResponse.ok) {
+          const errorText = await serverResponse.text();
+          throw new Error(
+            `Failed to send subscription to server: ${serverResponse.status} ${errorText}`
+          );
+        }
+
+        console.log("Subscription sent to server successfully");
+        setSubscription(subscription);
+        window.location.reload();
+      } catch (subscribeError) {
+        console.error("Error during subscription:", subscribeError);
+        if (subscribeError instanceof Error) {
+          if (subscribeError.message.includes("permission")) {
+            alert(
+              "Permission denied for push notifications. Please check your browser settings."
+            );
+          } else {
+            alert(`Error subscribing: ${subscribeError.message}`);
+          }
+        }
+        throw subscribeError;
       }
-
-      console.log("Subscription sent to server successfully");
-      setSubscription(subscription);
-      window.location.reload();
     } catch (error: unknown) {
-      console.error("Error subscribing to notifications:", error);
+      console.error("Error in subscription process:", error);
       if (error instanceof Error) {
         alert(`Error subscribing to notifications: ${error.message}`);
       } else {
