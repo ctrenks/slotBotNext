@@ -179,6 +179,48 @@ export default function NotificationDebug() {
     }
   };
 
+  const subscribeToNotifications = async () => {
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        alert("Push notifications are not supported");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+
+      // Get the server's public key
+      const response = await fetch("/api/push/vapidkey");
+      const { publicKey } = await response.json();
+
+      // Subscribe to push notifications
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      });
+
+      // Send the subscription to your server
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subscription: subscription,
+        }),
+      });
+
+      // Update state
+      setSubscription(subscription);
+      window.location.reload(); // Reload to update all states
+    } catch (error: any) {
+      console.error("Error subscribing to notifications:", error);
+      alert(
+        "Error subscribing to notifications: " +
+          (error.message || "Unknown error")
+      );
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">Push Notification Debug</h1>
@@ -223,6 +265,14 @@ export default function NotificationDebug() {
                   className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
                 >
                   Request Permission
+                </button>
+              )}
+              {permission === "granted" && !subscription && (
+                <button
+                  onClick={subscribeToNotifications}
+                  className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                >
+                  Subscribe to Notifications
                 </button>
               )}
             </div>
