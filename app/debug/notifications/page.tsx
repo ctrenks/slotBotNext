@@ -71,14 +71,16 @@ export default function NotificationDebug() {
   const [isPWA, setIsPWA] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [recentLogs, setRecentLogs] = useState<NotificationLog[]>([]);
+  const [isMacSafari, setIsMacSafari] = useState(false);
 
   useEffect(() => {
     // Check platform
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isMacSafari =
+    const isSafariOnMac =
       /^((?!chrome|android).)*safari/i.test(navigator.userAgent) &&
       /Mac/.test(navigator.platform);
     setIsIOS(isIOSDevice);
+    setIsMacSafari(isSafariOnMac);
 
     // Multiple checks for PWA mode
     const displayMode = window.matchMedia("(display-mode: standalone)").matches;
@@ -88,85 +90,116 @@ export default function NotificationDebug() {
     const isPWAMode = displayMode || safariStandalone;
     setIsPWA(isPWAMode);
 
-    const debugSteps: string[] = [];
+    async function checkServiceWorker() {
+      const debugSteps: string[] = [];
 
-    // Browser compatibility check
-    if (isMacSafari) {
-      debugSteps.push(
-        "❌ Safari on macOS does not support web push notifications"
-      );
-      debugSteps.push("ℹ️ Please use Chrome, Firefox, or Edge on macOS");
-    }
-
-    // Check notification support
-    if (!("Notification" in window)) {
-      debugSteps.push("❌ Notifications API not supported in this browser");
-    } else {
-      debugSteps.push("✅ Notifications API is supported");
-    }
-
-    // Check service worker support
-    if (!("serviceWorker" in navigator)) {
-      debugSteps.push("❌ Service Workers not supported");
-    } else {
-      debugSteps.push("✅ Service Workers are supported");
-    }
-
-    // Check push API support
-    if (!("PushManager" in window)) {
-      debugSteps.push("❌ Push API not supported in this browser");
+      // Browser compatibility check
       if (isMacSafari) {
         debugSteps.push(
-          "ℹ️ Consider using Chrome, Firefox, or Edge for push notifications"
+          "❌ Safari on macOS does not support web push notifications"
         );
+        debugSteps.push("ℹ️ Please use Chrome, Firefox, or Edge on macOS");
       }
-    } else {
-      debugSteps.push("✅ Push API is supported");
-    }
 
-    // iOS specific checks
-    if (isIOSDevice) {
-      debugSteps.push("📱 iOS device detected");
-      if (!isPWAMode) {
-        debugSteps.push(
-          "❌ Not running as PWA - Add to Home Screen required for notifications"
-        );
+      // Check notification support
+      if (!("Notification" in window)) {
+        debugSteps.push("❌ Notifications API not supported in this browser");
       } else {
-        debugSteps.push("✅ Running as PWA");
+        debugSteps.push("✅ Notifications API is supported");
       }
-    }
 
-    // Check notification permission
-    if ("Notification" in window) {
-      setPermission(Notification.permission);
-      debugSteps.push(
-        `🔔 Notification permission status: ${Notification.permission}`
-      );
-    }
-
-    // Get push subscription
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready
-        .then(async (registration) => {
-          try {
-            const sub = await registration.pushManager.getSubscription();
-            setSubscription(sub);
-            if (sub) {
-              debugSteps.push("✅ Push subscription active");
-            } else {
-              debugSteps.push("❌ No active push subscription");
+      // Check service worker support and registration
+      if (!("serviceWorker" in navigator)) {
+        debugSteps.push("❌ Service Workers not supported");
+      } else {
+        debugSteps.push("✅ Service Workers are supported");
+        try {
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
+          if (registrations.length > 0) {
+            debugSteps.push("✅ Service Worker is registered");
+            const registration = registrations[0];
+            debugSteps.push(`✅ Service Worker scope: ${registration.scope}`);
+          } else {
+            debugSteps.push("❌ No Service Worker registered");
+            debugSteps.push("ℹ️ Attempting to register service worker...");
+            try {
+              const newRegistration = await navigator.serviceWorker.register(
+                "/sw.js"
+              );
+              debugSteps.push("✅ Service Worker registered successfully");
+              debugSteps.push(
+                `✅ Service Worker scope: ${newRegistration.scope}`
+              );
+            } catch (error) {
+              debugSteps.push(
+                `❌ Service Worker registration failed: ${error}`
+              );
             }
-          } catch (error) {
-            debugSteps.push(`❌ Error getting push subscription: ${error}`);
           }
-        })
-        .catch((error) => {
-          debugSteps.push(`❌ Service Worker registration error: ${error}`);
-        });
+        } catch (error) {
+          debugSteps.push(`❌ Error checking service worker: ${error}`);
+        }
+      }
+
+      // Check push API support
+      if (!("PushManager" in window)) {
+        debugSteps.push("❌ Push API not supported in this browser");
+        if (isMacSafari) {
+          debugSteps.push(
+            "ℹ️ Consider using Chrome, Firefox, or Edge for push notifications"
+          );
+        }
+      } else {
+        debugSteps.push("✅ Push API is supported");
+      }
+
+      // iOS specific checks
+      if (isIOSDevice) {
+        debugSteps.push("📱 iOS device detected");
+        if (!isPWAMode) {
+          debugSteps.push(
+            "❌ Not running as PWA - Add to Home Screen required for notifications"
+          );
+        } else {
+          debugSteps.push("✅ Running as PWA");
+        }
+      }
+
+      // Check notification permission
+      if ("Notification" in window) {
+        setPermission(Notification.permission);
+        debugSteps.push(
+          `🔔 Notification permission status: ${Notification.permission}`
+        );
+      }
+
+      // Get push subscription
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready
+          .then(async (registration) => {
+            try {
+              const sub = await registration.pushManager.getSubscription();
+              setSubscription(sub);
+              if (sub) {
+                debugSteps.push("✅ Push subscription active");
+              } else {
+                debugSteps.push("❌ No active push subscription");
+              }
+            } catch (error) {
+              debugSteps.push(`❌ Error getting push subscription: ${error}`);
+            }
+          })
+          .catch((error) => {
+            debugSteps.push(`❌ Service Worker registration error: ${error}`);
+          });
+      }
+
+      setDebugInfo(debugSteps);
     }
 
-    setDebugInfo(debugSteps);
-  }, []);
+    checkServiceWorker();
+  }, [isMacSafari]);
 
   // Fetch logs on mount and periodically
   useEffect(() => {
@@ -317,9 +350,21 @@ export default function NotificationDebug() {
     return outputArray;
   }
 
+  const refreshStatus = async () => {
+    window.location.reload();
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-6">Push Notification Debug</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Push Notification Debug</h1>
+        <button
+          onClick={refreshStatus}
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+        >
+          Refresh Status
+        </button>
+      </div>
 
       <div className="space-y-6">
         {/* Device Info */}
