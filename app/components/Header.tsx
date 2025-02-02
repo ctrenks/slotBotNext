@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import HeaderUserSection from "./HeaderUserSection";
 import MobileMenu from "./MobileMenu";

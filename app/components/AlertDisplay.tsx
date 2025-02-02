@@ -298,7 +298,7 @@ export default function AlertDisplay({
                     {(alert.maxPotential ||
                       alert.recommendedBet ||
                       alert.rtp) && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs md:text-sm text-gray-600">
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 text-xs md:text-sm text-gray-600">
                         {alert.maxPotential && (
                           <div>
                             <span className="font-medium">
@@ -309,32 +309,36 @@ export default function AlertDisplay({
                         )}
                         {alert.recommendedBet && (
                           <div>
-                            <span className="font-medium">✅Bet:</span> $
+                            <span className="font-medium">✅Bet Range:</span> $
                             {alert.recommendedBet}
                           </div>
                         )}
                         {alert.rtp && (
                           <div>
-                            <span className="font-medium">✅RTP:</span>{" "}
+                            <span className="font-medium">✅Slot RTP:</span>{" "}
                             {alert.rtp}%
                           </div>
                         )}
                         {alert.stopLimit && (
                           <div>
-                            <span className="font-medium">☢️Stop:</span> $
-                            {alert.stopLimit}
+                            <span className="font-medium">
+                              ☢️Stop Loss Limit:
+                            </span>{" "}
+                            ${alert.stopLimit}
                           </div>
                         )}
                         {alert.targetWin && (
                           <div>
-                            <span className="font-medium">✅Target:</span> $
+                            <span className="font-medium">✅Target Win:</span> $
                             {alert.targetWin}
                           </div>
                         )}
                         {alert.maxWin && (
                           <div>
-                            <span className="font-medium">✅Max:</span> $
-                            {alert.maxWin}
+                            <span className="font-medium">
+                              ✅Max Win Limit:
+                            </span>{" "}
+                            ${alert.maxWin}
                           </div>
                         )}
                       </div>
