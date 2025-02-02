@@ -24,10 +24,17 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  if (!event.data) return;
+  console.log("Push event received");
+
+  if (!event.data) {
+    console.log("No data in push event");
+    return;
+  }
 
   try {
     const data = event.data.json();
+    console.log("Push data received:", data);
+
     const options = {
       body: data.body,
       icon: "/icons/icon-192x192.png",
@@ -40,11 +47,21 @@ self.addEventListener("push", (event) => {
           title: "View Alert",
         },
       ],
+      // Add these options for iOS
+      renotify: true,
+      tag: data.id || "default", // Use alert ID if available
+      requireInteraction: true,
     };
 
-    event.waitUntil(self.registration.showNotification(data.title, options));
+    console.log("Showing notification with options:", options);
+    event.waitUntil(
+      self.registration
+        .showNotification(data.title, options)
+        .then(() => console.log("Notification shown successfully"))
+        .catch((err) => console.error("Error showing notification:", err))
+    );
   } catch (err) {
-    console.error("Error showing notification:", err);
+    console.error("Error processing push event:", err);
   }
 });
 
