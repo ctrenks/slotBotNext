@@ -30,6 +30,18 @@ export default function GlobalAlertDisplay() {
   const [isIOS, setIsIOS] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
 
+  // Debug log for session state
+  useEffect(() => {
+    console.log("Session state:", {
+      status,
+      hasSession: !!session,
+      userEmail: session?.user?.email,
+      userGeo: session?.user?.geo,
+      userReferral: session?.user?.refferal,
+      timestamp: new Date().toISOString(),
+    });
+  }, [session, status]);
+
   // Platform detection effect
   useEffect(() => {
     // Check platform and PWA status
@@ -122,11 +134,12 @@ export default function GlobalAlertDisplay() {
         if (status !== "authenticated") {
           console.log("Session not authenticated, skipping alert fetch", {
             status,
+            timestamp: new Date().toISOString(),
           });
           return;
         }
 
-        console.log("Fetching alerts:", {
+        console.log("Starting alert fetch:", {
           status,
           hasSession: !!session,
           userEmail: session?.user?.email,
@@ -144,18 +157,27 @@ export default function GlobalAlertDisplay() {
           cache: "no-store",
         });
 
+        const responseText = await response.text();
+        console.log("Raw response:", {
+          status: response.status,
+          text: responseText,
+          timestamp: new Date().toISOString(),
+        });
+
         if (!response.ok) {
-          const errorText = await response.text();
           console.error("Error fetching alerts:", {
             status: response.status,
             statusText: response.statusText,
-            error: errorText,
+            error: responseText,
+            timestamp: new Date().toISOString(),
           });
-          setError(`Failed to fetch alerts: ${response.status} ${errorText}`);
+          setError(
+            `Failed to fetch alerts: ${response.status} ${responseText}`
+          );
           return;
         }
 
-        const alerts = await response.json();
+        const alerts = JSON.parse(responseText);
         console.log("Received alerts:", {
           count: alerts.length,
           timestamp: new Date().toISOString(),
@@ -165,12 +187,17 @@ export default function GlobalAlertDisplay() {
             startTime: a.startTime,
             endTime: a.endTime,
             read: a.read,
+            geoTargets: a.geoTargets,
+            referralCodes: a.referralCodes,
           })),
         });
         setInitialAlerts(alerts);
         setError(null);
       } catch (error) {
-        console.error("Error fetching alerts:", error);
+        console.error("Error fetching alerts:", {
+          error,
+          timestamp: new Date().toISOString(),
+        });
         setError(
           error instanceof Error ? error.message : "Unknown error occurred"
         );
