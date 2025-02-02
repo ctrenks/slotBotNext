@@ -75,6 +75,9 @@ export default function NotificationDebug() {
   useEffect(() => {
     // Check platform
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMacSafari =
+      /^((?!chrome|android).)*safari/i.test(navigator.userAgent) &&
+      /Mac/.test(navigator.platform);
     setIsIOS(isIOSDevice);
 
     // Multiple checks for PWA mode
@@ -86,6 +89,14 @@ export default function NotificationDebug() {
     setIsPWA(isPWAMode);
 
     const debugSteps: string[] = [];
+
+    // Browser compatibility check
+    if (isMacSafari) {
+      debugSteps.push(
+        "❌ Safari on macOS does not support web push notifications"
+      );
+      debugSteps.push("ℹ️ Please use Chrome, Firefox, or Edge on macOS");
+    }
 
     // Check notification support
     if (!("Notification" in window)) {
@@ -103,7 +114,12 @@ export default function NotificationDebug() {
 
     // Check push API support
     if (!("PushManager" in window)) {
-      debugSteps.push("❌ Push API not supported");
+      debugSteps.push("❌ Push API not supported in this browser");
+      if (isMacSafari) {
+        debugSteps.push(
+          "ℹ️ Consider using Chrome, Firefox, or Edge for push notifications"
+        );
+      }
     } else {
       debugSteps.push("✅ Push API is supported");
     }
