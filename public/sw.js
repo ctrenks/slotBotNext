@@ -74,31 +74,42 @@ self.addEventListener("push", async function (event) {
       shownNotifications.delete(oldestId);
     }
 
-    const options = {
-      body: data.message || data.body || "New notification",
-      tag: notificationId, // Use unique ID as tag to prevent duplicates
-      renotify: false, // Prevent renotification for same tag
-      requireInteraction: true,
-      data: {
-        url: data.url || "/",
+    // Check if any clients are focused
+    const clientList = await clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+
+    const isClientFocused = clientList.some((client) => client.focused);
+
+    // Only show notification if app is not focused
+    if (!isClientFocused) {
+      const options = {
+        body: data.message || data.body || "New notification",
+        tag: notificationId, // Use unique ID as tag to prevent duplicates
+        renotify: false, // Prevent renotification for same tag
+        requireInteraction: true,
+        data: {
+          url: "/slotbot", // Always redirect to slotbot page
+          id: notificationId,
+          timestamp: Date.now(),
+        },
+      };
+
+      await self.registration.showNotification("SlotBot Message", options);
+
+      // Store notification in IndexedDB
+      const db = await openLogsDB();
+      const tx = db.transaction("logs", "readwrite");
+      const store = tx.objectStore("logs");
+      await store.put({
         id: notificationId,
         timestamp: Date.now(),
-      },
-    };
-
-    await self.registration.showNotification("SlotBot Message", options);
-
-    // Store notification in IndexedDB
-    const db = await openLogsDB();
-    const tx = db.transaction("logs", "readwrite");
-    const store = tx.objectStore("logs");
-    await store.put({
-      id: notificationId,
-      timestamp: Date.now(),
-      data: data,
-      status: "shown",
-      platform: "web",
-    });
+        data: data,
+        status: "shown",
+        platform: "web",
+      });
+    }
   } catch (error) {
     console.error("Error showing notification:", error);
   }
@@ -108,7 +119,8 @@ self.addEventListener("push", async function (event) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || "/";
+  // Always redirect to /slotbot
+  const urlToOpen = new URL("/slotbot", self.location.origin).href;
 
   event.waitUntil(
     clients
