@@ -66,6 +66,9 @@ export async function POST() {
           },
         ],
       },
+      orderBy: {
+        startTime: "desc",
+      },
       include: {
         recipients: {
           where: {

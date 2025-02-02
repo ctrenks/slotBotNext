@@ -8,8 +8,18 @@ const urlsToCache = [
   "/icons/icon-512x512.png",
 ];
 
-// Keep track of shown notifications
-let shownNotifications = new Set();
+// Keep track of shown notifications with timestamps
+const shownNotifications = new Map();
+
+// Helper function to clean up old notifications (keep last 24 hours)
+function cleanupOldNotifications() {
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  for (const [id, timestamp] of shownNotifications) {
+    if (timestamp < oneDayAgo) {
+      shownNotifications.delete(id);
+    }
+  }
+}
 
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
@@ -59,21 +69,20 @@ self.addEventListener("push", async function (event) {
     const data = event.data.json();
     console.log("Received push data:", data); // Debug log
     const notificationId = data.data?.alertId || Date.now().toString();
+    const timestamp = Date.now();
 
-    // Check if we've already shown this notification
-    if (shownNotifications.has(notificationId)) {
-      console.log("Notification already shown:", notificationId);
+    // Clean up old notifications periodically
+    cleanupOldNotifications();
+
+    // Check if we've already shown this notification recently (within last minute)
+    const lastShownTime = shownNotifications.get(notificationId);
+    if (lastShownTime && timestamp - lastShownTime < 60000) {
+      console.log("Notification shown recently, skipping:", notificationId);
       return;
     }
 
-    // Add to shown notifications set
-    shownNotifications.add(notificationId);
-
-    // Limit the size of the set to prevent memory issues
-    if (shownNotifications.size > 100) {
-      const oldestId = shownNotifications.values().next().value;
-      shownNotifications.delete(oldestId);
-    }
+    // Update shown notifications with current timestamp
+    shownNotifications.set(notificationId, timestamp);
 
     // Always show notification on iOS, regardless of focus state
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -97,6 +106,7 @@ self.addEventListener("push", async function (event) {
         requireInteraction: !isIOS, // Don't require interaction on iOS
         icon: data.data?.icon || "/icons/icon-192x192.png",
         badge: "/icons/icon-192x192.png",
+        timestamp: timestamp, // Add timestamp to notification
         actions: [
           {
             action: "play",
@@ -107,7 +117,7 @@ self.addEventListener("push", async function (event) {
           url: "/slotbot", // Default redirect to slotbot
           playUrl: `/out/${notificationId}`, // Always use the outbound link
           id: notificationId,
-          timestamp: Date.now(),
+          timestamp: timestamp,
         },
       };
 
@@ -121,7 +131,7 @@ self.addEventListener("push", async function (event) {
       const store = tx.objectStore("logs");
       await store.put({
         id: notificationId,
-        timestamp: Date.now(),
+        timestamp: timestamp,
         data: data,
         status: "shown",
         platform: isIOS ? "ios" : "web",
