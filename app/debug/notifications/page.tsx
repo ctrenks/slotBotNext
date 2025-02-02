@@ -77,13 +77,13 @@ export default function NotificationDebug() {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
-    const isStandalone = window.matchMedia(
-      "(display-mode: standalone)"
-    ).matches;
-    const isSafariStandalone =
+    // Multiple checks for PWA mode
+    const displayMode = window.matchMedia("(display-mode: standalone)").matches;
+    const safariStandalone =
       "standalone" in window.navigator &&
       (window.navigator as SafariNavigator).standalone === true;
-    setIsPWA(isStandalone || isSafariStandalone);
+    const isPWAMode = displayMode || safariStandalone;
+    setIsPWA(isPWAMode);
 
     const debugSteps: string[] = [];
 
@@ -111,7 +111,7 @@ export default function NotificationDebug() {
     // iOS specific checks
     if (isIOSDevice) {
       debugSteps.push("📱 iOS device detected");
-      if (!isPWA) {
+      if (!isPWAMode) {
         debugSteps.push(
           "❌ Not running as PWA - Add to Home Screen required for notifications"
         );
@@ -186,39 +186,69 @@ export default function NotificationDebug() {
         return;
       }
 
+      console.log("Getting service worker registration...");
       const registration = await navigator.serviceWorker.ready;
+      console.log("Service worker ready");
 
       // Get the server's public key
+      console.log("Fetching VAPID key...");
       const response = await fetch("/api/push/vapidkey");
       const { publicKey } = await response.json();
+      console.log("Got VAPID key:", publicKey);
+
+      // Convert VAPID key to Uint8Array if it's base64
+      const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
       // Subscribe to push notifications
+      console.log("Subscribing to push notifications...");
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: publicKey,
+        applicationServerKey: applicationServerKey,
       });
+      console.log("Push subscription created:", subscription);
 
       // Send the subscription to your server
-      await fetch("/api/push/subscribe", {
+      console.log("Sending subscription to server...");
+      const serverResponse = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          subscription: subscription,
-        }),
+        body: JSON.stringify({ subscription }),
       });
 
-      // Update state
+      if (!serverResponse.ok) {
+        throw new Error("Failed to send subscription to server");
+      }
+
+      console.log("Subscription sent to server successfully");
       setSubscription(subscription);
-      window.location.reload(); // Reload to update all states
-    } catch (error: Error | unknown) {
+      window.location.reload();
+    } catch (error) {
       console.error("Error subscribing to notifications:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Error subscribing to notifications: ${errorMessage}`);
+      if (error instanceof Error) {
+        alert(`Error subscribing to notifications: ${error.message}`);
+      } else {
+        alert("An unknown error occurred while subscribing to notifications");
+      }
     }
   };
+
+  // Helper function to convert VAPID key
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, "+")
+      .replace(/_/g, "/");
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
