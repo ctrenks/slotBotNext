@@ -1,16 +1,19 @@
-import { NextRequest } from "next/server";
-import { prisma } from "@/prisma";
+import { PrismaClient } from "@prisma/client";
+import { type NextRequest } from "next/server";
+import { auth } from "@/auth";
+import { randomUUID } from "crypto";
 
-interface RouteParams {
-  params: {
-    casino: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
+const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ casino: string }> }
+) {
   try {
-    const { casino } = params;
+    // Ensure params are properly handled
+    const { casino } = await props.params;
+
+    const session = await auth();
 
     // Find the casino by clean_name
     const casinoData = await prisma.casino_p_casinos.findFirst({
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       select: {
         id: true,
         url: true,
+        clean_name: true,
       },
     });
 
@@ -29,74 +33,61 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return new Response("Casino not found", { status: 404 });
     }
 
+    // Get user details if logged in
+    let userGeo = null;
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { geo: true, name: true },
+      });
+      userGeo = user?.geo || null;
+    }
+
+    // Generate a unique ID for this direct casino click
+    const directClickId = `direct_${casinoData.id}_${randomUUID()}`;
+
+    // Record the click
+    const click = await prisma.alertClick.create({
+      data: {
+        alertId: directClickId,
+        userId: session?.user?.id || null,
+        userEmail: session?.user?.email || null,
+        username: session?.user?.name || null,
+        geo: userGeo,
+      },
+    });
+
+    // Log the click for analytics
+    console.log("Casino click recorded:", {
+      clickId: click.id,
+      casinoId: casinoData.id,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      username: session?.user?.name,
+      geo: userGeo,
+      timestamp: new Date(),
+    });
+
     // Ensure the URL has a protocol
     let redirectUrl = casinoData.url;
     if (!redirectUrl.startsWith("http")) {
       redirectUrl = "https://" + redirectUrl;
     }
 
-    // Return an HTML page that opens the casino in a new window
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <script>
-            window.onload = function() {
-              // Open in new window
-              window.open('${redirectUrl}', '_blank');
-
-              // Redirect back to previous page
-              window.location.href = document.referrer || '/';
-            }
-          </script>
-          <style>
-            body {
-              font-family: system-ui, -apple-system, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 100vh;
-              margin: 0;
-              background: #000;
-              color: #00ff00;
-            }
-            .container {
-              text-align: center;
-              padding: 20px;
-            }
-            .spinner {
-              width: 40px;
-              height: 40px;
-              margin: 20px auto;
-              border: 3px solid #00ff00;
-              border-radius: 50%;
-              border-top-color: transparent;
-              animation: spin 1s linear infinite;
-            }
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="spinner"></div>
-            <p>Opening casino in new window...</p>
-            <p>If nothing happens, <a href="${redirectUrl}" target="_blank" style="color: #00ff00;">click here</a></p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    return new Response(html, {
-      headers: {
-        "Content-Type": "text/html",
-      },
+    // Log the redirect for debugging
+    console.log("Redirecting to:", {
+      url: redirectUrl,
+      casinoId: casinoData.id,
+      casinoName: casinoData.clean_name,
+      userGeo,
     });
+
+    // Perform the redirect
+    return Response.redirect(new URL(redirectUrl));
   } catch (error) {
     console.error("Error processing casino redirect:", error);
     return new Response("Internal Server Error", { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
