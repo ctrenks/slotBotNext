@@ -11,7 +11,20 @@ export default function Header() {
     { name: "Betting Guide", href: "/betting-guide" },
   ];
   return (
-    <header className="border-b border-primary/10 dark:border-accent-dark/10 bg-background dark:bg-background-dark shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur supports-[backdrop-filter]:bg-black/60">
+      <style jsx>{`
+        @supports (padding-top: env(safe-area-inset-top)) {
+          header {
+            padding-top: env(safe-area-inset-top);
+          }
+          @media all and (display-mode: standalone) {
+            header {
+              position: fixed;
+              padding-top: env(safe-area-inset-top);
+            }
+          }
+        }
+      `}</style>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link
