@@ -1,14 +1,38 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { redeemCoupon } from "@/app/actions/coupon";
+import { useSession } from "next-auth/react";
 
 export default function CouponRedemption() {
+  const { data: session } = useSession();
   const [message, setMessage] = useState<{
     text: string;
     isError: boolean;
   } | null>(null);
+  const [hasAccess, setHasAccess] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    async function checkAccess() {
+      if (!session?.user?.email) return;
+
+      try {
+        const response = await fetch("/api/check-access");
+        const data = await response.json();
+        setHasAccess(data.hasAccess);
+      } catch (error) {
+        console.error("Error checking access:", error);
+      }
+    }
+
+    checkAccess();
+  }, [session]);
+
+  // Return null if user has access (paid or trial)
+  if (hasAccess) {
+    return null;
+  }
 
   async function onSubmit(formData: FormData) {
     const result = await redeemCoupon(formData);

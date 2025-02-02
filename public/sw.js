@@ -4,8 +4,7 @@ const urlsToCache = [
   "/slotbot",
   "/favicon.ico",
   "/manifest.json",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png",
+  "/img/defaultuser.png",
 ];
 
 // Keep track of shown notifications with timestamps
@@ -104,8 +103,8 @@ self.addEventListener("push", async function (event) {
         tag: notificationId, // Use unique ID as tag to prevent duplicates
         renotify: true, // Enable renotification for iOS
         requireInteraction: !isIOS, // Don't require interaction on iOS
-        icon: data.data?.icon || "/icons/icon-192x192.png",
-        badge: "/icons/icon-192x192.png",
+        icon: data.data?.icon || "/img/defaultuser.png",
+        badge: "/img/defaultuser.png",
         timestamp: timestamp, // Add timestamp to notification
         actions: [
           {

@@ -14,42 +14,34 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
 
   return (
     <>
-      <label htmlFor="mobile-menu" className="md:hidden cursor-pointer z-50">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-emerald-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
-      </label>
-      <input
-        type="checkbox"
-        id="mobile-menu"
-        className="hidden mobile-menu-toggle peer"
-      />
-      <label
-        htmlFor="mobile-menu"
-        className="fixed inset-0 bg-black bg-opacity-80 hidden peer-checked:block md:hidden cursor-pointer z-40"
-      ></label>
-      <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-black bg-opacity-100 shadow-lg transform translate-x-full peer-checked:translate-x-0 transition-transform duration-200 ease-in-out md:hidden z-50">
-        <nav className="p-6">
-          <ul className="flex flex-col space-y-4">
+      <div className="flex items-center gap-2 md:hidden">
+        <SlotBotButton className="!py-1.5 !px-3 text-sm" />
+        <label htmlFor="mobile-menu" className="cursor-pointer z-50">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 text-emerald-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </label>
+      </div>
+      <input type="checkbox" id="mobile-menu" className="hidden peer" />
+      <div className="mobile-menu-overlay" onClick={handleClick}></div>
+      <div className="mobile-menu-container peer-checked:translate-x-0">
+        <nav className="mobile-menu-nav">
+          <ul className="mobile-menu-list">
             <li>
-              <Link
-                href="/"
-                className="flex items-center text-white hover:text-emerald-500 transition-colors"
-                onClick={handleClick}
-              >
+              <Link href="/" className="mobile-menu-link" onClick={handleClick}>
                 <svg
-                  className="w-5 h-5 mr-1"
+                  className="w-5 h-5 mr-2"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -70,23 +62,21 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
                 <Link
                   href={item.href}
                   onClick={handleClick}
-                  className="block w-full py-3 px-4 text-lg font-medium text-white hover:bg-emerald-500/10 hover:text-emerald-500 rounded-lg transition-colors"
+                  className="mobile-menu-link"
                 >
                   {item.name}
                 </Link>
               </li>
             ))}
-            <li>
-              <SlotBotButton
-                className="w-full justify-center"
-                onClick={handleClick}
-              />
-            </li>
             <li onClick={handleClick}>
-              <EnableNotifications />
+              <div className="mobile-menu-button">
+                <EnableNotifications />
+              </div>
             </li>
             <li onClick={handleClick} className="mt-4">
-              <SessionInfo />
+              <div className="mobile-menu-button">
+                <SessionInfo />
+              </div>
             </li>
           </ul>
         </nav>
