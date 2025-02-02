@@ -60,7 +60,7 @@ export async function POST() {
     if (newAlerts.length > 0) {
       await prisma.userAlert.createMany({
         data: newAlerts.map((alert) => ({
-          userId: user.id,
+          userId: Number(user.id),
           alertId: alert.id,
           read: false,
           createdAt: new Date(),
