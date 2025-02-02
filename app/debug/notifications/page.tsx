@@ -35,13 +35,20 @@ export default function NotificationDebug() {
   const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
+    // Ensure we're running in the browser
+    if (typeof window === "undefined") return;
+
     // Check platform
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent));
-    setIsPWA(
-      window.matchMedia("(display-mode: standalone)").matches ||
-        ("standalone" in window.navigator &&
-          (window.navigator as SafariNavigator).standalone === true)
-    );
+
+    // Check if running as PWA
+    const isStandalone = window.matchMedia(
+      "(display-mode: standalone)"
+    ).matches;
+    const isSafariStandalone =
+      "standalone" in window.navigator &&
+      (window.navigator as SafariNavigator).standalone === true;
+    setIsPWA(isStandalone || isSafariStandalone);
 
     // Check notification permission
     if ("Notification" in window) {
@@ -72,6 +79,11 @@ export default function NotificationDebug() {
     const interval = setInterval(loadLogs, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Early return while on server
+  if (typeof window === "undefined") {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
