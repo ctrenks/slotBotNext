@@ -1,10 +1,8 @@
-"use client";
-
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SafeAreaStyles from "./components/SafeAreaStyles";
-import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import ClientProviders from "./components/ClientProviders";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,9 +29,10 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <SafeAreaStyles />
-        <ServiceWorkerRegistration />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <ClientProviders>{children}</ClientProviders>
+      </body>
     </html>
   );
 }
