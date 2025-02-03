@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 interface UserFilter {
   referralCode?: string;
   isPaid?: boolean;
+  noCode?: boolean;
 }
 
 export default function AdminMessagePage() {
@@ -83,7 +84,7 @@ export default function AdminMessagePage() {
   };
 
   // Only allow admin access
-  if (!session?.user?.email?.endsWith("@trenkas.com")) {
+  if (!session?.user?.email?.endsWith("@allfreechips.com")) {
     return (
       <div className="p-4 text-red-500">
         You do not have permission to access this page.
@@ -99,7 +100,7 @@ export default function AdminMessagePage() {
       <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
         <h2 className="text-lg font-semibold">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="space-y-2">
             <label className="block text-sm font-medium mb-1">
               Referral Code
             </label>
@@ -107,11 +108,34 @@ export default function AdminMessagePage() {
               type="text"
               value={filter.referralCode || ""}
               onChange={(e) =>
-                setFilter({ ...filter, referralCode: e.target.value })
+                setFilter({
+                  ...filter,
+                  referralCode: e.target.value,
+                  noCode: false, // Reset noCode when entering a referral code
+                })
               }
               className="w-full p-2 border rounded"
               placeholder="Enter referral code"
+              disabled={filter.noCode}
             />
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="noCode"
+                checked={filter.noCode || false}
+                onChange={(e) =>
+                  setFilter({
+                    ...filter,
+                    noCode: e.target.checked,
+                    referralCode: e.target.checked ? "" : filter.referralCode, // Clear referral code when checking noCode
+                  })
+                }
+                className="rounded"
+              />
+              <label htmlFor="noCode" className="text-sm text-gray-600">
+                Users with no referral code
+              </label>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
