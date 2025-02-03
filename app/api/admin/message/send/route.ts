@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     // Handle referral code filtering
     if (noCode) {
-      where.refferal = { equals: "" };
+      where.refferal = { equals: null }; // Look for null referral codes
     } else if (referralCode) {
       where.refferal = referralCode;
     }
