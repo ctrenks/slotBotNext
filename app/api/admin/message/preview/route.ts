@@ -13,13 +13,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { referralCode, isPaid } = body;
+    const { referralCode, isPaid, noCode } = body;
 
     // Build where clause based on filters
-    const where: Prisma.UserWhereInput = {};
-    if (referralCode) {
+    const where: Prisma.UserWhereInput = {
+      email: { not: { equals: "" } }, // Only include users with non-empty email addresses
+    };
+
+    // Handle referral code filtering
+    if (noCode) {
+      where.refferal = { equals: "" };
+    } else if (referralCode) {
       where.refferal = referralCode;
     }
+
     if (isPaid !== undefined) {
       where.paid = isPaid;
     }
