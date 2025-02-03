@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const session = await auth();
 
     // Check if user is admin
-    if (!session?.user?.email?.endsWith("@allfreechips.com")) {
+    if (!session?.user?.email?.endsWith("@trenkas.com")) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
