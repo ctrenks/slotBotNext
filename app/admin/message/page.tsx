@@ -83,7 +83,7 @@ export default function AdminMessagePage() {
   };
 
   // Only allow admin access
-  if (!session?.user?.email?.endsWith("@allfreechips.com")) {
+  if (!session?.user?.email?.endsWith("@trenkas.com")) {
     return (
       <div className="p-4 text-red-500">
         You do not have permission to access this page.
