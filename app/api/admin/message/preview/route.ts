@@ -7,17 +7,28 @@ export async function POST(req: Request) {
   try {
     const session = await auth();
 
+    if (!session || !session.user || !session.user.email) {
+      console.log("No session or user:", session);
+      return new NextResponse("Unauthorized - No session", { status: 401 });
+    }
+
     // Check if user is admin
-    if (!session?.user?.email?.endsWith("@allfreechips.com")) {
-      console.log("Unauthorized access attempt:", session?.user?.email);
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!session.user.email.endsWith("@trenkas.com")) {
+      console.log("Unauthorized access attempt:", session.user.email);
+      return new NextResponse("Unauthorized - Not admin", { status: 401 });
     }
 
     const body = await req.json();
     console.log("Received request body:", body);
 
-    // Extract filter properties from the filter object, matching the send route structure
-    const { referralCode, isPaid, noCode } = body.filter || body;
+    if (!body || typeof body !== "object") {
+      console.log("Invalid request body:", body);
+      return new NextResponse("Invalid request body", { status: 400 });
+    }
+
+    // Extract filter properties from the filter object
+    const filter = body.filter || {};
+    const { referralCode, isPaid, noCode } = filter;
     console.log("Extracted filters:", { referralCode, isPaid, noCode });
 
     // Build where clause based on filters
@@ -47,6 +58,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ count });
   } catch (error) {
     console.error("Error in preview endpoint:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message, error.stack);
+    }
     return new NextResponse(
       error instanceof Error ? error.message : "Internal Server Error",
       { status: 500 }
