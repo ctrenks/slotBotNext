@@ -4,6 +4,15 @@ import { prisma } from "@/prisma";
 import { Resend } from "resend";
 import { Prisma } from "@prisma/client";
 
+// Check if API key is available
+if (!process.env.RESEND_API_KEY) {
+  console.error("RESEND_API_KEY is not set in environment variables");
+}
+console.log(
+  "Initializing Resend with API key:",
+  process.env.RESEND_API_KEY ? "Present" : "Missing"
+);
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
@@ -59,10 +68,25 @@ export async function POST(req: Request) {
       });
     }
 
+    // Verify Resend is properly initialized
+    try {
+      // Test the API key with a simple operation
+      await resend.emails.get("test");
+    } catch (error) {
+      console.error("Failed to verify Resend API key:", error);
+      if (error instanceof Error && error.message.includes("unauthorized")) {
+        return new NextResponse(
+          "Email service configuration error - Invalid API key",
+          { status: 500 }
+        );
+      }
+    }
+
     // Send emails in batches of 50
     const batchSize = 50;
     let sentCount = 0;
     let failedCount = 0;
+    let lastError = null;
 
     for (let i = 0; i < users.length; i += batchSize) {
       const batch = users.slice(i, i + batchSize);
@@ -106,6 +130,7 @@ export async function POST(req: Request) {
           console.error(`Failed to send email to ${user.email}:`, error);
           if (error instanceof Error) {
             console.error("Error details:", error.message, error.stack);
+            lastError = error;
           }
           failedCount++;
         }
@@ -118,6 +143,7 @@ export async function POST(req: Request) {
         console.error("Error in batch processing:", error);
         if (error instanceof Error) {
           console.error("Batch error details:", error.message, error.stack);
+          lastError = error;
         }
       }
     }
@@ -125,10 +151,20 @@ export async function POST(req: Request) {
     console.log(
       `Email sending complete. Sent: ${sentCount}, Failed: ${failedCount}, Total: ${users.length}`
     );
+
+    // If no emails were sent successfully and we have an error, return it
+    if (sentCount === 0 && lastError) {
+      return new NextResponse(
+        `Failed to send any emails: ${lastError.message}`,
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       sentCount,
       failedCount,
       totalUsers: users.length,
+      lastError: lastError ? lastError.message : null,
     });
   } catch (error) {
     console.error("Error in send endpoint:", error);
