@@ -7,15 +7,36 @@ interface UseNotificationsReturn {
   registerPushSubscription: () => Promise<void>;
 }
 
+// Keep track of permission request state globally
+let permissionRequested = false;
+
 export function useNotifications(): UseNotificationsReturn {
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setIsSupported(true);
-      setPermission(Notification.permission);
+    if (typeof window !== "undefined") {
+      // Check if notifications are supported
+      const notificationsSupported = "Notification" in window;
+      setIsSupported(notificationsSupported);
+      if (notificationsSupported) {
+        setPermission(Notification.permission);
+      }
+
+      // Check if device is iOS
+      const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      setIsIOS(isIOSDevice);
+
+      // Check if running as PWA
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        ("standalone" in window.navigator &&
+          (window.navigator as { standalone?: boolean }).standalone) ||
+        document.referrer.includes("ios-app://");
+      setIsPWA(isStandalone);
     }
   }, []);
 
@@ -29,13 +50,28 @@ export function useNotifications(): UseNotificationsReturn {
       return permission;
     }
 
+    // Prevent multiple simultaneous permission requests
+    if (permissionRequested) {
+      console.log("Permission request already in progress");
+      return permission;
+    }
+
     try {
+      permissionRequested = true;
       const result = await Notification.requestPermission();
       setPermission(result);
+
+      // If permission was granted, register service worker and push subscription
+      if (result === "granted") {
+        await registerPushSubscription();
+      }
+
       return result;
     } catch (error) {
       console.error("Error requesting notification permission:", error);
       throw error;
+    } finally {
+      permissionRequested = false;
     }
   }, [isSupported, permission]);
 
@@ -49,10 +85,18 @@ export function useNotifications(): UseNotificationsReturn {
         throw new Error("Push notifications not supported");
       }
 
+      // For iOS PWA, always register service worker
+      if (isIOS && isPWA) {
+        console.log("Registering service worker for iOS PWA");
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        await registration.update();
+      }
+
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
+        console.log("Creating new push subscription");
         const response = await fetch("/api/push/vapid-public-key");
         if (!response.ok) {
           throw new Error("Failed to fetch VAPID key");
@@ -65,19 +109,28 @@ export function useNotifications(): UseNotificationsReturn {
           applicationServerKey: convertedVapidKey,
         });
 
-        await fetch("/api/push/register", {
+        // Send subscription to server
+        const registerResponse = await fetch("/api/push/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ subscription }),
         });
+
+        if (!registerResponse.ok) {
+          throw new Error("Failed to register push subscription with server");
+        }
+
+        console.log("Push subscription registered successfully");
+      } else {
+        console.log("Using existing push subscription");
       }
     } catch (error) {
       console.error("Error registering push subscription:", error);
       throw error;
     }
-  }, [isSupported, permission]);
+  }, [isSupported, permission, isIOS, isPWA]);
 
   return {
     permission,
