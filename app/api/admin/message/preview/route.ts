@@ -13,7 +13,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { referralCode, isPaid, noCode } = body;
+    // Extract filter properties from the filter object, matching the send route structure
+    const { referralCode, isPaid, noCode } = body.filter || body;
 
     // Build where clause based on filters
     const where: Prisma.UserWhereInput = {
