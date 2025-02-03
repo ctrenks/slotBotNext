@@ -26,7 +26,7 @@ export default function AdminMessagePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(filter),
+        body: JSON.stringify({ filter }),
       });
 
       if (!response.ok) {

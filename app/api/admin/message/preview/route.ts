@@ -9,12 +9,16 @@ export async function POST(req: Request) {
 
     // Check if user is admin
     if (!session?.user?.email?.endsWith("@allfreechips.com")) {
+      console.log("Unauthorized access attempt:", session?.user?.email);
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json();
+    console.log("Received request body:", body);
+
     // Extract filter properties from the filter object, matching the send route structure
     const { referralCode, isPaid, noCode } = body.filter || body;
+    console.log("Extracted filters:", { referralCode, isPaid, noCode });
 
     // Build where clause based on filters
     const where: Prisma.UserWhereInput = {
@@ -32,14 +36,20 @@ export async function POST(req: Request) {
       where.paid = isPaid;
     }
 
+    console.log("Final where clause:", where);
+
     // Count matching users
     const count = await prisma.user.count({
       where,
     });
 
+    console.log("Found users count:", count);
     return NextResponse.json({ count });
   } catch (error) {
     console.error("Error in preview endpoint:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse(
+      error instanceof Error ? error.message : "Internal Server Error",
+      { status: 500 }
+    );
   }
 }
