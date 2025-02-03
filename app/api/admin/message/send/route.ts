@@ -16,6 +16,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    console.log("Received request body:", body);
+
     const { subject, message, filter } = body;
     const { referralCode, isPaid, noCode } = filter;
 
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
       where.paid = isPaid;
     }
 
+    console.log("Using where clause:", where);
+
     // Get all matching users
     const users = await prisma.user.findMany({
       where,
@@ -44,6 +48,17 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log(`Found ${users.length} users to send email to`);
+
+    if (users.length === 0) {
+      return NextResponse.json({
+        sentCount: 0,
+        failedCount: 0,
+        totalUsers: 0,
+        message: "No users matched the filter criteria",
+      });
+    }
+
     // Send emails in batches of 50
     const batchSize = 50;
     let sentCount = 0;
@@ -51,11 +66,21 @@ export async function POST(req: Request) {
 
     for (let i = 0; i < users.length; i += batchSize) {
       const batch = users.slice(i, i + batchSize);
+      console.log(
+        `Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(
+          users.length / batchSize
+        )}`
+      );
+
       const emailPromises = batch.map(async (user) => {
-        if (!user.email) return; // Skip users without email (shouldn't happen due to where clause)
+        if (!user.email) {
+          console.log("Skipping user with no email");
+          return;
+        }
 
         try {
-          await resend.emails.send({
+          console.log(`Attempting to send email to ${user.email}`);
+          const emailResponse = await resend.emails.send({
             from: "SlotBot <alerts@allfreechips.com>",
             to: user.email,
             subject: subject,
@@ -72,16 +97,34 @@ export async function POST(req: Request) {
               </div>
             `,
           });
+          console.log(
+            `Successfully sent email to ${user.email}`,
+            emailResponse
+          );
           sentCount++;
         } catch (error) {
           console.error(`Failed to send email to ${user.email}:`, error);
+          if (error instanceof Error) {
+            console.error("Error details:", error.message, error.stack);
+          }
           failedCount++;
         }
       });
 
-      await Promise.all(emailPromises);
+      try {
+        await Promise.all(emailPromises);
+        console.log(`Completed batch ${Math.floor(i / batchSize) + 1}`);
+      } catch (error) {
+        console.error("Error in batch processing:", error);
+        if (error instanceof Error) {
+          console.error("Batch error details:", error.message, error.stack);
+        }
+      }
     }
 
+    console.log(
+      `Email sending complete. Sent: ${sentCount}, Failed: ${failedCount}, Total: ${users.length}`
+    );
     return NextResponse.json({
       sentCount,
       failedCount,
@@ -89,6 +132,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Error in send endpoint:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    if (error instanceof Error) {
+      console.error("Error details:", error.message, error.stack);
+    }
+    return new NextResponse(
+      error instanceof Error ? error.message : "Internal Server Error",
+      { status: 500 }
+    );
   }
 }
