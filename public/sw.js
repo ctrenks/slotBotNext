@@ -7,16 +7,84 @@ const urlsToCache = [
   "/img/defaultuser.png",
 ];
 
-// Keep track of shown notifications with timestamps
-const shownNotifications = new Map();
+// Helper function to open IndexedDB
+async function openLogsDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("NotificationLogs", 2); // Increased version number
 
-// Helper function to clean up old notifications (keep last 24 hours)
-function cleanupOldNotifications() {
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [id, timestamp] of shownNotifications) {
-    if (timestamp < oneDayAgo) {
-      shownNotifications.delete(id);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains("logs")) {
+        db.createObjectStore("logs", { keyPath: "id" });
+      }
+      // Add a new object store for tracking shown notifications
+      if (!db.objectStoreNames.contains("shown")) {
+        db.createObjectStore("shown", { keyPath: "id" });
+      }
+    };
+  });
+}
+
+// Helper function to check if notification was recently shown
+async function wasRecentlyShown(notificationId) {
+  try {
+    const db = await openLogsDB();
+    const tx = db.transaction("shown", "readonly");
+    const store = tx.objectStore("shown");
+    const record = await store.get(notificationId);
+
+    if (!record) {
+      return false;
     }
+
+    // Check if notification was shown in the last 5 minutes
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    return record.timestamp > fiveMinutesAgo;
+  } catch (error) {
+    console.error("Error checking recent notifications:", error);
+    return false;
+  }
+}
+
+// Helper function to mark notification as shown
+async function markAsShown(notificationId) {
+  try {
+    const db = await openLogsDB();
+    const tx = db.transaction("shown", "readwrite");
+    const store = tx.objectStore("shown");
+    await store.put({
+      id: notificationId,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("Error marking notification as shown:", error);
+  }
+}
+
+// Helper function to clean up old notifications
+async function cleanupOldNotifications() {
+  try {
+    const db = await openLogsDB();
+    const tx = db.transaction("shown", "readwrite");
+    const store = tx.objectStore("shown");
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+    // Get all records
+    const request = store.openCursor();
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        if (cursor.value.timestamp < fiveMinutesAgo) {
+          store.delete(cursor.key);
+        }
+        cursor.continue();
+      }
+    };
+  } catch (error) {
+    console.error("Error cleaning up old notifications:", error);
   }
 }
 
@@ -35,7 +103,6 @@ self.addEventListener("install", (event) => {
             console.log(`Cached: ${url}`);
           } catch (error) {
             console.warn(`Failed to cache: ${url}`, error);
-            // Continue with other files even if one fails
           }
         }
         console.log("Service Worker installation complete");
@@ -66,22 +133,21 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", async function (event) {
   try {
     const data = event.data.json();
-    console.log("Received push data:", data); // Debug log
+    console.log("Received push data:", data);
     const notificationId = data.data?.alertId || Date.now().toString();
     const timestamp = Date.now();
 
     // Clean up old notifications periodically
-    cleanupOldNotifications();
+    await cleanupOldNotifications();
 
-    // Check if we've already shown this notification recently (within last minute)
-    const lastShownTime = shownNotifications.get(notificationId);
-    if (lastShownTime && timestamp - lastShownTime < 60000) {
+    // Check if we've already shown this notification recently
+    if (await wasRecentlyShown(notificationId)) {
       console.log("Notification shown recently, skipping:", notificationId);
       return;
     }
 
-    // Update shown notifications with current timestamp
-    shownNotifications.set(notificationId, timestamp);
+    // Mark notification as shown
+    await markAsShown(notificationId);
 
     // Always show notification on iOS, regardless of focus state
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -100,12 +166,12 @@ self.addEventListener("push", async function (event) {
     if (shouldShowNotification) {
       const options = {
         body: data.body || "New notification",
-        tag: notificationId, // Use unique ID as tag to prevent duplicates
-        renotify: true, // Enable renotification for iOS
-        requireInteraction: !isIOS, // Don't require interaction on iOS
+        tag: notificationId,
+        renotify: true,
+        requireInteraction: !isIOS,
         icon: data.data?.icon || "/img/defaultuser.png",
         badge: "/img/defaultuser.png",
-        timestamp: timestamp, // Add timestamp to notification
+        timestamp: timestamp,
         actions: [
           {
             action: "play",
@@ -113,18 +179,18 @@ self.addEventListener("push", async function (event) {
           },
         ],
         data: {
-          url: "/slotbot", // Default redirect to slotbot
-          playUrl: `/out/${notificationId}`, // Always use the outbound link
+          url: "/slotbot",
+          playUrl: `/out/${notificationId}`,
           id: notificationId,
           timestamp: timestamp,
         },
       };
 
-      console.log("Notification options:", options); // Debug log
+      console.log("Notification options:", options);
 
       await self.registration.showNotification("SlotBot Message", options);
 
-      // Store notification in IndexedDB
+      // Store notification in logs
       const db = await openLogsDB();
       const tx = db.transaction("logs", "readwrite");
       const store = tx.objectStore("logs");
@@ -141,7 +207,6 @@ self.addEventListener("push", async function (event) {
   }
 });
 
-// Simplified click handler for iOS
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
@@ -174,20 +239,3 @@ self.addEventListener("notificationclick", function (event) {
       })
   );
 });
-
-// Helper function to open IndexedDB
-async function openLogsDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("NotificationLogs", 1);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains("logs")) {
-        db.createObjectStore("logs", { keyPath: "id" });
-      }
-    };
-  });
-}
