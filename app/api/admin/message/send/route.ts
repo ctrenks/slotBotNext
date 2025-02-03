@@ -105,7 +105,7 @@ export async function POST(req: Request) {
         try {
           console.log(`Attempting to send email to ${user.email}`);
           const emailResponse = await resend.emails.send({
-            from: "SlotBot <alerts@allfreechips.com>",
+            from: "SlotBot <accounts@beatonlineslots.com>",
             to: user.email,
             subject: subject,
             html: `
