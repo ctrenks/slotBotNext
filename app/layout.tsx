@@ -6,7 +6,7 @@ import AuthWrapper from "./components/AuthWrapper";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SafeAreaStyles from "./components/SafeAreaStyles";
-
+import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -167,6 +167,7 @@ export default function RootLayout({
             <Footer />
           </AuthWrapper>
         </AuthContext>
+        <Analytics />
       </body>
     </html>
   );
