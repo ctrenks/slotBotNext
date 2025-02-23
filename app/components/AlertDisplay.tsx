@@ -4,36 +4,7 @@ import { useEffect, useState } from "react";
 import { markAlertAsRead } from "@/app/actions/alert";
 import Image from "next/image";
 import { useNotifications } from "@/app/hooks/useNotifications";
-
-interface AlertWithRead {
-  id: string;
-  message: string;
-  geoTargets: string[];
-  referralCodes: string[];
-  startTime: Date | string;
-  endTime: Date | string;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  casinoId?: number;
-  casinoName?: string;
-  casinoCleanName?: string;
-  slot?: string;
-  slotImage?: string;
-  customUrl?: string | null;
-  maxPotential?: number;
-  recommendedBet?: number;
-  stopLimit?: number;
-  targetWin?: number;
-  maxWin?: number;
-  rtp?: number;
-  read: boolean;
-  casino?: {
-    id: number;
-    url: string;
-    button: string;
-  } | null;
-  casinoImage?: string;
-}
+import { AlertWithRead } from "@/app/types/alert";
 
 function CountdownTimer({ endTime }: { endTime: Date }) {
   const [timeLeft, setTimeLeft] = useState<string>("");
