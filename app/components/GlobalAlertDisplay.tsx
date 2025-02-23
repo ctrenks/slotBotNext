@@ -58,16 +58,38 @@ export default function GlobalAlertDisplay() {
   const [isIOS, setIsIOS] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
 
-  // Debug log for session state
+  // Enhanced session debugging
   useEffect(() => {
-    console.log("Session state:", {
+    console.log("Session state change detected:", {
       status,
       hasSession: !!session,
       userEmail: session?.user?.email,
-      userGeo: session?.user?.geo,
-      userReferral: session?.user?.refferal,
       timestamp: new Date().toISOString(),
     });
+
+    // If we have session data but status is not authenticated, force a refresh
+    if (session?.user && status !== "authenticated") {
+      console.log(
+        "Session data exists but status is not authenticated, forcing refresh..."
+      );
+      const forceRefresh = async () => {
+        try {
+          const response = await fetch("/api/auth/session");
+          const data = await response.json();
+          if (data?.user) {
+            console.log("Session refresh successful:", {
+              user: data.user,
+              timestamp: new Date().toISOString(),
+            });
+            // Force a re-render
+            setInitialAlerts([]);
+          }
+        } catch (error) {
+          console.error("Session refresh failed:", error);
+        }
+      };
+      forceRefresh();
+    }
   }, [session, status]);
 
   // Platform detection effect
@@ -205,96 +227,91 @@ export default function GlobalAlertDisplay() {
     requestWakeLock();
   }, [isAndroid, isStandalone]);
 
-  // Alert polling effect
+  // Alert polling effect with enhanced logging
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        // Only fetch if session is authenticated
-        if (status !== "authenticated") {
-          console.log("Session not authenticated, skipping alert fetch", {
+        // Check if we have valid session data regardless of status
+        if (session?.user?.email) {
+          console.log("Starting alert fetch with session data:", {
             status,
+            hasSession: !!session,
+            userEmail: session.user.email,
+            userGeo: session.user.geo,
+            isPWA: isStandalone,
+            platform: isAndroid ? "Android" : isIOS ? "iOS" : "Other",
             timestamp: new Date().toISOString(),
           });
-          return;
-        }
 
-        console.log("Starting alert fetch:", {
-          status,
-          hasSession: !!session,
-          userEmail: session?.user?.email,
-          userGeo: session?.user?.geo,
-          isPWA: isStandalone,
-          platform: isAndroid ? "Android" : isIOS ? "iOS" : "Other",
-          timestamp: new Date().toISOString(),
-        });
+          const response = await fetch("/api/alerts/check", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Important: include credentials
+            cache: "no-store",
+          });
 
-        const response = await fetch("/api/alerts/check", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        });
-
-        const responseText = await response.text();
-        console.log("Raw response:", {
-          status: response.status,
-          text: responseText,
-          timestamp: new Date().toISOString(),
-        });
-
-        if (!response.ok) {
-          console.error("Error fetching alerts:", {
+          const responseText = await response.text();
+          console.log("Raw response:", {
             status: response.status,
-            statusText: response.statusText,
-            error: responseText,
+            text: responseText,
             timestamp: new Date().toISOString(),
           });
-          setError(
-            `Failed to fetch alerts: ${response.status} ${responseText}`
-          );
-          return;
-        }
 
-        let alerts;
-        try {
-          alerts = JSON.parse(responseText);
-          if (!Array.isArray(alerts)) {
-            console.error("Alerts response is not an array:", alerts);
-            setError("Invalid alerts data format");
+          if (!response.ok) {
+            console.error("Error fetching alerts:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: responseText,
+              timestamp: new Date().toISOString(),
+            });
+            setError(
+              `Failed to fetch alerts: ${response.status} ${responseText}`
+            );
             return;
           }
-        } catch (e) {
-          console.error("Failed to parse alerts JSON:", e);
-          setError("Failed to parse alerts data");
-          return;
+
+          let alerts;
+          try {
+            alerts = JSON.parse(responseText);
+            if (!Array.isArray(alerts)) {
+              console.error("Alerts response is not an array:", alerts);
+              setError("Invalid alerts data format");
+              return;
+            }
+          } catch (e) {
+            console.error("Failed to parse alerts JSON:", e);
+            setError("Failed to parse alerts data");
+            return;
+          }
+
+          console.log("Received alerts:", {
+            count: alerts.length,
+            timestamp: new Date().toISOString(),
+            alerts: alerts.map((a: AlertResponse) => ({
+              id: a.id,
+              message: a.message,
+              startTime: a.startTime,
+              endTime: a.endTime,
+              read: a.read,
+              geoTargets: a.geoTargets,
+              referralCodes: a.referralCodes,
+            })),
+          });
+
+          // Ensure all date fields are properly converted to Date objects
+          const processedAlerts = alerts.map((alert: AlertResponse) => ({
+            ...alert,
+            startTime: new Date(alert.startTime),
+            endTime: new Date(alert.endTime),
+            createdAt: new Date(alert.createdAt),
+            updatedAt: new Date(alert.updatedAt),
+          }));
+
+          setInitialAlerts(processedAlerts);
+          setError(null);
         }
-
-        console.log("Received alerts:", {
-          count: alerts.length,
-          timestamp: new Date().toISOString(),
-          alerts: alerts.map((a: AlertResponse) => ({
-            id: a.id,
-            message: a.message,
-            startTime: a.startTime,
-            endTime: a.endTime,
-            read: a.read,
-            geoTargets: a.geoTargets,
-            referralCodes: a.referralCodes,
-          })),
-        });
-
-        // Ensure all date fields are properly converted to Date objects
-        const processedAlerts = alerts.map((alert: AlertResponse) => ({
-          ...alert,
-          startTime: new Date(alert.startTime),
-          endTime: new Date(alert.endTime),
-          createdAt: new Date(alert.createdAt),
-          updatedAt: new Date(alert.updatedAt),
-        }));
-
-        setInitialAlerts(processedAlerts);
-        setError(null);
       } catch (error) {
         console.error("Error fetching alerts:", {
           error,
