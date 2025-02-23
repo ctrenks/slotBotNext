@@ -9,6 +9,20 @@ interface AlertWithRead extends Alert {
   read: boolean;
 }
 
+interface AlertResponse
+  extends Omit<Alert, "startTime" | "endTime" | "createdAt" | "updatedAt"> {
+  startTime: string;
+  endTime: string;
+  createdAt: string;
+  updatedAt: string;
+  read: boolean;
+  casino?: {
+    id: number;
+    url: string;
+    button: string;
+  } | null;
+}
+
 // Add types for iOS and Android specific features
 interface SafariNavigator extends Navigator {
   standalone?: boolean;
@@ -242,11 +256,24 @@ export default function GlobalAlertDisplay() {
           return;
         }
 
-        const alerts = JSON.parse(responseText);
+        let alerts;
+        try {
+          alerts = JSON.parse(responseText);
+          if (!Array.isArray(alerts)) {
+            console.error("Alerts response is not an array:", alerts);
+            setError("Invalid alerts data format");
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse alerts JSON:", e);
+          setError("Failed to parse alerts data");
+          return;
+        }
+
         console.log("Received alerts:", {
           count: alerts.length,
           timestamp: new Date().toISOString(),
-          alerts: alerts.map((a: AlertWithRead) => ({
+          alerts: alerts.map((a: AlertResponse) => ({
             id: a.id,
             message: a.message,
             startTime: a.startTime,
@@ -256,7 +283,17 @@ export default function GlobalAlertDisplay() {
             referralCodes: a.referralCodes,
           })),
         });
-        setInitialAlerts(alerts);
+
+        // Ensure all date fields are properly converted to Date objects
+        const processedAlerts = alerts.map((alert: AlertResponse) => ({
+          ...alert,
+          startTime: new Date(alert.startTime),
+          endTime: new Date(alert.endTime),
+          createdAt: new Date(alert.createdAt),
+          updatedAt: new Date(alert.updatedAt),
+        }));
+
+        setInitialAlerts(processedAlerts);
         setError(null);
       } catch (error) {
         console.error("Error fetching alerts:", {
