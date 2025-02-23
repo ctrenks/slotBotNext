@@ -14,6 +14,7 @@ export default function CouponRedemption() {
   } | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const [couponCode, setCouponCode] = useState("");
 
   useEffect(() => {
     async function checkAccess() {
@@ -37,12 +38,15 @@ export default function CouponRedemption() {
   }
 
   async function onSubmit(formData: FormData) {
+    // Convert code to uppercase before submission
+    formData.set("code", couponCode.toUpperCase());
     const result = await redeemCoupon(formData);
 
     if (result.error) {
       setMessage({ text: result.error, isError: true });
     } else if (result.success) {
       setMessage({ text: result.message!, isError: false });
+      setCouponCode("");
       formRef.current?.reset();
 
       // Add a small delay before redirecting to allow the user to see the success message
@@ -56,6 +60,10 @@ export default function CouponRedemption() {
       }
     }
   }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCouponCode(e.target.value.toUpperCase());
+  };
 
   return (
     <div className="max-w-md mx-auto bg-black rounded-lg p-6 border border-[#00ff00]">
@@ -72,6 +80,8 @@ export default function CouponRedemption() {
             type="text"
             id="code"
             name="code"
+            value={couponCode}
+            onChange={handleInputChange}
             className="mt-1 block w-full rounded bg-black border-[#00ff00] text-[#00ff00] shadow-sm
                      focus:border-[#00ff00] focus:ring-[#00ff00] placeholder-[#00ff00]/50"
             placeholder="Enter your coupon code"
