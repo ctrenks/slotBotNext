@@ -33,7 +33,7 @@ export function useNotifications(): UseNotificationsReturn {
       // Check if device is iOS
       const isIOSDevice =
         /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-        !(window as any).MSStream;
+        !(window as { MSStream?: boolean }).MSStream;
       setIsIOS(isIOSDevice);
 
       // Check if running as PWA
@@ -150,7 +150,7 @@ export function useNotifications(): UseNotificationsReturn {
     } finally {
       permissionRequested = false;
     }
-  }, [isSupported, permission]);
+  }, [isSupported, permission, registerWithRetry]);
 
   const registerPushSubscription = useCallback(async () => {
     if (!isSupported || permission !== "granted") {
@@ -174,7 +174,7 @@ export function useNotifications(): UseNotificationsReturn {
       console.error("Error registering push subscription:", error);
       throw error;
     }
-  }, [isSupported, permission, isIOS, isPWA]);
+  }, [isSupported, permission, isIOS, isPWA, registerWithRetry]);
 
   return {
     permission,

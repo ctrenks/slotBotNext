@@ -379,7 +379,7 @@ export default function GlobalAlertDisplay() {
       })),
     });
     setAlerts(initialAlerts);
-  }, [initialAlerts, alerts.length]);
+  }, [initialAlerts, alerts.length, initialAlerts.length]);
 
   // Don't block rendering on session loading
   if (status === "loading" && !session?.user) {

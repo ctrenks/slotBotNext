@@ -47,7 +47,7 @@ export default function AlertDisplay({
         hasSlotImage: !!a.slotImage,
       })),
     });
-  }, [alerts]);
+  }, [alerts, alerts.length]);
 
   // Update alerts when initialAlerts changes
   useEffect(() => {

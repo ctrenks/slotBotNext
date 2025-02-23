@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { createAlert } from "@/app/actions/alert";
 import { getSlotsForCasino } from "@/app/actions/slots";
+import Image from "next/image";
 
 interface AlertFormData {
   message: string;
@@ -667,20 +668,24 @@ export default function AlertManager() {
               {formValues.casinoImage && (
                 <div>
                   <p className="text-sm font-medium mb-2">Casino Image:</p>
-                  <img
+                  <Image
                     src={`/image/casino/${formValues.casinoImage}`}
                     alt={formValues.casinoName || "Casino"}
                     className="max-w-[200px] h-auto rounded border"
+                    width={200}
+                    height={100}
                   />
                 </div>
               )}
               {formValues.slotImage && (
                 <div>
                   <p className="text-sm font-medium mb-2">Slot Image:</p>
-                  <img
+                  <Image
                     src={`/image/sloticonssquare/${formValues.slotImage}`}
                     alt={formValues.slot || "Slot"}
                     className="max-w-[200px] h-auto rounded border"
+                    width={200}
+                    height={200}
                   />
                 </div>
               )}
