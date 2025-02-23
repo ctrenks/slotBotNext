@@ -62,19 +62,40 @@ export default function AlertDisplay({
   });
 
   const [alerts, setAlerts] = useState<AlertWithRead[]>(() => {
+    // Ensure we're working with Date objects
+    const processedAlerts = initialAlerts.map((alert) => ({
+      ...alert,
+      startTime:
+        alert.startTime instanceof Date
+          ? alert.startTime
+          : new Date(alert.startTime),
+      endTime:
+        alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime),
+      createdAt:
+        alert.createdAt instanceof Date
+          ? alert.createdAt
+          : new Date(alert.createdAt),
+      updatedAt:
+        alert.updatedAt instanceof Date
+          ? alert.updatedAt
+          : new Date(alert.updatedAt),
+    }));
+
     console.log("Initializing alerts state with:", {
-      count: initialAlerts.length,
-      alerts: initialAlerts.map((a) => ({
+      count: processedAlerts.length,
+      alerts: processedAlerts.map((a) => ({
         id: a.id,
-        startTime: String(a.startTime),
-        endTime: String(a.endTime),
+        startTime: a.startTime.toISOString(),
+        endTime: a.endTime.toISOString(),
         startTimeType: typeof a.startTime,
         endTimeType: typeof a.endTime,
         startTimeIsDate: a.startTime instanceof Date,
         endTimeIsDate: a.endTime instanceof Date,
+        now: new Date().toISOString(),
       })),
     });
-    return initialAlerts;
+
+    return processedAlerts;
   });
   const [isMobile] = useState(
     typeof window !== "undefined" &&
@@ -114,21 +135,26 @@ export default function AlertDisplay({
 
   // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
+    const now = new Date();
+
+    // Ensure we're working with Date objects
+    const startTime =
+      alert.startTime instanceof Date
+        ? alert.startTime
+        : new Date(alert.startTime);
+    const endTime =
+      alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime);
+
     console.log("Processing alert for active status:", {
       id: alert.id,
-      startTime: String(alert.startTime),
-      endTime: String(alert.endTime),
-      currentTime: new Date().toISOString(),
-      startTimeType: typeof alert.startTime,
-      endTimeType: typeof alert.endTime,
-      startTimeIsDate: alert.startTime instanceof Date,
-      endTimeIsDate: alert.endTime instanceof Date,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      currentTime: now.toISOString(),
+      startTimeType: typeof startTime,
+      endTimeType: typeof endTime,
+      startTimeIsDate: startTime instanceof Date,
+      endTimeIsDate: endTime instanceof Date,
     });
-
-    // Parse dates from ISO strings
-    const startTime = new Date(alert.startTime);
-    const endTime = new Date(alert.endTime);
-    const now = new Date();
 
     // Convert all times to UTC timestamps for comparison
     const nowUTC = now.getTime();
@@ -140,12 +166,8 @@ export default function AlertDisplay({
     console.log("Alert filtering details:", {
       id: alert.id,
       message: alert.message.substring(0, 50) + "...",
-      rawStartTime: String(alert.startTime),
-      rawEndTime: String(alert.endTime),
-      startTimeType: typeof alert.startTime,
-      endTimeType: typeof alert.endTime,
-      parsedStartTime: startTime.toISOString(),
-      parsedEndTime: endTime.toISOString(),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
       now: now.toISOString(),
       startUTC,
       endUTC,
@@ -164,14 +186,18 @@ export default function AlertDisplay({
 
   // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
-    const endTime = new Date(alert.endTime);
-    const isExpired = endTime.getTime() < Date.now();
+    const now = new Date();
+    const endTime =
+      alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime);
+    const isExpired = endTime.getTime() < now.getTime();
+
     console.log("Expired check:", {
       id: alert.id,
       endTime: endTime.toISOString(),
-      now: new Date().toISOString(),
+      now: now.toISOString(),
       isExpired,
     });
+
     return isExpired;
   });
 
