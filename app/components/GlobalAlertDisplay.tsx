@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import AlertDisplay from "./AlertDisplay";
 import { Alert } from "@prisma/client";
+import { Session } from "next-auth";
 
 interface AlertWithRead extends Alert {
   read: boolean;
@@ -50,7 +51,10 @@ const urlBase64ToUint8Array = (base64String: string) => {
 };
 
 export default function GlobalAlertDisplay() {
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession() as {
+    data: Session | null;
+    status: "loading" | "authenticated" | "unauthenticated";
+  };
   const [initialAlerts, setInitialAlerts] = useState<AlertWithRead[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -66,30 +70,6 @@ export default function GlobalAlertDisplay() {
       userEmail: session?.user?.email,
       timestamp: new Date().toISOString(),
     });
-
-    // If we have session data but status is not authenticated, force a refresh
-    if (session?.user && status !== "authenticated") {
-      console.log(
-        "Session data exists but status is not authenticated, forcing refresh..."
-      );
-      const forceRefresh = async () => {
-        try {
-          const response = await fetch("/api/auth/session");
-          const data = await response.json();
-          if (data?.user) {
-            console.log("Session refresh successful:", {
-              user: data.user,
-              timestamp: new Date().toISOString(),
-            });
-            // Force a re-render
-            setInitialAlerts([]);
-          }
-        } catch (error) {
-          console.error("Session refresh failed:", error);
-        }
-      };
-      forceRefresh();
-    }
   }, [session, status]);
 
   // Platform detection effect
@@ -231,87 +211,93 @@ export default function GlobalAlertDisplay() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        // Check if we have valid session data regardless of status
-        if (session?.user?.email) {
-          console.log("Starting alert fetch with session data:", {
+        // Check if we have valid session data
+        if (!session?.user?.email) {
+          console.log("No session data available yet", {
             status,
-            hasSession: !!session,
-            userEmail: session.user.email,
-            userGeo: session.user.geo,
-            isPWA: isStandalone,
-            platform: isAndroid ? "Android" : isIOS ? "iOS" : "Other",
             timestamp: new Date().toISOString(),
           });
-
-          const response = await fetch("/api/alerts/check", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Important: include credentials
-            cache: "no-store",
-          });
-
-          const responseText = await response.text();
-          console.log("Raw response:", {
-            status: response.status,
-            text: responseText,
-            timestamp: new Date().toISOString(),
-          });
-
-          if (!response.ok) {
-            console.error("Error fetching alerts:", {
-              status: response.status,
-              statusText: response.statusText,
-              error: responseText,
-              timestamp: new Date().toISOString(),
-            });
-            setError(
-              `Failed to fetch alerts: ${response.status} ${responseText}`
-            );
-            return;
-          }
-
-          let alerts;
-          try {
-            alerts = JSON.parse(responseText);
-            if (!Array.isArray(alerts)) {
-              console.error("Alerts response is not an array:", alerts);
-              setError("Invalid alerts data format");
-              return;
-            }
-          } catch (e) {
-            console.error("Failed to parse alerts JSON:", e);
-            setError("Failed to parse alerts data");
-            return;
-          }
-
-          console.log("Received alerts:", {
-            count: alerts.length,
-            timestamp: new Date().toISOString(),
-            alerts: alerts.map((a: AlertResponse) => ({
-              id: a.id,
-              message: a.message,
-              startTime: a.startTime,
-              endTime: a.endTime,
-              read: a.read,
-              geoTargets: a.geoTargets,
-              referralCodes: a.referralCodes,
-            })),
-          });
-
-          // Ensure all date fields are properly converted to Date objects
-          const processedAlerts = alerts.map((alert: AlertResponse) => ({
-            ...alert,
-            startTime: new Date(alert.startTime),
-            endTime: new Date(alert.endTime),
-            createdAt: new Date(alert.createdAt),
-            updatedAt: new Date(alert.updatedAt),
-          }));
-
-          setInitialAlerts(processedAlerts);
-          setError(null);
+          return;
         }
+
+        console.log("Starting alert fetch with session data:", {
+          status,
+          hasSession: !!session,
+          userEmail: session.user.email,
+          userGeo: session.user.geo,
+          isPWA: isStandalone,
+          platform: isAndroid ? "Android" : isIOS ? "iOS" : "Other",
+          timestamp: new Date().toISOString(),
+        });
+
+        const response = await fetch("/api/alerts/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const responseText = await response.text();
+        console.log("Raw response:", {
+          status: response.status,
+          text: responseText,
+          timestamp: new Date().toISOString(),
+        });
+
+        if (!response.ok) {
+          console.error("Error fetching alerts:", {
+            status: response.status,
+            statusText: response.statusText,
+            error: responseText,
+            timestamp: new Date().toISOString(),
+          });
+          setError(
+            `Failed to fetch alerts: ${response.status} ${responseText}`
+          );
+          return;
+        }
+
+        let alerts;
+        try {
+          alerts = JSON.parse(responseText);
+          if (!Array.isArray(alerts)) {
+            console.error("Alerts response is not an array:", alerts);
+            setError("Invalid alerts data format");
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse alerts JSON:", e);
+          setError("Failed to parse alerts data");
+          return;
+        }
+
+        console.log("Received alerts:", {
+          count: alerts.length,
+          timestamp: new Date().toISOString(),
+          alerts: alerts.map((a: AlertResponse) => ({
+            id: a.id,
+            message: a.message,
+            startTime: a.startTime,
+            endTime: a.endTime,
+            read: a.read,
+            geoTargets: a.geoTargets,
+            referralCodes: a.referralCodes,
+          })),
+        });
+
+        // Ensure all date fields are properly converted to Date objects
+        const processedAlerts = alerts.map((alert: AlertResponse) => ({
+          ...alert,
+          startTime: new Date(alert.startTime),
+          endTime: new Date(alert.endTime),
+          createdAt: new Date(alert.createdAt),
+          updatedAt: new Date(alert.updatedAt),
+        }));
+
+        setInitialAlerts(processedAlerts);
+        setError(null);
       } catch (error) {
         console.error("Error fetching alerts:", {
           error,
@@ -398,9 +384,12 @@ export default function GlobalAlertDisplay() {
     };
   }, [session, status, isStandalone, isAndroid, isIOS, wakeLock]);
 
-  // Don't render anything if not authenticated
-  if (status === "loading") {
-    console.log("AlertDisplay is loading - waiting for session", { status });
+  // Don't block rendering on session loading
+  if (status === "loading" && !session?.user) {
+    console.log("AlertDisplay is loading - waiting for session", {
+      status,
+      timestamp: new Date().toISOString(),
+    });
     return (
       <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg mb-8 p-4">
         <div className="animate-pulse flex space-x-4">
@@ -416,11 +405,12 @@ export default function GlobalAlertDisplay() {
     );
   }
 
-  if (status !== "authenticated" || !session?.user) {
-    console.log("Not rendering AlertDisplay - not authenticated", {
+  // Allow rendering if we have session data, even if status is still loading
+  const userData = session?.user;
+  if (!userData) {
+    console.log("Not rendering AlertDisplay - no session data", {
       status,
       hasSession: !!session,
-      userEmail: session?.user?.email,
       timestamp: new Date().toISOString(),
     });
     return null;
