@@ -82,60 +82,16 @@ export async function POST() {
       timestamp: new Date().toISOString(),
     });
 
-    // First, get all active alerts regardless of recipients
-    const allActiveAlerts = await prisma.alert.findMany({
-      where: {
-        startTime: { lte: now },
-        endTime: { gte: now },
-      },
-      include: {
-        recipients: true,
-        casino: {
-          select: {
-            id: true,
-            url: true,
-            button: true,
-          },
-        },
-      },
-    });
-
-    console.log("All active alerts before recipient filtering:", {
-      count: allActiveAlerts.length,
-      alerts: allActiveAlerts.map((a) => ({
-        id: a.id,
-        message: a.message.substring(0, 50) + "...",
-        startTime: a.startTime.toISOString(),
-        endTime: a.endTime.toISOString(),
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
-        recipientCount: a.recipients.length,
-        recipientIds: a.recipients.map((r) => r.userId),
-        currentUserId: user.id,
-        isUserRecipient: a.recipients.some((r) => r.userId === user.id),
-        timeCheck: {
-          now: now.toISOString(),
-          isStartValid: a.startTime <= now,
-          isEndValid: a.endTime >= now,
-          startDiff:
-            Math.floor((now.getTime() - a.startTime.getTime()) / 1000 / 60) +
-            " minutes",
-          endDiff:
-            Math.floor((a.endTime.getTime() - now.getTime()) / 1000 / 60) +
-            " minutes",
-        },
-      })),
-      timestamp: new Date().toISOString(),
-    });
-
-    // Get all active alerts assigned to this user
+    // Only get alerts that are currently active (between start and end time)
     const activeAlerts = await prisma.alert.findMany({
       where: {
         AND: [
+          // Only get alerts that have started and not ended yet
           {
             startTime: { lte: now },
             endTime: { gte: now },
           },
+          // Must be assigned to this user
           {
             recipients: {
               some: {
@@ -169,25 +125,8 @@ export async function POST() {
       alerts: activeAlerts.map((a) => ({
         id: a.id,
         message: a.message.substring(0, 50) + "...",
-        geoTargets: a.geoTargets,
-        referralCodes: a.referralCodes,
-        startTime: a.startTime.toISOString(),
-        endTime: a.endTime.toISOString(),
-        now: now.toISOString(),
-        isActive: a.startTime <= now && a.endTime >= now,
-        timeDiff: {
-          startToNow:
-            Math.floor((now.getTime() - a.startTime.getTime()) / 1000 / 60) +
-            " minutes",
-          nowToEnd:
-            Math.floor((a.endTime.getTime() - now.getTime()) / 1000 / 60) +
-            " minutes",
-        },
-        recipientCount: a.recipients.length,
         read: a.recipients[0]?.read || false,
-        casinoImage: a.casino?.button,
       })),
-      timestamp: new Date().toISOString(),
     });
 
     // Find unread alerts and send push notifications
@@ -201,7 +140,6 @@ export async function POST() {
         alerts: unreadAlerts.map((a) => ({
           id: a.id,
           message: a.message,
-          casinoImage: a.casino?.button,
         })),
       });
 
@@ -218,7 +156,7 @@ export async function POST() {
       }
     }
 
-    // Return all active alerts with read status
+    // Return active alerts with read status
     const alertsWithRead = activeAlerts.map((alert) => ({
       ...alert,
       read: alert.recipients[0]?.read || false,
@@ -230,12 +168,8 @@ export async function POST() {
       alerts: alertsWithRead.map((a) => ({
         id: a.id,
         message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
         read: a.read,
-        casinoImage: a.casinoImage,
       })),
-      timestamp: new Date().toISOString(),
     });
 
     return NextResponse.json(alertsWithRead);

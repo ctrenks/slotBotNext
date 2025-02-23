@@ -6,39 +6,6 @@ import Image from "next/image";
 import { useNotifications } from "@/app/hooks/useNotifications";
 import { AlertWithRead } from "@/app/types/alert";
 
-function CountdownTimer({ endTime }: { endTime: Date }) {
-  const [timeLeft, setTimeLeft] = useState<string>("");
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const difference = endTime.getTime() - now.getTime();
-
-      if (difference <= 0) {
-        setTimeLeft("Expired");
-        return;
-      }
-
-      const hours = Math.floor(difference / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      setTimeLeft(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
-    };
-
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-
-    return () => clearInterval(timer);
-  }, [endTime]);
-
-  return <span>{timeLeft}</span>;
-}
-
 export default function AlertDisplay({
   initialAlerts,
 }: {
@@ -49,54 +16,11 @@ export default function AlertDisplay({
     initialAlerts: initialAlerts.map((a) => ({
       id: a.id,
       message: a.message,
-      startTime: a.startTime,
-      endTime: a.endTime,
       read: a.read,
-      startTimeType: typeof a.startTime,
-      endTimeType: typeof a.endTime,
-      startTimeValue: String(a.startTime),
-      endTimeValue: String(a.endTime),
-      startTimeIsDate: a.startTime instanceof Date,
-      endTimeIsDate: a.endTime instanceof Date,
     })),
   });
 
-  const [alerts, setAlerts] = useState<AlertWithRead[]>(() => {
-    // Ensure we're working with Date objects
-    const processedAlerts = initialAlerts.map((alert) => ({
-      ...alert,
-      startTime:
-        alert.startTime instanceof Date
-          ? alert.startTime
-          : new Date(alert.startTime),
-      endTime:
-        alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime),
-      createdAt:
-        alert.createdAt instanceof Date
-          ? alert.createdAt
-          : new Date(alert.createdAt),
-      updatedAt:
-        alert.updatedAt instanceof Date
-          ? alert.updatedAt
-          : new Date(alert.updatedAt),
-    }));
-
-    console.log("Initializing alerts state with:", {
-      count: processedAlerts.length,
-      alerts: processedAlerts.map((a) => ({
-        id: a.id,
-        startTime: a.startTime.toISOString(),
-        endTime: a.endTime.toISOString(),
-        startTimeType: typeof a.startTime,
-        endTimeType: typeof a.endTime,
-        startTimeIsDate: a.startTime instanceof Date,
-        endTimeIsDate: a.endTime instanceof Date,
-        now: new Date().toISOString(),
-      })),
-    });
-
-    return processedAlerts;
-  });
+  const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [isMobile] = useState(
     typeof window !== "undefined" &&
       /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
@@ -111,13 +35,7 @@ export default function AlertDisplay({
       alerts: alerts.map((a) => ({
         id: a.id,
         message: a.message,
-        startTime: String(a.startTime),
-        endTime: String(a.endTime),
         read: a.read,
-        startTimeType: typeof a.startTime,
-        endTimeType: typeof a.endTime,
-        startTimeIsDate: a.startTime instanceof Date,
-        endTimeIsDate: a.endTime instanceof Date,
       })),
     });
   }, [alerts]);
@@ -132,86 +50,6 @@ export default function AlertDisplay({
       )
     );
   };
-
-  // Active alerts - currently running
-  const activeAlerts = alerts.filter((alert) => {
-    const now = new Date();
-
-    // Ensure we're working with Date objects
-    const startTime =
-      alert.startTime instanceof Date
-        ? alert.startTime
-        : new Date(alert.startTime);
-    const endTime =
-      alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime);
-
-    console.log("Processing alert for active status:", {
-      id: alert.id,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      currentTime: now.toISOString(),
-      startTimeType: typeof startTime,
-      endTimeType: typeof endTime,
-      startTimeIsDate: startTime instanceof Date,
-      endTimeIsDate: endTime instanceof Date,
-    });
-
-    // Convert all times to UTC timestamps for comparison
-    const nowUTC = now.getTime();
-    const startUTC = startTime.getTime();
-    const endUTC = endTime.getTime();
-
-    const isActive = startUTC <= nowUTC && endUTC >= nowUTC;
-
-    console.log("Alert filtering details:", {
-      id: alert.id,
-      message: alert.message.substring(0, 50) + "...",
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      now: now.toISOString(),
-      startUTC,
-      endUTC,
-      nowUTC,
-      startCheck: startUTC <= nowUTC,
-      endCheck: endUTC >= nowUTC,
-      isActive,
-      timeDiff: {
-        startToNow: Math.floor((nowUTC - startUTC) / 1000 / 60) + " minutes",
-        nowToEnd: Math.floor((endUTC - nowUTC) / 1000 / 60) + " minutes",
-      },
-    });
-
-    return isActive;
-  });
-
-  // Expired alerts
-  const expiredAlerts = alerts.filter((alert) => {
-    const now = new Date();
-    const endTime =
-      alert.endTime instanceof Date ? alert.endTime : new Date(alert.endTime);
-    const isExpired = endTime.getTime() < now.getTime();
-
-    console.log("Expired check:", {
-      id: alert.id,
-      endTime: endTime.toISOString(),
-      now: now.toISOString(),
-      isExpired,
-    });
-
-    return isExpired;
-  });
-
-  console.log("Final filtering results:", {
-    total: alerts.length,
-    active: activeAlerts.length,
-    expired: expiredAlerts.length,
-    now: new Date().toISOString(),
-    allAlerts: alerts.map((a) => ({
-      id: a.id,
-      startTime: String(a.startTime),
-      endTime: String(a.endTime),
-    })),
-  });
 
   return (
     <div className="space-y-6">
@@ -229,11 +67,11 @@ export default function AlertDisplay({
         </div>
       )}
 
-      {activeAlerts.length > 0 && (
+      {alerts.length > 0 ? (
         <div>
           <h3 className="text-lg font-semibold mb-3">Active Alerts</h3>
           <div className="space-y-3">
-            {activeAlerts.map((alert) => (
+            {alerts.map((alert) => (
               <div
                 key={alert.id}
                 className={`p-4 rounded-lg border ${
@@ -341,12 +179,8 @@ export default function AlertDisplay({
                       </div>
                     )}
 
-                    {/* Timer and Mark as Read */}
-                    <div className="mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 text-xs md:text-sm text-gray-500">
-                      <span>
-                        Time remaining:{" "}
-                        <CountdownTimer endTime={new Date(alert.endTime)} />
-                      </span>
+                    {/* Mark as Read */}
+                    <div className="mt-4 flex justify-end">
                       {!alert.read && (
                         <button
                           onClick={() => handleMarkAsRead(alert.id)}
@@ -362,30 +196,7 @@ export default function AlertDisplay({
             ))}
           </div>
         </div>
-      )}
-
-      {expiredAlerts.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Expired Alerts</h3>
-          <div className="space-y-3">
-            {expiredAlerts.map((alert) => (
-              <div key={alert.id} className="p-4 rounded-lg border bg-gray-50">
-                <h5 className="text-base md:text-lg font-semibold break-words">
-                  {alert.casinoName} has {alert.slot} at {alert.rtp}%
-                </h5>
-                <p className="text-gray-600 text-sm md:text-base break-words">
-                  {alert.message}
-                </p>
-                <div className="mt-2 text-xs md:text-sm text-gray-500">
-                  <span>Expired</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {alerts.length === 0 && (
+      ) : (
         <p className="text-gray-500 text-center py-4">No alerts to display</p>
       )}
     </div>
