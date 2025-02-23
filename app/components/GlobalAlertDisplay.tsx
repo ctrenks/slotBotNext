@@ -291,28 +291,56 @@ export default function GlobalAlertDisplay() {
 
         // Ensure all date fields are properly converted to Date objects and all fields match AlertWithRead interface
         const processedAlerts: AlertWithRead[] = alerts.map(
-          (alert: AlertResponse) => ({
-            ...alert,
-            startTime: new Date(alert.startTime),
-            endTime: new Date(alert.endTime),
-            createdAt: new Date(alert.createdAt),
-            updatedAt: new Date(alert.updatedAt),
-            casino: alert.casino || null,
-            casinoImage: alert.casinoImage || null,
-            casinoId: alert.casinoId || null,
-            casinoName: alert.casinoName || null,
-            casinoCleanName: alert.casinoCleanName || null,
-            slot: alert.slot || null,
-            slotImage: alert.slotImage || null,
-            customUrl: alert.customUrl || null,
-            maxPotential: alert.maxPotential || null,
-            recommendedBet: alert.recommendedBet || null,
-            stopLimit: alert.stopLimit || null,
-            targetWin: alert.targetWin || null,
-            maxWin: alert.maxWin || null,
-            rtp: alert.rtp || null,
-          })
+          (alert: AlertResponse) => {
+            const processed = {
+              ...alert,
+              startTime: new Date(alert.startTime),
+              endTime: new Date(alert.endTime),
+              createdAt: new Date(alert.createdAt),
+              updatedAt: new Date(alert.updatedAt),
+              casino: alert.casino || null,
+              casinoImage: alert.casinoImage || null,
+              casinoId: alert.casinoId || null,
+              casinoName: alert.casinoName || null,
+              casinoCleanName: alert.casinoCleanName || null,
+              slot: alert.slot || null,
+              slotImage: alert.slotImage || null,
+              customUrl: alert.customUrl || null,
+              maxPotential: alert.maxPotential || null,
+              recommendedBet: alert.recommendedBet || null,
+              stopLimit: alert.stopLimit || null,
+              targetWin: alert.targetWin || null,
+              maxWin: alert.maxWin || null,
+              rtp: alert.rtp || null,
+            };
+
+            console.log("Processed alert:", {
+              id: processed.id,
+              startTime: processed.startTime.toISOString(),
+              endTime: processed.endTime.toISOString(),
+              now: new Date().toISOString(),
+              startTimeIsDate: processed.startTime instanceof Date,
+              endTimeIsDate: processed.endTime instanceof Date,
+              startTimeType: typeof processed.startTime,
+              endTimeType: typeof processed.endTime,
+            });
+
+            return processed;
+          }
         );
+
+        console.log("Setting initialAlerts with processed alerts:", {
+          count: processedAlerts.length,
+          alerts: processedAlerts.map((a) => ({
+            id: a.id,
+            startTime: String(a.startTime),
+            endTime: String(a.endTime),
+            startTimeIsDate: a.startTime instanceof Date,
+            endTimeIsDate: a.endTime instanceof Date,
+            startTimeType: typeof a.startTime,
+            endTimeType: typeof a.endTime,
+          })),
+        });
 
         setInitialAlerts(processedAlerts);
         setError(null);

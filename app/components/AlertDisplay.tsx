@@ -56,11 +56,24 @@ export default function AlertDisplay({
       endTimeType: typeof a.endTime,
       startTimeValue: String(a.startTime),
       endTimeValue: String(a.endTime),
+      startTimeIsDate: a.startTime instanceof Date,
+      endTimeIsDate: a.endTime instanceof Date,
     })),
   });
 
   const [alerts, setAlerts] = useState<AlertWithRead[]>(() => {
-    console.log("Initializing alerts state with:", initialAlerts);
+    console.log("Initializing alerts state with:", {
+      count: initialAlerts.length,
+      alerts: initialAlerts.map((a) => ({
+        id: a.id,
+        startTime: String(a.startTime),
+        endTime: String(a.endTime),
+        startTimeType: typeof a.startTime,
+        endTimeType: typeof a.endTime,
+        startTimeIsDate: a.startTime instanceof Date,
+        endTimeIsDate: a.endTime instanceof Date,
+      })),
+    });
     return initialAlerts;
   });
   const [isMobile] = useState(
@@ -77,9 +90,13 @@ export default function AlertDisplay({
       alerts: alerts.map((a) => ({
         id: a.id,
         message: a.message,
-        startTime: a.startTime,
-        endTime: a.endTime,
+        startTime: String(a.startTime),
+        endTime: String(a.endTime),
         read: a.read,
+        startTimeType: typeof a.startTime,
+        endTimeType: typeof a.endTime,
+        startTimeIsDate: a.startTime instanceof Date,
+        endTimeIsDate: a.endTime instanceof Date,
       })),
     });
   }, [alerts]);
@@ -99,17 +116,22 @@ export default function AlertDisplay({
   const activeAlerts = alerts.filter((alert) => {
     console.log("Processing alert for active status:", {
       id: alert.id,
-      startTime: alert.startTime,
-      endTime: alert.endTime,
+      startTime: String(alert.startTime),
+      endTime: String(alert.endTime),
       currentTime: new Date().toISOString(),
+      startTimeType: typeof alert.startTime,
+      endTimeType: typeof alert.endTime,
+      startTimeIsDate: alert.startTime instanceof Date,
+      endTimeIsDate: alert.endTime instanceof Date,
     });
 
     // Parse dates from ISO strings
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
+    const now = new Date();
 
     // Convert all times to UTC timestamps for comparison
-    const nowUTC = Date.now();
+    const nowUTC = now.getTime();
     const startUTC = startTime.getTime();
     const endUTC = endTime.getTime();
 
@@ -118,15 +140,13 @@ export default function AlertDisplay({
     console.log("Alert filtering details:", {
       id: alert.id,
       message: alert.message.substring(0, 50) + "...",
-      rawStartTime: alert.startTime,
-      rawEndTime: alert.endTime,
+      rawStartTime: String(alert.startTime),
+      rawEndTime: String(alert.endTime),
       startTimeType: typeof alert.startTime,
       endTimeType: typeof alert.endTime,
-      parsedStartTime: startTime,
-      parsedEndTime: endTime,
-      parsedStartTimeISO: startTime.toISOString(),
-      parsedEndTimeISO: endTime.toISOString(),
-      now: new Date().toISOString(),
+      parsedStartTime: startTime.toISOString(),
+      parsedEndTime: endTime.toISOString(),
+      now: now.toISOString(),
       startUTC,
       endUTC,
       nowUTC,
