@@ -48,6 +48,9 @@ export default function CouponRedemption() {
       // Add a small delay before redirecting to allow the user to see the success message
       if (result.redirect) {
         setTimeout(() => {
+          // Force a router refresh to update the navigation
+          router.refresh();
+          // Then redirect to the slotbot page
           router.push(result.redirect);
         }, 1500);
       }
