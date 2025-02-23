@@ -135,7 +135,7 @@ export async function POST() {
     );
 
     if (unreadAlerts.length > 0) {
-      console.log("Sending push notifications for unread alerts:", {
+      console.log("Checking for alerts that need push notifications:", {
         count: unreadAlerts.length,
         alerts: unreadAlerts.map((a) => ({
           id: a.id,
@@ -143,12 +143,45 @@ export async function POST() {
         })),
       });
 
-      // Send push notifications for unread alerts
+      // Send push notifications only for alerts that haven't been notified yet
       for (const alert of unreadAlerts) {
         try {
-          await sendPushNotification(user.email, alert);
+          // Check if we've already sent a notification for this alert
+          const existingNotification =
+            await prisma.alertNotification.findUnique({
+              where: {
+                alertId_userEmail: {
+                  alertId: alert.id,
+                  userEmail: user.email,
+                },
+              },
+            });
+
+          if (!existingNotification) {
+            await sendPushNotification(user.email, alert);
+
+            // Record that we've sent a notification for this alert
+            await prisma.alertNotification.create({
+              data: {
+                alertId: alert.id,
+                userEmail: user.email,
+                sentAt: new Date(),
+              },
+            });
+
+            console.log("Sent push notification for alert:", {
+              alertId: alert.id,
+              userEmail: user.email,
+            });
+          } else {
+            console.log("Skipping duplicate notification for alert:", {
+              alertId: alert.id,
+              userEmail: user.email,
+              originalNotificationSentAt: existingNotification.sentAt,
+            });
+          }
         } catch (error) {
-          console.error("Failed to send push notification:", {
+          console.error("Failed to handle push notification:", {
             alertId: alert.id,
             error,
           });

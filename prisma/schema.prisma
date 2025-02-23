@@ -618,6 +618,7 @@ model Alert {
   rtp             Float?
   recipients      AlertRecipient[]
   clicks          AlertClick[]
+  notifications   AlertNotification[]
 }
 
 model AlertRecipient {
@@ -650,15 +651,24 @@ model AlertClick {
 }
 
 model PushSubscription {
-  userEmail   String
-  endpoint    String
-  auth        String
-  p256dh      String
-  lastUpdated DateTime
+  userEmail String
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@id([userEmail, endpoint])
+}
+
+model AlertNotification {
+  alertId   String
+  userEmail String
+  sentAt    DateTime @default(now())
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@id([alertId, userEmail])
   @@index([userEmail])
-  @@map("push_subscriptions")
 }
 
 model UserAlert {
