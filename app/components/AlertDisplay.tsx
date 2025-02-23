@@ -34,11 +34,33 @@ export default function AlertDisplay({
       alertsCount: alerts.length,
       alerts: alerts.map((a) => ({
         id: a.id,
-        message: a.message,
+        message: a.message.substring(0, 50) + "...",
         read: a.read,
+        casinoName: a.casinoName,
+        slot: a.slot,
+        rtp: a.rtp,
+        hasButton: !!a.casino?.button,
+        hasSlotImage: !!a.slotImage,
       })),
     });
   }, [alerts]);
+
+  // Log before rendering
+  console.log("Rendering AlertDisplay:", {
+    alertsCount: alerts.length,
+    hasAlerts: alerts.length > 0,
+    firstAlert: alerts[0]
+      ? {
+          id: alerts[0].id,
+          message: alerts[0].message.substring(0, 50) + "...",
+          casinoName: alerts[0].casinoName,
+          slot: alerts[0].slot,
+          rtp: alerts[0].rtp,
+          hasButton: !!alerts[0].casino?.button,
+          hasSlotImage: !!alerts[0].slotImage,
+        }
+      : null,
+  });
 
   const { permission, isSupported, requestPermission } = useNotifications();
 
