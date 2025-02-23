@@ -53,6 +53,17 @@ export default function AlertDisplay({
 }: {
   initialAlerts: AlertWithRead[];
 }) {
+  console.log("AlertDisplay component mounted with:", {
+    initialAlertsCount: initialAlerts.length,
+    initialAlerts: initialAlerts.map((a) => ({
+      id: a.id,
+      message: a.message,
+      startTime: a.startTime,
+      endTime: a.endTime,
+      read: a.read,
+    })),
+  });
+
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
   const [isMobile] = useState(
     typeof window !== "undefined" &&
@@ -60,6 +71,20 @@ export default function AlertDisplay({
         navigator.userAgent.toLowerCase()
       )
   );
+
+  // Log when alerts state changes
+  useEffect(() => {
+    console.log("Alerts state updated:", {
+      alertsCount: alerts.length,
+      alerts: alerts.map((a) => ({
+        id: a.id,
+        message: a.message,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        read: a.read,
+      })),
+    });
+  }, [alerts]);
 
   const { permission, isSupported, requestPermission } = useNotifications();
 
@@ -79,16 +104,29 @@ export default function AlertDisplay({
   const activeAlerts = alerts.filter((alert) => {
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
-    const isActive = startTime <= now && endTime >= now;
-    console.log("Alert check:", {
+
+    // Ensure all dates are in UTC for comparison
+    const nowUTC = now.getTime();
+    const startUTC = startTime.getTime();
+    const endUTC = endTime.getTime();
+
+    const isActive = startUTC <= nowUTC && endUTC >= nowUTC;
+
+    console.log("Alert time check (UTC milliseconds):", {
       id: alert.id,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      now: now.toISOString(),
+      message: alert.message.substring(0, 50) + "...",
+      startUTC,
+      nowUTC,
+      endUTC,
+      startCheck: startUTC <= nowUTC,
+      endCheck: endUTC >= nowUTC,
       isActive,
-      startCheck: startTime <= now,
-      endCheck: endTime >= now,
+      timeDiff: {
+        startToNow: Math.floor((nowUTC - startUTC) / 1000 / 60) + " minutes",
+        nowToEnd: Math.floor((endUTC - nowUTC) / 1000 / 60) + " minutes",
+      },
     });
+
     return isActive;
   });
 
@@ -96,6 +134,13 @@ export default function AlertDisplay({
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
     return endTime < now;
+  });
+
+  console.log("Filtered alerts:", {
+    total: alerts.length,
+    active: activeAlerts.length,
+    expired: expiredAlerts.length,
+    now: now.toISOString(),
   });
 
   return (
