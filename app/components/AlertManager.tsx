@@ -46,18 +46,12 @@ interface Slot {
 }
 
 function getDefaultTimes() {
-  // Get current time in local timezone
   const now = new Date();
-
-  // Convert to ISO string but keep local timezone
-  const localStartTime = new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000
-  );
-  const localEndTime = new Date(localStartTime.getTime() + 45 * 60 * 1000);
+  const endTime = new Date(now.getTime() + 45 * 60 * 1000);
 
   return {
-    startTime: localStartTime.toISOString().slice(0, 16),
-    endTime: localEndTime.toISOString().slice(0, 16),
+    startTime: now.toISOString().slice(0, 16),
+    endTime: endTime.toISOString().slice(0, 16),
   };
 }
 
@@ -196,7 +190,7 @@ export default function AlertManager() {
         return;
       }
 
-      // Create Date objects from the input times
+      // Create Date objects from the input times and adjust for UTC
       const startDate = new Date(data.startTime);
       const endDate = new Date(data.endTime);
 
@@ -231,8 +225,12 @@ export default function AlertManager() {
       // Clean and format the data for submission
       const formattedData = {
         message: data.message,
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
+        startTime: new Date(
+          startDate.getTime() - startDate.getTimezoneOffset() * 60000
+        ).toISOString(),
+        endTime: new Date(
+          endDate.getTime() - endDate.getTimezoneOffset() * 60000
+        ).toISOString(),
         geoTargets: selectedGeos,
         referralCodes: selectedReferrals,
         ...(data.casinoId && { casinoId: Number(data.casinoId) }),
