@@ -196,31 +196,9 @@ export default function AlertManager() {
         return;
       }
 
-      // Get current time in EST
-      const now = new Date();
-      const estOffset = -5; // EST is UTC-5
-      const localOffset = now.getTimezoneOffset() / 60;
-      const offsetDiff = localOffset + estOffset;
-
-      // Convert local input times to EST
-      const localStartDate = new Date(data.startTime);
-      const localEndDate = new Date(data.endTime);
-
-      // Add the offset difference to convert to EST
-      const startDate = new Date(
-        localStartDate.getTime() + offsetDiff * 60 * 60 * 1000
-      );
-      const endDate = new Date(
-        localEndDate.getTime() + offsetDiff * 60 * 60 * 1000
-      );
-
-      // If start time is in the past (in EST), use current EST time
-      const nowInEST = new Date(now.getTime() + offsetDiff * 60 * 60 * 1000);
-      if (startDate < nowInEST) {
-        startDate.setTime(nowInEST.getTime());
-        // Add 45 minutes to the end time from the new start time
-        endDate.setTime(startDate.getTime() + 45 * 60 * 1000);
-      }
+      // Create Date objects from the input times
+      const startDate = new Date(data.startTime);
+      const endDate = new Date(data.endTime);
 
       // Date validation
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -233,6 +211,14 @@ export default function AlertManager() {
         setErrorMessage("End time must be after start time");
         setIsSubmitting(false);
         return;
+      }
+
+      // If start time is in the past, use current time
+      const now = new Date();
+      if (startDate < now) {
+        startDate.setTime(now.getTime());
+        // Add 45 minutes to the end time from the new start time
+        endDate.setTime(startDate.getTime() + 45 * 60 * 1000);
       }
 
       // Handle URL if provided (but don't validate if empty)
