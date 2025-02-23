@@ -76,6 +76,9 @@ export async function POST() {
       currentTime: now.toISOString(),
       userGeo: user.geo || "US",
       userReferral: user.refferal || "",
+      userId: user.id,
+      paid: user.paid,
+      trial: user.trial,
       timestamp: new Date().toISOString(),
     });
 
@@ -101,7 +104,7 @@ export async function POST() {
       count: allActiveAlerts.length,
       alerts: allActiveAlerts.map((a) => ({
         id: a.id,
-        message: a.message,
+        message: a.message.substring(0, 50) + "...",
         startTime: a.startTime.toISOString(),
         endTime: a.endTime.toISOString(),
         geoTargets: a.geoTargets,
@@ -110,6 +113,17 @@ export async function POST() {
         recipientIds: a.recipients.map((r) => r.userId),
         currentUserId: user.id,
         isUserRecipient: a.recipients.some((r) => r.userId === user.id),
+        timeCheck: {
+          now: now.toISOString(),
+          isStartValid: a.startTime <= now,
+          isEndValid: a.endTime >= now,
+          startDiff:
+            Math.floor((now.getTime() - a.startTime.getTime()) / 1000 / 60) +
+            " minutes",
+          endDiff:
+            Math.floor((a.endTime.getTime() - now.getTime()) / 1000 / 60) +
+            " minutes",
+        },
       })),
       timestamp: new Date().toISOString(),
     });
@@ -154,7 +168,7 @@ export async function POST() {
       count: activeAlerts.length,
       alerts: activeAlerts.map((a) => ({
         id: a.id,
-        message: a.message,
+        message: a.message.substring(0, 50) + "...",
         geoTargets: a.geoTargets,
         referralCodes: a.referralCodes,
         startTime: a.startTime.toISOString(),
