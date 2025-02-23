@@ -48,8 +48,20 @@ export default async function AlertManagementPage() {
               <div key={alert.id} className="border rounded-lg p-4">
                 <p className="font-medium">{alert.message}</p>
                 <div className="mt-2 text-sm text-gray-500">
-                  <p>Start: {new Date(alert.startTime).toLocaleString()}</p>
-                  <p>End: {new Date(alert.endTime).toLocaleString()}</p>
+                  <p>
+                    Start:{" "}
+                    {new Date(alert.startTime).toLocaleString("en-US", {
+                      timeZone: "America/New_York",
+                    })}{" "}
+                    EST
+                  </p>
+                  <p>
+                    End:{" "}
+                    {new Date(alert.endTime).toLocaleString("en-US", {
+                      timeZone: "America/New_York",
+                    })}{" "}
+                    EST
+                  </p>
                   <p>Recipients: {alert.recipients.length}</p>
                   <p>Geo Targets: {alert.geoTargets.join(", ") || "All"}</p>
                   <p>

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { createAlert } from "@/app/actions/alert";
 import { getSlotsForCasino } from "@/app/actions/slots";
 
-
 interface AlertFormData {
   message: string;
   geoTargets: string[];
@@ -47,11 +46,18 @@ interface Slot {
 }
 
 function getDefaultTimes() {
+  // Get current time in EST
   const now = new Date();
-  const endTime = new Date(now.getTime() + 45 * 60 * 1000);
+  const estOffset = -5; // EST is UTC-5
+  const utcOffset = now.getTimezoneOffset() / 60;
+  const offsetDiff = utcOffset + estOffset;
 
-  // Format to YYYY-MM-DDTHH:mm format in local timezone
-  const formatToLocalDateTime = (date: Date) => {
+  // Convert current time to EST
+  const estNow = new Date(now.getTime() + offsetDiff * 60 * 60 * 1000);
+  const estEnd = new Date(estNow.getTime() + 45 * 60 * 1000);
+
+  // Format to YYYY-MM-DDTHH:mm format
+  const formatToDateTime = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
@@ -62,8 +68,8 @@ function getDefaultTimes() {
   };
 
   return {
-    startTime: formatToLocalDateTime(now),
-    endTime: formatToLocalDateTime(endTime),
+    startTime: formatToDateTime(estNow),
+    endTime: formatToDateTime(estEnd),
   };
 }
 
@@ -237,8 +243,9 @@ export default function AlertManager() {
       // Clean and format the data for submission
       const formattedData = {
         message: data.message,
-        startTime: Math.floor(new Date(data.startTime).getTime() / 1000), // Convert to Unix timestamp in seconds
-        endTime: Math.floor(new Date(data.endTime).getTime() / 1000), // Convert to Unix timestamp in seconds
+        // Convert input times to EST timestamps
+        startTime: Math.floor(new Date(data.startTime).getTime() / 1000),
+        endTime: Math.floor(new Date(data.endTime).getTime() / 1000),
         geoTargets: selectedGeos,
         referralCodes: selectedReferrals,
         ...(data.casinoId && { casinoId: Number(data.casinoId) }),
