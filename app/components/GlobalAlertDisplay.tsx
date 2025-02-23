@@ -382,8 +382,30 @@ export default function GlobalAlertDisplay() {
   }, [session, status, isStandalone, isAndroid, isIOS, wakeLock]);
 
   // Don't render anything if not authenticated
+  if (status === "loading") {
+    console.log("AlertDisplay is loading - waiting for session", { status });
+    return (
+      <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg mb-8 p-4">
+        <div className="animate-pulse flex space-x-4">
+          <div className="flex-1 space-y-4 py-1">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (status !== "authenticated" || !session?.user) {
-    console.log("Not rendering AlertDisplay - not authenticated", { status });
+    console.log("Not rendering AlertDisplay - not authenticated", {
+      status,
+      hasSession: !!session,
+      userEmail: session?.user?.email,
+      timestamp: new Date().toISOString(),
+    });
     return null;
   }
 
