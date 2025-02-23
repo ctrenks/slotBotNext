@@ -61,6 +61,10 @@ export default function AlertDisplay({
       startTime: a.startTime,
       endTime: a.endTime,
       read: a.read,
+      startTimeType: typeof a.startTime,
+      endTimeType: typeof a.endTime,
+      startTimeValue: String(a.startTime),
+      endTimeValue: String(a.endTime),
     })),
   });
 
@@ -97,9 +101,6 @@ export default function AlertDisplay({
     );
   };
 
-  // Get current time in UTC
-  const now = new Date();
-
   // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
     // Parse dates from ISO strings
@@ -113,12 +114,21 @@ export default function AlertDisplay({
 
     const isActive = startUTC <= nowUTC && endUTC >= nowUTC;
 
-    console.log("Alert time check:", {
+    console.log("Alert filtering details:", {
       id: alert.id,
       message: alert.message.substring(0, 50) + "...",
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
+      rawStartTime: alert.startTime,
+      rawEndTime: alert.endTime,
+      startTimeType: typeof alert.startTime,
+      endTimeType: typeof alert.endTime,
+      parsedStartTime: startTime,
+      parsedEndTime: endTime,
+      parsedStartTimeISO: startTime.toISOString(),
+      parsedEndTimeISO: endTime.toISOString(),
       now: new Date().toISOString(),
+      startUTC,
+      endUTC,
+      nowUTC,
       startCheck: startUTC <= nowUTC,
       endCheck: endUTC >= nowUTC,
       isActive,
@@ -126,6 +136,7 @@ export default function AlertDisplay({
         startToNow: Math.floor((nowUTC - startUTC) / 1000 / 60) + " minutes",
         nowToEnd: Math.floor((endUTC - nowUTC) / 1000 / 60) + " minutes",
       },
+      alertObject: alert,
     });
 
     return isActive;
@@ -134,14 +145,26 @@ export default function AlertDisplay({
   // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
-    return endTime.getTime() < Date.now();
+    const isExpired = endTime.getTime() < Date.now();
+    console.log("Expired check:", {
+      id: alert.id,
+      endTime: endTime.toISOString(),
+      now: new Date().toISOString(),
+      isExpired,
+    });
+    return isExpired;
   });
 
-  console.log("Filtered alerts:", {
+  console.log("Final filtering results:", {
     total: alerts.length,
     active: activeAlerts.length,
     expired: expiredAlerts.length,
-    now: now.toISOString(),
+    now: new Date().toISOString(),
+    allAlerts: alerts.map((a) => ({
+      id: a.id,
+      startTime: String(a.startTime),
+      endTime: String(a.endTime),
+    })),
   });
 
   return (

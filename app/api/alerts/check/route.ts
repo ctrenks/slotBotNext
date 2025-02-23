@@ -225,13 +225,15 @@ export async function POST() {
       casinoImage: alert.casino?.button,
     }));
 
-    console.log("Final response:", {
+    console.log("Final response data:", {
       totalAlerts: alertsWithRead.length,
       alerts: alertsWithRead.map((a) => ({
         id: a.id,
         message: a.message,
+        startTime: a.startTime,
+        endTime: a.endTime,
         read: a.read,
-        casinoImage: a.casino?.button,
+        casinoImage: a.casinoImage,
       })),
       timestamp: new Date().toISOString(),
     });

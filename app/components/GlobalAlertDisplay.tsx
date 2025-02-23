@@ -240,11 +240,7 @@ export default function GlobalAlertDisplay() {
         });
 
         const responseText = await response.text();
-        console.log("Raw response:", {
-          status: response.status,
-          text: responseText,
-          timestamp: new Date().toISOString(),
-        });
+        console.log("Complete raw response:", responseText);
 
         if (!response.ok) {
           console.error("Error fetching alerts:", {
@@ -262,6 +258,11 @@ export default function GlobalAlertDisplay() {
         let alerts;
         try {
           alerts = JSON.parse(responseText);
+          console.log(
+            "Complete parsed alert data:",
+            JSON.stringify(alerts, null, 2)
+          );
+
           if (!Array.isArray(alerts)) {
             console.error("Alerts response is not an array:", alerts);
             setError("Invalid alerts data format");
@@ -273,10 +274,9 @@ export default function GlobalAlertDisplay() {
           return;
         }
 
-        console.log("Received alerts:", {
-          count: alerts.length,
-          timestamp: new Date().toISOString(),
-          alerts: alerts.map((a: AlertResponse) => ({
+        console.log(
+          "Alert details:",
+          alerts.map((a: AlertResponse) => ({
             id: a.id,
             message: a.message,
             startTime: a.startTime,
@@ -284,17 +284,30 @@ export default function GlobalAlertDisplay() {
             read: a.read,
             geoTargets: a.geoTargets,
             referralCodes: a.referralCodes,
-          })),
-        });
+            startTimeType: typeof a.startTime,
+            endTimeType: typeof a.endTime,
+            startTimeValue: String(a.startTime),
+            endTimeValue: String(a.endTime),
+          }))
+        );
 
         // Ensure all date fields are properly converted to Date objects
-        const processedAlerts = alerts.map((alert: AlertResponse) => ({
-          ...alert,
-          startTime: new Date(alert.startTime),
-          endTime: new Date(alert.endTime),
-          createdAt: new Date(alert.createdAt),
-          updatedAt: new Date(alert.updatedAt),
-        }));
+        const processedAlerts = alerts.map((alert: AlertResponse) => {
+          const processed = {
+            ...alert,
+            startTime: new Date(alert.startTime),
+            endTime: new Date(alert.endTime),
+            createdAt: new Date(alert.createdAt),
+            updatedAt: new Date(alert.updatedAt),
+          };
+          console.log("Processed alert:", {
+            id: processed.id,
+            startTime: processed.startTime.toISOString(),
+            endTime: processed.endTime.toISOString(),
+            now: new Date().toISOString(),
+          });
+          return processed;
+        });
 
         setInitialAlerts(processedAlerts);
         setError(null);
