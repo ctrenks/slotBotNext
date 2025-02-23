@@ -15,8 +15,13 @@ export default function AlertDisplay({
     initialAlertsCount: initialAlerts.length,
     initialAlerts: initialAlerts.map((a) => ({
       id: a.id,
-      message: a.message,
+      message: a.message.substring(0, 50) + "...",
+      casinoName: a.casinoName,
+      slot: a.slot,
+      rtp: a.rtp,
       read: a.read,
+      hasButton: !!a.casino?.button,
+      hasSlotImage: !!a.slotImage,
     })),
   });
 
@@ -35,15 +40,40 @@ export default function AlertDisplay({
       alerts: alerts.map((a) => ({
         id: a.id,
         message: a.message.substring(0, 50) + "...",
-        read: a.read,
         casinoName: a.casinoName,
         slot: a.slot,
         rtp: a.rtp,
+        read: a.read,
         hasButton: !!a.casino?.button,
         hasSlotImage: !!a.slotImage,
       })),
     });
   }, [alerts]);
+
+  // Update alerts when initialAlerts changes
+  useEffect(() => {
+    console.log("Initial alerts changed:", {
+      oldCount: alerts.length,
+      newCount: initialAlerts.length,
+      initialAlerts: initialAlerts.map((a) => ({
+        id: a.id,
+        message: a.message.substring(0, 50) + "...",
+        read: a.read,
+      })),
+    });
+    setAlerts(initialAlerts);
+  }, [initialAlerts]);
+
+  const { permission, isSupported, requestPermission } = useNotifications();
+
+  const handleMarkAsRead = async (alertId: string) => {
+    await markAlertAsRead(alertId);
+    setAlerts(
+      alerts.map((alert) =>
+        alert.id === alertId ? { ...alert, read: true } : alert
+      )
+    );
+  };
 
   // Log before rendering
   console.log("Rendering AlertDisplay:", {
@@ -61,17 +91,6 @@ export default function AlertDisplay({
         }
       : null,
   });
-
-  const { permission, isSupported, requestPermission } = useNotifications();
-
-  const handleMarkAsRead = async (alertId: string) => {
-    await markAlertAsRead(alertId);
-    setAlerts(
-      alerts.map((alert) =>
-        alert.id === alertId ? { ...alert, read: true } : alert
-      )
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -106,10 +125,12 @@ export default function AlertDisplay({
                     {/* Casino Logo and Play Button */}
                     {alert.casino?.button && (
                       <div className="flex flex-col items-center">
-                        <img
+                        <Image
                           src={`/image/casino/${alert.casino.button}`}
                           alt={alert.casinoName || "Casino logo"}
                           className="max-w-[80px] md:max-w-[100px] w-auto h-auto object-contain"
+                          width={100}
+                          height={100}
                         />
                         <a
                           href={`/out/${alert.id}`}

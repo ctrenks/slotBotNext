@@ -3,24 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import AlertDisplay from "./AlertDisplay";
-import { Alert } from "@prisma/client";
 import { Session } from "next-auth";
 import { AlertWithRead } from "@/app/types/alert";
-
-interface AlertResponse
-  extends Omit<Alert, "startTime" | "endTime" | "createdAt" | "updatedAt"> {
-  startTime: string;
-  endTime: string;
-  createdAt: string;
-  updatedAt: string;
-  read: boolean;
-  casino?: {
-    id: number;
-    url: string;
-    button: string;
-  } | null;
-  casinoImage?: string | null;
-}
 
 // Add types for iOS and Android specific features
 interface SafariNavigator extends Navigator {
@@ -59,6 +43,7 @@ export default function GlobalAlertDisplay() {
   const [isAndroid, setIsAndroid] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const [alerts, setAlerts] = useState<AlertWithRead[]>([]);
 
   // Enhanced session debugging
   useEffect(() => {
@@ -382,6 +367,20 @@ export default function GlobalAlertDisplay() {
     };
   }, [session, status, isStandalone, isAndroid, isIOS, wakeLock]);
 
+  // Update alerts when initialAlerts changes
+  useEffect(() => {
+    console.log("Initial alerts changed:", {
+      oldCount: alerts.length,
+      newCount: initialAlerts.length,
+      initialAlerts: initialAlerts.map((a) => ({
+        id: a.id,
+        message: a.message.substring(0, 50) + "...",
+        read: a.read,
+      })),
+    });
+    setAlerts(initialAlerts);
+  }, [initialAlerts, alerts.length]);
+
   // Don't block rendering on session loading
   if (status === "loading" && !session?.user) {
     console.log("AlertDisplay is loading - waiting for session", {
@@ -419,7 +418,7 @@ export default function GlobalAlertDisplay() {
       {error ? (
         <div className="p-4 text-red-500">{error}</div>
       ) : (
-        <AlertDisplay initialAlerts={initialAlerts} />
+        <AlertDisplay initialAlerts={alerts} />
       )}
     </div>
   );
