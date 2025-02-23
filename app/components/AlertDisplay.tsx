@@ -72,19 +72,24 @@ export default function AlertDisplay({
     );
   };
 
+  // Get current time in EST
   const now = new Date();
+  const estOffset = -5; // EST is UTC-5
+  const utcOffset = now.getTimezoneOffset() / 60;
+  const offsetDiff = utcOffset + estOffset;
+  const estNow = new Date(now.getTime() + offsetDiff * 60 * 60 * 1000);
 
   // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
-    return startTime <= now && endTime >= now;
+    return startTime <= estNow && endTime >= estNow;
   });
 
   // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
-    return endTime < now;
+    return endTime < estNow;
   });
 
   return (
