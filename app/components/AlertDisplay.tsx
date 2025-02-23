@@ -102,22 +102,23 @@ export default function AlertDisplay({
 
   // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
+    // Parse dates from ISO strings
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
 
-    // Ensure all dates are in UTC for comparison
-    const nowUTC = now.getTime();
+    // Convert all times to UTC timestamps for comparison
+    const nowUTC = Date.now();
     const startUTC = startTime.getTime();
     const endUTC = endTime.getTime();
 
     const isActive = startUTC <= nowUTC && endUTC >= nowUTC;
 
-    console.log("Alert time check (UTC milliseconds):", {
+    console.log("Alert time check:", {
       id: alert.id,
       message: alert.message.substring(0, 50) + "...",
-      startUTC,
-      nowUTC,
-      endUTC,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      now: new Date().toISOString(),
       startCheck: startUTC <= nowUTC,
       endCheck: endUTC >= nowUTC,
       isActive,
@@ -133,7 +134,7 @@ export default function AlertDisplay({
   // Expired alerts
   const expiredAlerts = alerts.filter((alert) => {
     const endTime = new Date(alert.endTime);
-    return endTime < now;
+    return endTime.getTime() < Date.now();
   });
 
   console.log("Filtered alerts:", {
