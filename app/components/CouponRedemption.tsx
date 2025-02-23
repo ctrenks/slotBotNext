@@ -3,9 +3,11 @@
 import { useRef, useState, useEffect } from "react";
 import { redeemCoupon } from "@/app/actions/coupon";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function CouponRedemption() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [message, setMessage] = useState<{
     text: string;
     isError: boolean;
@@ -42,6 +44,13 @@ export default function CouponRedemption() {
     } else if (result.success) {
       setMessage({ text: result.message!, isError: false });
       formRef.current?.reset();
+
+      // Add a small delay before redirecting to allow the user to see the success message
+      if (result.redirect) {
+        setTimeout(() => {
+          router.push(result.redirect);
+        }, 1500);
+      }
     }
   }
 

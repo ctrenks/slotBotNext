@@ -45,7 +45,11 @@ export async function redeemCoupon(formData: FormData) {
     });
 
     revalidatePath("/");
-    return { success: true, message: "Coupon code successfully redeemed!" };
+    return {
+      success: true,
+      message: "Coupon code successfully redeemed!",
+      redirect: "/slotbot",
+    };
   } catch (error) {
     console.error("Error redeeming coupon:", error);
     return { error: "An error occurred while redeeming the coupon" };
