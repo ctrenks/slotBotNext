@@ -659,6 +659,7 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   @@id([userEmail, endpoint])
+  @@map("push_subscriptions")
 }
 
 model AlertNotification {

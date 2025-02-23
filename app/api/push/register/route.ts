@@ -1,50 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
-import webpush from "web-push";
-
-// Configure web-push with your VAPID keys
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+import { PushSubscriptionData } from "@/app/types/push";
 
 export async function POST(request: Request) {
   try {
-    console.log("Starting push subscription registration");
-    const { subscription, userEmail } = await request.json();
-    console.log("Registration data:", {
-      userEmail,
-      endpoint: subscription?.endpoint,
-      hasKeys: !!subscription?.keys,
-    });
+    const data = (await request.json()) as PushSubscriptionData;
+    const { subscription, userEmail } = data;
 
     if (!subscription || !userEmail) {
-      console.log("Missing required data:", {
-        hasSubscription: !!subscription,
-        hasEmail: !!userEmail,
-      });
       return NextResponse.json(
-        { error: "Missing subscription or user email" },
+        { error: "Missing subscription or userEmail" },
         { status: 400 }
       );
     }
 
-    // Validate subscription object
-    if (
-      !subscription.endpoint ||
-      !subscription.keys?.auth ||
-      !subscription.keys?.p256dh
-    ) {
-      console.log("Invalid subscription object:", subscription);
-      return NextResponse.json(
-        { error: "Invalid subscription format" },
-        { status: 400 }
-      );
-    }
+    console.log("Registering push subscription:", {
+      userEmail,
+      endpoint: subscription.endpoint,
+    });
 
-    console.log("Storing subscription in database");
-    // Store or update the push subscription in the database
+    // Upsert the subscription
     const result = await prisma.pushSubscription.upsert({
       where: {
         userEmail_endpoint: {
@@ -55,27 +30,27 @@ export async function POST(request: Request) {
       update: {
         auth: subscription.keys.auth,
         p256dh: subscription.keys.p256dh,
-        lastUpdated: new Date(),
       },
       create: {
         userEmail,
         endpoint: subscription.endpoint,
         auth: subscription.keys.auth,
         p256dh: subscription.keys.p256dh,
-        lastUpdated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
+
     console.log("Subscription stored successfully:", {
       userEmail: result.userEmail,
       endpoint: result.endpoint,
-      lastUpdated: result.lastUpdated,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error registering push subscription:", error);
+    console.error("Failed to store subscription:", error);
     return NextResponse.json(
-      { error: "Failed to register push subscription" },
+      { error: "Failed to store subscription" },
       { status: 500 }
     );
   }
