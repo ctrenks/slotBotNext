@@ -4,12 +4,12 @@ import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-interface CreateAlertData {
+export interface CreateAlertData {
   message: string;
   geoTargets: string[];
   referralCodes: string[];
-  startTime: string;
-  endTime: string;
+  startTime: number; // Unix timestamp in seconds
+  endTime: number; // Unix timestamp in seconds
   casinoId?: number;
   casinoName?: string;
   casinoCleanName?: string;
@@ -46,13 +46,17 @@ export async function createAlert(data: CreateAlertData) {
     const referralCodes =
       data.referralCodes.length === 0 ? ["all"] : data.referralCodes;
 
+    // Convert Unix timestamps to Date objects
+    const startTime = new Date(data.startTime * 1000);
+    const endTime = new Date(data.endTime * 1000);
+
     console.log("Creating alert with data:", {
       userEmail: session.user.email,
       message: data.message,
       geoTargets,
       referralCodes,
-      startTime: new Date(data.startTime),
-      endTime: new Date(data.endTime),
+      startTime,
+      endTime,
       casinoId: data.casinoId,
       slot: data.slot,
     });
@@ -62,8 +66,8 @@ export async function createAlert(data: CreateAlertData) {
         message: data.message,
         geoTargets,
         referralCodes,
-        startTime: new Date(data.startTime),
-        endTime: new Date(data.endTime),
+        startTime,
+        endTime,
         ...(data.casinoId && {
           casino: {
             connect: { id: data.casinoId },
