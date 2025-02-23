@@ -272,77 +272,29 @@ export default function GlobalAlertDisplay() {
           return;
         }
 
-        console.log(
-          "Alert details:",
-          alerts.map((a: AlertResponse) => ({
-            id: a.id,
-            message: a.message,
-            startTime: a.startTime,
-            endTime: a.endTime,
-            read: a.read,
-            geoTargets: a.geoTargets,
-            referralCodes: a.referralCodes,
-            startTimeType: typeof a.startTime,
-            endTimeType: typeof a.endTime,
-            startTimeValue: String(a.startTime),
-            endTimeValue: String(a.endTime),
-          }))
-        );
+        // Only update state if there are actual changes
+        const hasChanges =
+          alerts.length !== initialAlerts.length ||
+          alerts.some((newAlert, index) => {
+            const existingAlert = initialAlerts[index];
+            return (
+              !existingAlert ||
+              newAlert.id !== existingAlert.id ||
+              newAlert.read !== existingAlert.read
+            );
+          });
 
-        // Ensure all date fields are properly converted to Date objects and all fields match AlertWithRead interface
-        const processedAlerts: AlertWithRead[] = alerts.map(
-          (alert: AlertResponse) => {
-            const processed = {
-              ...alert,
-              startTime: new Date(alert.startTime),
-              endTime: new Date(alert.endTime),
-              createdAt: new Date(alert.createdAt),
-              updatedAt: new Date(alert.updatedAt),
-              casino: alert.casino || null,
-              casinoImage: alert.casinoImage || null,
-              casinoId: alert.casinoId || null,
-              casinoName: alert.casinoName || null,
-              casinoCleanName: alert.casinoCleanName || null,
-              slot: alert.slot || null,
-              slotImage: alert.slotImage || null,
-              customUrl: alert.customUrl || null,
-              maxPotential: alert.maxPotential || null,
-              recommendedBet: alert.recommendedBet || null,
-              stopLimit: alert.stopLimit || null,
-              targetWin: alert.targetWin || null,
-              maxWin: alert.maxWin || null,
-              rtp: alert.rtp || null,
-            };
+        if (hasChanges) {
+          console.log("Alerts have changed, updating state:", {
+            oldCount: initialAlerts.length,
+            newCount: alerts.length,
+            timestamp: new Date().toISOString(),
+          });
+          setInitialAlerts(alerts);
+        } else {
+          console.log("No changes in alerts, skipping update");
+        }
 
-            console.log("Processed alert:", {
-              id: processed.id,
-              startTime: processed.startTime.toISOString(),
-              endTime: processed.endTime.toISOString(),
-              now: new Date().toISOString(),
-              startTimeIsDate: processed.startTime instanceof Date,
-              endTimeIsDate: processed.endTime instanceof Date,
-              startTimeType: typeof processed.startTime,
-              endTimeType: typeof processed.endTime,
-            });
-
-            return processed;
-          }
-        );
-
-        console.log("Setting initialAlerts with processed alerts:", {
-          count: processedAlerts.length,
-          alerts: processedAlerts.map((a) => ({
-            id: a.id,
-            startTime: String(a.startTime),
-            endTime: String(a.endTime),
-            startTimeIsDate: a.startTime instanceof Date,
-            endTimeIsDate: a.endTime instanceof Date,
-            startTimeType: typeof a.startTime,
-            endTimeType: typeof a.endTime,
-          })),
-        });
-
-        setInitialAlerts(processedAlerts);
         setError(null);
       } catch (error) {
         console.error("Error fetching alerts:", {
