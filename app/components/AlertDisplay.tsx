@@ -88,7 +88,10 @@ export default function AlertDisplay({
     })),
   });
 
-  const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
+  const [alerts, setAlerts] = useState<AlertWithRead[]>(() => {
+    console.log("Initializing alerts state with:", initialAlerts);
+    return initialAlerts;
+  });
   const [isMobile] = useState(
     typeof window !== "undefined" &&
       /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
@@ -123,6 +126,13 @@ export default function AlertDisplay({
 
   // Active alerts - currently running
   const activeAlerts = alerts.filter((alert) => {
+    console.log("Processing alert for active status:", {
+      id: alert.id,
+      startTime: alert.startTime,
+      endTime: alert.endTime,
+      currentTime: new Date().toISOString(),
+    });
+
     // Parse dates from ISO strings
     const startTime = new Date(alert.startTime);
     const endTime = new Date(alert.endTime);
@@ -156,7 +166,6 @@ export default function AlertDisplay({
         startToNow: Math.floor((nowUTC - startUTC) / 1000 / 60) + " minutes",
         nowToEnd: Math.floor((endUTC - nowUTC) / 1000 / 60) + " minutes",
       },
-      alertObject: alert,
     });
 
     return isActive;
