@@ -10,6 +10,10 @@ interface UseNotificationsReturn {
 // Keep track of permission request state globally
 let permissionRequested = false;
 
+// Maximum number of retry attempts
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
 export function useNotifications(): UseNotificationsReturn {
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
@@ -27,73 +31,52 @@ export function useNotifications(): UseNotificationsReturn {
       }
 
       // Check if device is iOS
-      const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isIOSDevice =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        !(window as any).MSStream;
       setIsIOS(isIOSDevice);
 
       // Check if running as PWA
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
-        ("standalone" in window.navigator &&
-          (window.navigator as { standalone?: boolean }).standalone) ||
+        (window.navigator as { standalone?: boolean }).standalone === true ||
         document.referrer.includes("ios-app://");
       setIsPWA(isStandalone);
     }
   }, []);
 
-  const requestPermission = useCallback(async () => {
-    if (!isSupported) {
-      throw new Error("Notifications not supported");
-    }
-
-    // Check if we already have permission to prevent unnecessary prompts
-    if (permission === "granted") {
-      return permission;
-    }
-
-    // Prevent multiple simultaneous permission requests
-    if (permissionRequested) {
-      console.log("Permission request already in progress");
-      return permission;
-    }
-
+  const validateSubscription = async (
+    subscription: PushSubscription
+  ): Promise<boolean> => {
     try {
-      permissionRequested = true;
-      const result = await Notification.requestPermission();
-      setPermission(result);
-
-      // If permission was granted, register service worker and push subscription
-      if (result === "granted") {
-        await registerPushSubscription();
-      }
-
-      return result;
+      const response = await fetch("/api/push/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
+      return response.ok;
     } catch (error) {
-      console.error("Error requesting notification permission:", error);
-      throw error;
-    } finally {
-      permissionRequested = false;
+      console.error("Error validating subscription:", error);
+      return false;
     }
-  }, [isSupported, permission]);
+  };
 
-  const registerPushSubscription = useCallback(async () => {
-    if (!isSupported || permission !== "granted") {
-      return;
-    }
-
+  const registerWithRetry = async (retryCount = 0): Promise<void> => {
     try {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        throw new Error("Push notifications not supported");
-      }
-
-      // For iOS PWA, always register service worker
-      if (isIOS && isPWA) {
-        console.log("Registering service worker for iOS PWA");
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        await registration.update();
-      }
-
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
+
+      // If we have an existing subscription, validate it
+      if (subscription) {
+        const isValid = await validateSubscription(subscription);
+        if (!isValid) {
+          console.log("Existing subscription is invalid, unsubscribing...");
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
 
       if (!subscription) {
         console.log("Creating new push subscription");
@@ -124,8 +107,69 @@ export function useNotifications(): UseNotificationsReturn {
 
         console.log("Push subscription registered successfully");
       } else {
-        console.log("Using existing push subscription");
+        console.log("Using existing valid push subscription");
       }
+    } catch (error) {
+      console.error("Error in push subscription process:", error);
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+        return registerWithRetry(retryCount + 1);
+      }
+      throw error;
+    }
+  };
+
+  const requestPermission = useCallback(async () => {
+    if (!isSupported) {
+      throw new Error("Notifications not supported");
+    }
+
+    if (permission === "granted") {
+      return permission;
+    }
+
+    if (permissionRequested) {
+      console.log("Permission request already in progress");
+      return permission;
+    }
+
+    try {
+      permissionRequested = true;
+      const result = await Notification.requestPermission();
+      setPermission(result);
+
+      if (result === "granted") {
+        await registerWithRetry();
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
+      throw error;
+    } finally {
+      permissionRequested = false;
+    }
+  }, [isSupported, permission]);
+
+  const registerPushSubscription = useCallback(async () => {
+    if (!isSupported || permission !== "granted") {
+      return;
+    }
+
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        throw new Error("Push notifications not supported");
+      }
+
+      // For iOS PWA, always register service worker
+      if (isIOS && isPWA) {
+        console.log("Registering service worker for iOS PWA");
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        await registration.update();
+      }
+
+      await registerWithRetry();
     } catch (error) {
       console.error("Error registering push subscription:", error);
       throw error;

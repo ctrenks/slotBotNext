@@ -102,10 +102,41 @@ export default function RootLayout({
                 window.addEventListener('load', async function() {
                   try {
                     console.log('Registering service worker...');
-                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    const registration = await navigator.serviceWorker.register('/sw.js', {
+                      updateViaCache: 'none'
+                    });
+
+                    // Handle service worker updates
+                    registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing;
+                      if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('New service worker installed and ready');
+                            // Force reload to activate new service worker
+                            window.location.reload();
+                          }
+                        });
+                      }
+                    });
+
+                    // Check for updates every hour
+                    setInterval(() => {
+                      registration.update();
+                    }, 3600000);
+
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
                   } catch(error) {
                     console.error('ServiceWorker registration failed: ', error);
+                  }
+                });
+
+                // Handle communication with service worker
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                  if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+                    // Handle notification click
+                    window.focus();
+                    window.location.href = event.data.url || '/slotbot';
                   }
                 });
               } else {

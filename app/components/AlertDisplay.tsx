@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { markAlertAsRead } from "@/app/actions/alert";
 import Image from "next/image";
 import { useNotifications } from "@/app/hooks/useNotifications";
 import { AlertWithRead } from "@/app/types/alert";
@@ -65,15 +64,6 @@ export default function AlertDisplay({
   }, [initialAlerts]);
 
   const { permission, isSupported, requestPermission } = useNotifications();
-
-  const handleMarkAsRead = async (alertId: string) => {
-    await markAlertAsRead(alertId);
-    setAlerts(
-      alerts.map((alert) =>
-        alert.id === alertId ? { ...alert, read: true } : alert
-      )
-    );
-  };
 
   // Log before rendering
   console.log("Rendering AlertDisplay:", {
@@ -221,18 +211,6 @@ export default function AlertDisplay({
                         )}
                       </div>
                     )}
-
-                    {/* Mark as Read */}
-                    <div className="mt-4 flex justify-end">
-                      {!alert.read && (
-                        <button
-                          onClick={() => handleMarkAsRead(alert.id)}
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          Mark as read
-                        </button>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
