@@ -33,16 +33,18 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 // Platform detection
 function detectPlatform() {
-  if (typeof window === "undefined") return { isIOS: false, isPWA: false };
+  if (typeof window === "undefined")
+    return { isIOS: false, isAndroid: false, isPWA: false };
 
   const isIOS =
     /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
     !(window as WindowWithMSStream).MSStream;
+  const isAndroid = /Android/.test(window.navigator.userAgent);
   const isPWA =
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as WindowWithStandalone).standalone === true;
 
-  return { isIOS, isPWA };
+  return { isIOS, isAndroid, isPWA };
 }
 
 // IndexedDB setup
@@ -132,15 +134,35 @@ export default function GlobalAlertDisplay() {
     }
   }, []);
 
-  // iOS PWA service worker registration
+  // Service worker registration for mobile PWA
   const registerServiceWorker = useCallback(async () => {
-    if (platform.isIOS && platform.isPWA && "serviceWorker" in navigator) {
+    if (
+      (platform.isIOS || platform.isAndroid) &&
+      platform.isPWA &&
+      "serviceWorker" in navigator
+    ) {
       try {
-        console.log("Registering service worker for iOS PWA...");
+        console.log("Registering service worker for mobile PWA...", {
+          isIOS: platform.isIOS,
+          isAndroid: platform.isAndroid,
+          isPWA: platform.isPWA,
+        });
+
+        // Unregister existing service workers first
+        const existingRegistrations =
+          await navigator.serviceWorker.getRegistrations();
+        for (const reg of existingRegistrations) {
+          await reg.unregister();
+        }
+
+        // Register new service worker
         const registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
           type: "classic",
         });
+
+        // Wait for the service worker to be ready
+        await navigator.serviceWorker.ready;
 
         // Set up push subscription if we have permission
         if (notificationPermission === "granted" && session?.user?.email) {
@@ -158,7 +180,7 @@ export default function GlobalAlertDisplay() {
               applicationServerKey: convertedVapidKey,
             });
 
-            await fetch("/api/push/register", {
+            const registerResponse = await fetch("/api/push/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -166,6 +188,14 @@ export default function GlobalAlertDisplay() {
                 userEmail: session.user.email,
               }),
             });
+
+            if (!registerResponse.ok) {
+              throw new Error("Failed to register push subscription");
+            }
+
+            console.log("Push subscription registered successfully");
+          } else {
+            console.log("Using existing push subscription");
           }
         }
       } catch (error) {
@@ -174,14 +204,15 @@ export default function GlobalAlertDisplay() {
     }
   }, [
     platform.isIOS,
+    platform.isAndroid,
     platform.isPWA,
     notificationPermission,
     session?.user?.email,
   ]);
 
-  // Register service worker for iOS PWA
+  // Register service worker for mobile PWA
   useEffect(() => {
-    if (platform.isIOS && platform.isPWA) {
+    if ((platform.isIOS || platform.isAndroid) && platform.isPWA) {
       registerServiceWorker();
 
       // Re-register when page becomes visible
@@ -199,7 +230,12 @@ export default function GlobalAlertDisplay() {
         );
       };
     }
-  }, [platform.isIOS, platform.isPWA, registerServiceWorker]);
+  }, [
+    platform.isIOS,
+    platform.isAndroid,
+    platform.isPWA,
+    registerServiceWorker,
+  ]);
 
   // Handle new alerts and show notifications
   const handleNewAlerts = useCallback(
@@ -228,9 +264,10 @@ export default function GlobalAlertDisplay() {
         if (
           brandNewAlerts.length > 0 &&
           notificationPermission === "granted" &&
-          !platform.isIOS
+          !platform.isIOS &&
+          !platform.isAndroid
         ) {
-          // Skip for iOS as it uses service worker
+          // Skip for mobile as they use service worker
           for (const alert of brandNewAlerts) {
             try {
               const alreadyShown = await hasAlertBeenShown(alert.id);
@@ -264,7 +301,6 @@ export default function GlobalAlertDisplay() {
             }
           }
 
-          // Cleanup old records periodically
           await cleanupOldRecords();
         }
 

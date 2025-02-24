@@ -130,6 +130,56 @@ async function cleanupOldNotifications() {
   }
 }
 
+// Helper function to check if notification was recently shown
+async function wasNotificationRecentlyShown(notificationId) {
+  try {
+    const db = await openLogsDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("shown", "readonly");
+      const store = tx.objectStore("shown");
+      const request = store.get(notificationId);
+
+      request.onsuccess = () => {
+        const record = request.result;
+        if (!record) {
+          resolve(false);
+          return;
+        }
+
+        // Consider notification as "recent" if shown in last 10 seconds
+        const isRecent = Date.now() - record.timestamp < 10000;
+        resolve(isRecent);
+      };
+
+      request.onerror = () => {
+        console.error("Error checking recent notifications:", request.error);
+        resolve(false);
+      };
+    });
+  } catch (error) {
+    console.error("Error in wasNotificationRecentlyShown:", error);
+    return false;
+  }
+}
+
+// Helper function to mark notification as shown
+async function markNotificationAsShown(notificationId) {
+  try {
+    const db = await openLogsDB();
+    const tx = db.transaction("shown", "readwrite");
+    const store = tx.objectStore("shown");
+
+    await store.put({
+      id: notificationId,
+      timestamp: Date.now(),
+    });
+
+    console.log("Marked notification as shown:", notificationId);
+  } catch (error) {
+    console.error("Error marking notification as shown:", error);
+  }
+}
+
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
   event.waitUntil(
@@ -233,13 +283,6 @@ self.addEventListener("push", async function (event) {
           return;
         }
 
-        // Log push event receipt immediately
-        const pushId = await logToIndexedDB({
-          type: "push_received",
-          timestamp: Date.now(),
-          data: event.data ? await event.data.text() : null,
-        });
-
         // Parse notification data
         let notificationData;
         if (!event.data) {
@@ -254,22 +297,8 @@ self.addEventListener("push", async function (event) {
             const rawData = await event.data.text();
             console.log("Raw push data:", rawData);
             notificationData = JSON.parse(rawData);
-
-            // Log successful parsing
-            await logToIndexedDB({
-              type: "push_data_parsed",
-              id: pushId,
-              timestamp: Date.now(),
-              data: notificationData,
-            });
           } catch (error) {
             console.error("Error parsing push data:", error);
-            await logToIndexedDB({
-              type: "error",
-              message: "Failed to parse push data",
-              error: error.message,
-              timestamp: Date.now(),
-            });
             notificationData = {
               title: "New Alert",
               body: "New SlotBot alert available",
@@ -282,21 +311,26 @@ self.addEventListener("push", async function (event) {
         const notificationId =
           notificationData.data?.alertId || `alert-${timestamp}`;
 
-        // Clean up old notifications
-        await cleanupOldNotifications();
+        // Check if this notification was recently shown
+        const wasShown = await wasNotificationRecentlyShown(notificationId);
+        if (wasShown) {
+          console.log("Skipping duplicate notification:", notificationId);
+          return;
+        }
 
         // Detect platform
         const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "");
         console.log("Platform detection for notification:", {
           isIOS,
           userAgent: self.navigator?.userAgent,
+          notificationId,
         });
 
         // Configure notification options
         const options = {
           body: notificationData.body || "New notification",
-          tag: `${notificationId}-${timestamp}`,
-          renotify: true,
+          tag: notificationId, // Use consistent tag for deduplication
+          renotify: false, // Prevent renotification for same tag
           requireInteraction: !isIOS,
           icon: notificationData.data?.icon || "/img/defaultuser.png",
           badge: "/img/defaultuser.png",
@@ -325,12 +359,8 @@ self.addEventListener("push", async function (event) {
           ];
         }
 
-        console.log("Showing notification:", {
-          title: notificationData.title,
-          options: JSON.stringify(options),
-          isIOS: isIOS,
-          timestamp: timestamp,
-        });
+        // Mark notification as shown before displaying
+        await markNotificationAsShown(notificationId);
 
         // Show notification
         await self.registration.showNotification(
@@ -340,7 +370,7 @@ self.addEventListener("push", async function (event) {
 
         // Log successful notification
         await logToIndexedDB({
-          id: `${notificationId}-${timestamp}`,
+          id: notificationId,
           type: "notification_shown",
           timestamp: timestamp,
           data: notificationData,
@@ -348,16 +378,8 @@ self.addEventListener("push", async function (event) {
           platform: isIOS ? "ios" : "web",
         });
 
-        // Broadcast to clients
-        const clients = await self.clients.matchAll();
-        clients.forEach((client) => {
-          client.postMessage({
-            type: "notification_shown",
-            notificationId: notificationId,
-            timestamp: timestamp,
-            data: notificationData,
-          });
-        });
+        // Clean up old notifications
+        await cleanupOldNotifications();
       } catch (error) {
         console.error("Critical error in push handler:", error);
         // Log error and show fallback
@@ -367,14 +389,6 @@ self.addEventListener("push", async function (event) {
             message: error instanceof Error ? error.message : "Unknown error",
             timestamp: Date.now(),
             data: event.data ? await event.data.text() : null,
-          });
-
-          await self.registration.showNotification("SlotBot Alert", {
-            body: "New alert available - tap to view",
-            icon: "/img/defaultuser.png",
-            badge: "/img/defaultuser.png",
-            tag: `error-${Date.now()}`,
-            data: { url: "/slotbot" },
           });
         } catch (e) {
           console.error("Failed to handle error:", e);
