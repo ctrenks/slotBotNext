@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 
 interface UseNotificationsReturn {
   permission: NotificationPermission;
@@ -15,6 +16,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 
 export function useNotifications(): UseNotificationsReturn {
+  const { data: session } = useSession();
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
@@ -36,12 +38,23 @@ export function useNotifications(): UseNotificationsReturn {
         !(window as { MSStream?: boolean }).MSStream;
       setIsIOS(isIOSDevice);
 
-      // Check if running as PWA
+      // Enhanced PWA detection for iOS
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as { standalone?: boolean }).standalone === true ||
-        document.referrer.includes("ios-app://");
+        document.referrer.includes("ios-app://") ||
+        window.location.href.includes("?mode=pwa");
       setIsPWA(isStandalone);
+
+      // Log detection results
+      console.log("Device detection:", {
+        isIOSDevice,
+        isStandalone,
+        userAgent: navigator.userAgent,
+        displayMode: window.matchMedia("(display-mode: standalone)").matches,
+        standalone: (window.navigator as { standalone?: boolean }).standalone,
+        referrer: document.referrer,
+      });
     }
   }, []);
 
@@ -65,6 +78,10 @@ export function useNotifications(): UseNotificationsReturn {
 
   const registerWithRetry = async (retryCount = 0): Promise<void> => {
     try {
+      if (!session?.user?.email) {
+        throw new Error("User email not found");
+      }
+
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
 
@@ -92,17 +109,21 @@ export function useNotifications(): UseNotificationsReturn {
           applicationServerKey: convertedVapidKey,
         });
 
-        // Send subscription to server
+        // Send subscription to server with userEmail
         const registerResponse = await fetch("/api/push/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ subscription }),
+          body: JSON.stringify({
+            subscription,
+            userEmail: session.user.email,
+          }),
         });
 
         if (!registerResponse.ok) {
-          throw new Error("Failed to register push subscription with server");
+          const errorText = await registerResponse.text();
+          throw new Error(`Failed to register push subscription: ${errorText}`);
         }
 
         console.log("Push subscription registered successfully");
@@ -150,7 +171,7 @@ export function useNotifications(): UseNotificationsReturn {
     } finally {
       permissionRequested = false;
     }
-  }, [isSupported, permission, registerWithRetry]);
+  }, [isSupported, permission]);
 
   const registerPushSubscription = useCallback(async () => {
     if (!isSupported || permission !== "granted") {
@@ -165,7 +186,9 @@ export function useNotifications(): UseNotificationsReturn {
       // For iOS PWA, always register service worker
       if (isIOS && isPWA) {
         console.log("Registering service worker for iOS PWA");
-        const registration = await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+        });
         await registration.update();
       }
 
@@ -174,7 +197,7 @@ export function useNotifications(): UseNotificationsReturn {
       console.error("Error registering push subscription:", error);
       throw error;
     }
-  }, [isSupported, permission, isIOS, isPWA, registerWithRetry]);
+  }, [isSupported, permission, isIOS, isPWA]);
 
   return {
     permission,

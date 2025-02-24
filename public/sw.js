@@ -162,13 +162,31 @@ self.addEventListener("activate", (event) => {
   // Claim control immediately
   event.waitUntil(
     (async () => {
-      await clients.claim();
-      // Test IndexedDB access
       try {
-        await openLogsDB();
+        await clients.claim();
+        // Test IndexedDB access
+        const db = await openLogsDB();
         console.log("IndexedDB access confirmed during activation");
+
+        // Log activation success
+        await logToIndexedDB({
+          type: "activation",
+          status: "success",
+          timestamp: Date.now(),
+        });
       } catch (error) {
         console.error("Failed to access IndexedDB during activation:", error);
+        // Try to log the error even if IndexedDB failed
+        try {
+          await logToIndexedDB({
+            type: "activation",
+            status: "error",
+            error: error instanceof Error ? error.message : "Unknown error",
+            timestamp: Date.now(),
+          });
+        } catch (e) {
+          console.error("Failed to log activation error:", e);
+        }
       }
     })()
   );
@@ -189,6 +207,13 @@ self.addEventListener("push", async function (event) {
   event.waitUntil(
     (async function () {
       try {
+        // Log push event receipt immediately
+        await logToIndexedDB({
+          type: "push_received",
+          timestamp: Date.now(),
+          data: event.data ? await event.data.text() : null,
+        });
+
         if (!event.data) {
           console.log("Push event has no data, showing default notification");
           await logToIndexedDB({
@@ -199,6 +224,8 @@ self.addEventListener("push", async function (event) {
 
           await self.registration.showNotification("New Alert", {
             body: "New SlotBot alert available",
+            tag: `default-${Date.now()}`,
+            renotify: true,
           });
           return;
         }
@@ -206,44 +233,44 @@ self.addEventListener("push", async function (event) {
         const data = event.data.json();
         console.log("Received push data:", data);
 
-        // Log the push event immediately
-        await logToIndexedDB({
-          type: "push",
-          data: data,
-          timestamp: Date.now(),
-        });
-
         const notificationId = data.data?.alertId || Date.now().toString();
         const timestamp = Date.now();
 
         // Clean up old notifications periodically
         await cleanupOldNotifications();
 
-        // Always show notifications
+        // Detect iOS
         const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "");
+
+        // Configure notification options
         const options = {
           title: data.title || "SlotBot Message",
           body: data.body || "New notification",
-          tag: `${notificationId}-${timestamp}`, // Make each notification unique
+          tag: `${notificationId}-${timestamp}`,
           renotify: true,
-          requireInteraction: !isIOS,
+          requireInteraction: !isIOS, // Don't require interaction on iOS
           icon: data.data?.icon || "/img/defaultuser.png",
           badge: "/img/defaultuser.png",
-          vibrate: [100, 50, 100],
+          vibrate: isIOS ? undefined : [100, 50, 100], // No vibration on iOS
           timestamp: timestamp,
-          actions: [
-            {
-              action: "play",
-              title: "▶️ Play Now",
-            },
-          ],
           data: {
             url: "/slotbot",
             playUrl: `/out/${notificationId}`,
             id: notificationId,
             timestamp: timestamp,
+            isIOS: isIOS,
           },
         };
+
+        // Add actions only if not on iOS
+        if (!isIOS) {
+          options.actions = [
+            {
+              action: "play",
+              title: "▶️ Play Now",
+            },
+          ];
+        }
 
         console.log("Showing notification with options:", options);
 
@@ -267,10 +294,13 @@ self.addEventListener("push", async function (event) {
           type: "error",
           message: error instanceof Error ? error.message : "Unknown error",
           timestamp: Date.now(),
+          data: event.data ? await event.data.text() : null,
         });
         // Show a fallback notification
         await self.registration.showNotification("New Alert", {
           body: "New SlotBot alert available",
+          tag: `error-${Date.now()}`,
+          renotify: true,
         });
       }
     })()
@@ -283,31 +313,53 @@ self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
   let urlToOpen;
+  const notificationData = event.notification.data || {};
 
-  // Handle play button click
-  if (event.action === "play" && event.notification.data.playUrl) {
-    urlToOpen = new URL(event.notification.data.playUrl, self.location.origin)
-      .href;
+  // Handle play button click or direct notification click
+  if (event.action === "play" && notificationData.playUrl) {
+    urlToOpen = new URL(notificationData.playUrl, self.location.origin).href;
   } else {
     // Default to slotbot page
     urlToOpen = new URL("/slotbot", self.location.origin).href;
   }
 
+  // Log the click
   event.waitUntil(
-    clients
-      .matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      })
-      .then(function (clientList) {
+    (async () => {
+      try {
+        await logToIndexedDB({
+          type: "notification_click",
+          timestamp: Date.now(),
+          notificationTag: event.notification.tag,
+          action: event.action || "direct",
+          url: urlToOpen,
+          isIOS: notificationData.isIOS,
+        });
+
+        const allClients = await clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+
         // If we have a matching client, focus it
-        for (const client of clientList) {
+        for (const client of allClients) {
           if (client.url === urlToOpen && "focus" in client) {
-            return client.focus();
+            await client.focus();
+            return;
           }
         }
         // If no matching client, open new window
-        return clients.openWindow(urlToOpen);
-      })
+        await clients.openWindow(urlToOpen);
+      } catch (error) {
+        console.error("Error handling notification click:", error);
+        // Try to log the error
+        await logToIndexedDB({
+          type: "error",
+          message: error instanceof Error ? error.message : "Unknown error",
+          timestamp: Date.now(),
+          context: "notification_click",
+        });
+      }
+    })()
   );
 });
