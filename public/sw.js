@@ -214,6 +214,7 @@ self.addEventListener("push", async function (event) {
   console.log("Push event received:", {
     hasData: !!event.data,
     timestamp: Date.now(),
+    userAgent: self.navigator?.userAgent,
   });
 
   event.waitUntil(
@@ -237,7 +238,7 @@ self.addEventListener("push", async function (event) {
           type: "push_received",
           timestamp: Date.now(),
           data: event.data ? await event.data.text() : null,
-        }).catch((err) => console.error("Failed to log push event:", err));
+        });
 
         // Parse notification data
         let notificationData;
@@ -282,13 +283,14 @@ self.addEventListener("push", async function (event) {
           notificationData.data?.alertId || `alert-${timestamp}`;
 
         // Clean up old notifications
-        await cleanupOldNotifications().catch((err) =>
-          console.error("Failed to cleanup old notifications:", err)
-        );
+        await cleanupOldNotifications();
 
         // Detect platform
         const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "");
-        console.log("Platform detection for notification:", { isIOS });
+        console.log("Platform detection for notification:", {
+          isIOS,
+          userAgent: self.navigator?.userAgent,
+        });
 
         // Configure notification options
         const options = {
@@ -325,7 +327,9 @@ self.addEventListener("push", async function (event) {
 
         console.log("Showing notification:", {
           title: notificationData.title,
-          options: options,
+          options: JSON.stringify(options),
+          isIOS: isIOS,
+          timestamp: timestamp,
         });
 
         // Show notification
@@ -351,6 +355,7 @@ self.addEventListener("push", async function (event) {
             type: "notification_shown",
             notificationId: notificationId,
             timestamp: timestamp,
+            data: notificationData,
           });
         });
       } catch (error) {

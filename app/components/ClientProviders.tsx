@@ -30,84 +30,102 @@ export default function ClientProviders({
           return;
         }
 
-        // Check for existing service worker registration
-        const existingRegistration =
-          await navigator.serviceWorker.getRegistration();
-        console.log("Checking for existing service worker:", {
-          exists: !!existingRegistration,
-          scope: existingRegistration?.scope,
-          state: existingRegistration?.active?.state,
-        });
+        // Check for existing service worker
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        let registration;
 
-        // Always register/update service worker
-        const registration =
-          existingRegistration ||
-          (await navigator.serviceWorker.register("/sw.js", {
+        if (registrations.length > 0) {
+          // Use the existing registration if it's valid
+          registration = registrations[0];
+          console.log("Found existing service worker:", {
+            scope: registration.scope,
+            state: registration.active?.state,
+            scriptURL: registration.active?.scriptURL,
+          });
+
+          // Check if update is needed
+          try {
+            await registration.update();
+            console.log("Service worker updated");
+          } catch (error) {
+            console.error("Error updating service worker:", error);
+          }
+        } else {
+          // Register new service worker if none exists
+          console.log("Registering new service worker...");
+          registration = await navigator.serviceWorker.register("/sw.js", {
             scope: "/",
             updateViaCache: "none",
-          }));
+          });
+        }
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log("Service Worker is ready:", {
+        console.log("Service Worker is active:", {
           scope: registration.scope,
           state: registration.active?.state,
+          scriptURL: registration.active?.scriptURL,
         });
 
         // Test push manager and notification support
         if ("PushManager" in window && "Notification" in window) {
           try {
-            // Check existing subscription first
-            let subscription = await registration.pushManager.getSubscription();
-            console.log("Existing push subscription:", {
-              exists: !!subscription,
-              endpoint: subscription?.endpoint,
-            });
+            // Request notification permission first
+            const permission = await Notification.requestPermission();
+            console.log("Notification permission status:", permission);
 
-            if (!subscription) {
-              const permission = await Notification.requestPermission();
-              console.log("Notification permission status:", permission);
+            if (permission === "granted") {
+              // Get VAPID key
+              console.log("Fetching VAPID key...");
+              const response = await fetch("/api/push/vapid-public-key");
+              if (!response.ok) {
+                throw new Error("Failed to fetch VAPID key");
+              }
+              const vapidPublicKey = await response.text();
+              console.log("Received VAPID key");
 
-              if (permission === "granted") {
-                // Get VAPID key
-                const response = await fetch("/api/push/vapid-public-key");
-                if (!response.ok) {
-                  throw new Error("Failed to fetch VAPID key");
-                }
-                const vapidPublicKey = await response.text();
-                console.log("Received VAPID key");
+              // Convert VAPID key
+              const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-                // Convert VAPID key
-                const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+              // Check existing subscription
+              let subscription =
+                await registration.pushManager.getSubscription();
 
-                // Subscribe to push notifications
+              // Only create new subscription if none exists or if validation fails
+              if (!subscription) {
+                console.log("Creating new push subscription...");
                 subscription = await registration.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: convertedVapidKey,
                 });
 
-                console.log("New push subscription created:", {
+                console.log("Push subscription created:", {
                   endpoint: subscription.endpoint,
                 });
-              }
-            }
 
-            // If we have a subscription, validate it
-            if (subscription) {
-              try {
-                const validateResponse = await fetch("/api/push/validate", {
+                // Send subscription to server
+                const registerResponse = await fetch("/api/push/register", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ endpoint: subscription.endpoint }),
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    subscription,
+                    userEmail: "chris@trenkas.com", // TODO: Get from session
+                  }),
                 });
 
-                if (!validateResponse.ok) {
-                  console.log("Invalid subscription, unsubscribing...");
-                  await subscription.unsubscribe();
-                  // Registration will be retried on next page load
+                if (!registerResponse.ok) {
+                  throw new Error(
+                    "Failed to register push subscription with server"
+                  );
                 }
-              } catch (error) {
-                console.error("Error validating subscription:", error);
+
+                console.log("Push subscription registered with server");
+              } else {
+                console.log("Using existing push subscription:", {
+                  endpoint: subscription.endpoint,
+                });
               }
             }
           } catch (error) {
@@ -166,7 +184,7 @@ export default function ClientProviders({
       }
     }
 
-    // Call the registration function
+    // Call the registration function immediately
     registerServiceWorker();
 
     // Cleanup function
