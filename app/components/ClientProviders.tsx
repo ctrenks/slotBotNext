@@ -30,11 +30,27 @@ export default function ClientProviders({
           return;
         }
 
-        // Unregister any existing service workers first
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-          console.log("Unregistered existing service worker");
+        // Check for existing service worker registration
+        const existingRegistration =
+          await navigator.serviceWorker.getRegistration();
+
+        if (existingRegistration) {
+          console.log("Found existing service worker:", {
+            scope: existingRegistration.scope,
+            state: existingRegistration.active?.state,
+            scriptURL: existingRegistration.active?.scriptURL,
+          });
+
+          // Test if the existing service worker is functioning
+          const subscription =
+            await existingRegistration.pushManager.getSubscription();
+          if (subscription) {
+            console.log("Found existing push subscription:", {
+              endpoint: subscription.endpoint,
+              expirationTime: subscription.expirationTime,
+            });
+            return; // Keep existing service worker if it has a valid subscription
+          }
         }
 
         // Register new service worker
@@ -44,14 +60,14 @@ export default function ClientProviders({
           updateViaCache: "none",
         });
 
-        console.log(
-          "Service Worker registration successful with scope:",
-          registration.scope
-        );
+        console.log("Service Worker registration successful:", {
+          scope: registration.scope,
+          state: registration.active?.state || "installing",
+        });
 
-        // Wait for the service worker to be ready and activate
+        // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log("Service Worker is ready and active");
+        console.log("Service Worker is ready");
 
         // Test push manager and notification support
         if ("PushManager" in window && "Notification" in window) {
@@ -76,21 +92,26 @@ export default function ClientProviders({
                 applicationServerKey: convertedVapidKey,
               });
 
-              console.log("Push subscription created:", subscription);
+              console.log("Push subscription created:", {
+                endpoint: subscription.endpoint,
+                expirationTime: subscription.expirationTime,
+              });
             }
           } catch (error) {
             console.error("Error setting up push notifications:", error);
           }
         }
 
-        // Handle updates
+        // Handle service worker updates
         registration.addEventListener("updatefound", () => {
           const newWorker = registration.installing;
           if (newWorker) {
             newWorker.addEventListener("statechange", () => {
               console.log("Service Worker state changed:", newWorker.state);
               if (newWorker.state === "activated") {
-                console.log("New service worker activated");
+                console.log(
+                  "New service worker activated, reloading for clean state"
+                );
                 window.location.reload();
               }
             });
@@ -137,8 +158,7 @@ export default function ClientProviders({
 
     // Cleanup function
     return () => {
-      // Clear the update check interval
-      // Note: We don't need to unregister the service worker on cleanup
+      // No cleanup needed for service worker
     };
   }, []);
 

@@ -224,6 +224,11 @@ self.addEventListener("push", async function (event) {
           !(self.Notification && self.Notification.permission === "granted")
         ) {
           console.error("Notifications not permitted");
+          await logToIndexedDB({
+            type: "error",
+            message: "Notifications not permitted",
+            timestamp: Date.now(),
+          });
           return;
         }
 
@@ -247,8 +252,21 @@ self.addEventListener("push", async function (event) {
             const rawData = await event.data.text();
             console.log("Raw push data:", rawData);
             notificationData = JSON.parse(rawData);
+
+            // Log successful data parsing
+            await logToIndexedDB({
+              type: "push_data_parsed",
+              timestamp: Date.now(),
+              data: notificationData,
+            });
           } catch (error) {
             console.error("Error parsing push data:", error);
+            await logToIndexedDB({
+              type: "error",
+              message: "Failed to parse push data",
+              error: error.message,
+              timestamp: Date.now(),
+            });
             notificationData = {
               title: "New Alert",
               body: "New SlotBot alert available",
@@ -287,6 +305,7 @@ self.addEventListener("push", async function (event) {
             id: notificationId,
             timestamp: timestamp,
             isIOS: isIOS,
+            alertData: notificationData, // Store full alert data for click handling
           },
         };
 
@@ -311,12 +330,23 @@ self.addEventListener("push", async function (event) {
         // Store notification in logs
         await logToIndexedDB({
           id: `${notificationId}-${timestamp}`,
-          type: "notification",
+          type: "notification_shown",
           timestamp: timestamp,
           data: notificationData,
           status: "shown",
           platform: isIOS ? "ios" : "web",
+          options: options,
         }).catch((err) => console.error("Failed to log notification:", err));
+
+        // Broadcast to all clients that a notification was shown
+        const clients = await self.clients.matchAll();
+        clients.forEach((client) => {
+          client.postMessage({
+            type: "notification_shown",
+            notificationId: notificationId,
+            timestamp: timestamp,
+          });
+        });
       } catch (error) {
         console.error("Error in push event handler:", error);
         // Log the error and show fallback notification
