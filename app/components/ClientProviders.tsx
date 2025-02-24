@@ -33,69 +33,82 @@ export default function ClientProviders({
         // Check for existing service worker registration
         const existingRegistration =
           await navigator.serviceWorker.getRegistration();
-
-        if (existingRegistration) {
-          console.log("Found existing service worker:", {
-            scope: existingRegistration.scope,
-            state: existingRegistration.active?.state,
-            scriptURL: existingRegistration.active?.scriptURL,
-          });
-
-          // Test if the existing service worker is functioning
-          const subscription =
-            await existingRegistration.pushManager.getSubscription();
-          if (subscription) {
-            console.log("Found existing push subscription:", {
-              endpoint: subscription.endpoint,
-              expirationTime: subscription.expirationTime,
-            });
-            return; // Keep existing service worker if it has a valid subscription
-          }
-        }
-
-        // Register new service worker
-        console.log("Registering new service worker...");
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-          updateViaCache: "none",
+        console.log("Checking for existing service worker:", {
+          exists: !!existingRegistration,
+          scope: existingRegistration?.scope,
+          state: existingRegistration?.active?.state,
         });
 
-        console.log("Service Worker registration successful:", {
-          scope: registration.scope,
-          state: registration.active?.state || "installing",
-        });
+        // Always register/update service worker
+        const registration =
+          existingRegistration ||
+          (await navigator.serviceWorker.register("/sw.js", {
+            scope: "/",
+            updateViaCache: "none",
+          }));
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log("Service Worker is ready");
+        console.log("Service Worker is ready:", {
+          scope: registration.scope,
+          state: registration.active?.state,
+        });
 
         // Test push manager and notification support
         if ("PushManager" in window && "Notification" in window) {
           try {
-            const permission = await Notification.requestPermission();
-            console.log("Notification permission status:", permission);
+            // Check existing subscription first
+            let subscription = await registration.pushManager.getSubscription();
+            console.log("Existing push subscription:", {
+              exists: !!subscription,
+              endpoint: subscription?.endpoint,
+            });
 
-            if (permission === "granted") {
-              // Get VAPID key
-              const response = await fetch("/api/push/vapid-public-key");
-              if (!response.ok) {
-                throw new Error("Failed to fetch VAPID key");
+            if (!subscription) {
+              const permission = await Notification.requestPermission();
+              console.log("Notification permission status:", permission);
+
+              if (permission === "granted") {
+                // Get VAPID key
+                const response = await fetch("/api/push/vapid-public-key");
+                if (!response.ok) {
+                  throw new Error("Failed to fetch VAPID key");
+                }
+                const vapidPublicKey = await response.text();
+                console.log("Received VAPID key");
+
+                // Convert VAPID key
+                const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+                // Subscribe to push notifications
+                subscription = await registration.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: convertedVapidKey,
+                });
+
+                console.log("New push subscription created:", {
+                  endpoint: subscription.endpoint,
+                });
               }
-              const vapidPublicKey = await response.text();
+            }
 
-              // Convert VAPID key
-              const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+            // If we have a subscription, validate it
+            if (subscription) {
+              try {
+                const validateResponse = await fetch("/api/push/validate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ endpoint: subscription.endpoint }),
+                });
 
-              // Subscribe to push notifications
-              const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: convertedVapidKey,
-              });
-
-              console.log("Push subscription created:", {
-                endpoint: subscription.endpoint,
-                expirationTime: subscription.expirationTime,
-              });
+                if (!validateResponse.ok) {
+                  console.log("Invalid subscription, unsubscribing...");
+                  await subscription.unsubscribe();
+                  // Registration will be retried on next page load
+                }
+              } catch (error) {
+                console.error("Error validating subscription:", error);
+              }
             }
           } catch (error) {
             console.error("Error setting up push notifications:", error);
