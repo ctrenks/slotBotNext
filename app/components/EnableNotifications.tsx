@@ -5,6 +5,7 @@ import { useNotifications } from "@/app/hooks/useNotifications";
 
 interface EnableNotificationsProps {
   variant?: "button" | "banner";
+  context?: "header" | "mobile-menu";
 }
 
 interface DebugLog {
@@ -15,6 +16,7 @@ interface DebugLog {
 
 export default function EnableNotifications({
   variant = "button",
+  context,
 }: EnableNotificationsProps) {
   const [mounted, setMounted] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -22,6 +24,7 @@ export default function EnableNotifications({
   const [error, setError] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<DebugLog[]>([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const {
     permission,
@@ -53,6 +56,10 @@ export default function EnableNotifications({
       document.referrer.includes("ios-app://");
     setIsPWA(isStandalone);
     addDebugLog(`PWA detection: ${isStandalone ? "PWA" : "Browser"}`, "info");
+
+    // Check if mobile
+    const isMobileDevice = window.matchMedia("(max-width: 768px)").matches;
+    setIsMobile(isMobileDevice);
 
     if (isSupported) {
       addDebugLog(`Current notification permission: ${permission}`, "info");
@@ -92,6 +99,16 @@ export default function EnableNotifications({
 
   // Don't render anything on the server side or if not mounted
   if (!mounted) {
+    return null;
+  }
+
+  // Don't show button in header on mobile
+  if (context === "header" && isMobile) {
+    return null;
+  }
+
+  // Don't show button in mobile menu on desktop
+  if (context === "mobile-menu" && !isMobile) {
     return null;
   }
 

@@ -47,7 +47,7 @@ export default function Header() {
               </Link>
             ))}
             <SlotBotButton />
-            <EnableNotifications />
+            <EnableNotifications context="header" />
           </nav>
 
           <div className="flex items-center gap-4">

@@ -70,7 +70,7 @@ const MobileMenu = ({ items }: { items: { name: string; href: string }[] }) => {
             ))}
             <li onClick={handleClick}>
               <div className="mobile-menu-button">
-                <EnableNotifications />
+                <EnableNotifications context="mobile-menu" />
               </div>
             </li>
             <li onClick={handleClick} className="mt-4">
