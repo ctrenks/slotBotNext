@@ -39,29 +39,18 @@ export default function ClientProviders({
           return;
         }
 
+        console.log("Starting service worker registration:", {
+          email: session.user.email,
+          timestamp: new Date().toISOString(),
+          status,
+        });
+
         if (!("serviceWorker" in navigator)) {
           console.error("Service Worker not supported in this browser");
           return;
         }
 
-        // Check if we're on iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        interface SafariNavigator extends Navigator {
-          standalone?: boolean;
-        }
-        const isPWA =
-          window.matchMedia("(display-mode: standalone)").matches ||
-          (navigator as SafariNavigator).standalone === true;
-
-        console.log("Starting service worker registration:", {
-          isIOS,
-          isPWA,
-          userAgent: navigator.userAgent,
-          email: session.user.email,
-          timestamp: new Date().toISOString(),
-        });
-
-        // Always unregister existing service workers first
+        // Unregister any existing service workers
         const existingRegistrations =
           await navigator.serviceWorker.getRegistrations();
         for (const reg of existingRegistrations) {
@@ -80,7 +69,7 @@ export default function ClientProviders({
         console.log("Registering new service worker...");
         registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
-          updateViaCache: "none",
+          type: "classic",
         });
 
         // Wait for the service worker to be ready
@@ -112,33 +101,6 @@ export default function ClientProviders({
                 endpoint: subscription?.endpoint,
                 timestamp: new Date().toISOString(),
               });
-
-              if (subscription) {
-                // Validate existing subscription
-                try {
-                  const validateResponse = await fetch("/api/push/validate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      endpoint: subscription.endpoint,
-                      userEmail: session.user.email,
-                    }),
-                  });
-
-                  if (!validateResponse.ok) {
-                    console.log(
-                      "Existing subscription is invalid, will create new one"
-                    );
-                    await subscription.unsubscribe();
-                    subscription = null;
-                  } else {
-                    console.log("Using existing valid subscription");
-                  }
-                } catch (error) {
-                  console.error("Error validating subscription:", error);
-                  subscription = null;
-                }
-              }
 
               if (!subscription) {
                 // Get VAPID key and create new subscription
@@ -172,10 +134,7 @@ export default function ClientProviders({
                   );
                 }
 
-                console.log("Push subscription registered successfully:", {
-                  endpoint: subscription.endpoint,
-                  timestamp: new Date().toISOString(),
-                });
+                console.log("Push subscription registered successfully");
               }
             }
           } catch (error) {
@@ -183,29 +142,13 @@ export default function ClientProviders({
           }
         }
 
-        // Handle service worker updates
-        const currentReg = registration;
-        if (currentReg) {
-          currentReg.addEventListener("updatefound", () => {
-            const newWorker = currentReg.installing;
-            if (newWorker) {
-              newWorker.addEventListener("statechange", () => {
-                console.log("Service Worker state changed:", {
-                  state: newWorker.state,
-                  timestamp: new Date().toISOString(),
-                });
-              });
-            }
-          });
-
-          // Set up periodic update checks
-          updateInterval = setInterval(() => {
-            if (currentReg && document.visibilityState === "visible") {
-              console.log("Checking for service worker updates...");
-              currentReg.update().catch(console.error);
-            }
-          }, 60 * 60 * 1000); // Check every hour
-        }
+        // Set up periodic update checks
+        updateInterval = setInterval(() => {
+          if (registration && document.visibilityState === "visible") {
+            console.log("Checking for service worker updates...");
+            registration.update().catch(console.error);
+          }
+        }, 60 * 60 * 1000); // Check every hour
       } catch (error) {
         console.error("Service Worker registration failed:", error);
       }
