@@ -29,7 +29,7 @@ async function openLogsDB() {
 }
 
 // Helper function to check if notification was recently shown
-async function wasRecentlyShown(notificationId) {
+async function wasRecentlyShown(notificationId, timestamp) {
   try {
     const db = await openLogsDB();
     const tx = db.transaction("shown", "readonly");
@@ -40,9 +40,12 @@ async function wasRecentlyShown(notificationId) {
       return false;
     }
 
-    // Check if notification was shown in the last 5 minutes
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    return record.timestamp > fiveMinutesAgo;
+    // Only consider it a duplicate if it's the exact same notification (same ID and timestamp)
+    // Or if it's within 10 seconds (to prevent rapid-fire notifications)
+    const tenSecondsAgo = Date.now() - 10 * 1000;
+    return (
+      record.timestamp > tenSecondsAgo && record.alertTimestamp === timestamp
+    );
   } catch (error) {
     console.error("Error checking recent notifications:", error);
     return false;
@@ -50,7 +53,7 @@ async function wasRecentlyShown(notificationId) {
 }
 
 // Helper function to mark notification as shown
-async function markAsShown(notificationId) {
+async function markAsShown(notificationId, timestamp) {
   try {
     const db = await openLogsDB();
     const tx = db.transaction("shown", "readwrite");
@@ -58,6 +61,7 @@ async function markAsShown(notificationId) {
     await store.put({
       id: notificationId,
       timestamp: Date.now(),
+      alertTimestamp: timestamp,
     });
   } catch (error) {
     console.error("Error marking notification as shown:", error);
@@ -70,14 +74,14 @@ async function cleanupOldNotifications() {
     const db = await openLogsDB();
     const tx = db.transaction("shown", "readwrite");
     const store = tx.objectStore("shown");
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    const tenSecondsAgo = Date.now() - 10 * 1000;
 
     // Get all records
     const request = store.openCursor();
     request.onsuccess = (event) => {
       const cursor = event.target.result;
       if (cursor) {
-        if (cursor.value.timestamp < fiveMinutesAgo) {
+        if (cursor.value.timestamp < tenSecondsAgo) {
           store.delete(cursor.key);
         }
         cursor.continue();
@@ -140,68 +144,57 @@ self.addEventListener("push", async function (event) {
     // Clean up old notifications periodically
     await cleanupOldNotifications();
 
-    // Check if we've already shown this notification recently
-    if (await wasRecentlyShown(notificationId)) {
-      console.log("Notification shown recently, skipping:", notificationId);
+    // Check if we've already shown this exact notification recently
+    if (await wasRecentlyShown(notificationId, timestamp)) {
+      console.log("Exact notification shown recently, skipping:", {
+        notificationId,
+        timestamp,
+      });
       return;
     }
 
-    // Mark notification as shown
-    await markAsShown(notificationId);
+    // Mark notification as shown with timestamp
+    await markAsShown(notificationId, timestamp);
 
-    // Always show notification on iOS, regardless of focus state
+    // Always show notifications
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    let shouldShowNotification = true;
-
-    if (!isIOS) {
-      // On non-iOS, check if any clients are focused
-      const clientList = await clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
-      shouldShowNotification = !clientList.some((client) => client.focused);
-    }
-
-    // Show notification if conditions are met
-    if (shouldShowNotification) {
-      const options = {
-        body: data.body || "New notification",
-        tag: notificationId,
-        renotify: true,
-        requireInteraction: !isIOS,
-        icon: data.data?.icon || "/img/defaultuser.png",
-        badge: "/img/defaultuser.png",
-        timestamp: timestamp,
-        actions: [
-          {
-            action: "play",
-            title: "▶️ Play Now",
-          },
-        ],
-        data: {
-          url: "/slotbot",
-          playUrl: `/out/${notificationId}`,
-          id: notificationId,
-          timestamp: timestamp,
+    const options = {
+      body: data.body || "New notification",
+      tag: `${notificationId}-${timestamp}`, // Make each notification unique
+      renotify: true,
+      requireInteraction: !isIOS,
+      icon: data.data?.icon || "/img/defaultuser.png",
+      badge: "/img/defaultuser.png",
+      timestamp: timestamp,
+      actions: [
+        {
+          action: "play",
+          title: "▶️ Play Now",
         },
-      };
-
-      console.log("Notification options:", options);
-
-      await self.registration.showNotification("SlotBot Message", options);
-
-      // Store notification in logs
-      const db = await openLogsDB();
-      const tx = db.transaction("logs", "readwrite");
-      const store = tx.objectStore("logs");
-      await store.put({
+      ],
+      data: {
+        url: "/slotbot",
+        playUrl: `/out/${notificationId}`,
         id: notificationId,
         timestamp: timestamp,
-        data: data,
-        status: "shown",
-        platform: isIOS ? "ios" : "web",
-      });
-    }
+      },
+    };
+
+    console.log("Notification options:", options);
+
+    await self.registration.showNotification("SlotBot Message", options);
+
+    // Store notification in logs
+    const db = await openLogsDB();
+    const tx = db.transaction("logs", "readwrite");
+    const store = tx.objectStore("logs");
+    await store.put({
+      id: `${notificationId}-${timestamp}`,
+      timestamp: timestamp,
+      data: data,
+      status: "shown",
+      platform: isIOS ? "ios" : "web",
+    });
   } catch (error) {
     console.error("Error showing notification:", error);
   }
