@@ -10,7 +10,7 @@ const urlsToCache = [
 // Helper function to open IndexedDB
 async function openLogsDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("NotificationLogs", 2); // Increased version number
+    const request = indexedDB.open("NotificationLogs", 2);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
@@ -26,46 +26,6 @@ async function openLogsDB() {
       }
     };
   });
-}
-
-// Helper function to check if notification was recently shown
-async function wasRecentlyShown(notificationId, timestamp) {
-  try {
-    const db = await openLogsDB();
-    const tx = db.transaction("shown", "readonly");
-    const store = tx.objectStore("shown");
-    const record = await store.get(notificationId);
-
-    if (!record) {
-      return false;
-    }
-
-    // Only consider it a duplicate if it's the exact same notification (same ID and timestamp)
-    // Or if it's within 10 seconds (to prevent rapid-fire notifications)
-    const tenSecondsAgo = Date.now() - 10 * 1000;
-    return (
-      record.timestamp > tenSecondsAgo && record.alertTimestamp === timestamp
-    );
-  } catch (error) {
-    console.error("Error checking recent notifications:", error);
-    return false;
-  }
-}
-
-// Helper function to mark notification as shown
-async function markAsShown(notificationId, timestamp) {
-  try {
-    const db = await openLogsDB();
-    const tx = db.transaction("shown", "readwrite");
-    const store = tx.objectStore("shown");
-    await store.put({
-      id: notificationId,
-      timestamp: Date.now(),
-      alertTimestamp: timestamp,
-    });
-  } catch (error) {
-    console.error("Error marking notification as shown:", error);
-  }
 }
 
 // Helper function to clean up old notifications
@@ -135,69 +95,78 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", async function (event) {
-  try {
-    const data = event.data.json();
-    console.log("Received push data:", data);
-    const notificationId = data.data?.alertId || Date.now().toString();
-    const timestamp = Date.now();
+  // Prevent the service worker from terminating before everything is done
+  event.waitUntil(
+    (async function () {
+      try {
+        if (!event.data) {
+          console.log("Push event has no data, showing default notification");
+          await self.registration.showNotification("New Alert", {
+            body: "New SlotBot alert available",
+          });
+          return;
+        }
 
-    // Clean up old notifications periodically
-    await cleanupOldNotifications();
+        const data = event.data.json();
+        console.log("Received push data:", data);
+        const notificationId = data.data?.alertId || Date.now().toString();
+        const timestamp = Date.now();
 
-    // Check if we've already shown this exact notification recently
-    if (await wasRecentlyShown(notificationId, timestamp)) {
-      console.log("Exact notification shown recently, skipping:", {
-        notificationId,
-        timestamp,
-      });
-      return;
-    }
+        // Clean up old notifications periodically
+        await cleanupOldNotifications();
 
-    // Mark notification as shown with timestamp
-    await markAsShown(notificationId, timestamp);
+        // Always show notifications
+        const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "");
+        const options = {
+          title: data.title || "SlotBot Message",
+          body: data.body || "New notification",
+          tag: `${notificationId}-${timestamp}`, // Make each notification unique
+          renotify: true,
+          requireInteraction: !isIOS,
+          icon: data.data?.icon || "/img/defaultuser.png",
+          badge: "/img/defaultuser.png",
+          vibrate: [100, 50, 100],
+          timestamp: timestamp,
+          actions: [
+            {
+              action: "play",
+              title: "▶️ Play Now",
+            },
+          ],
+          data: {
+            url: "/slotbot",
+            playUrl: `/out/${notificationId}`,
+            id: notificationId,
+            timestamp: timestamp,
+          },
+        };
 
-    // Always show notifications
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    const options = {
-      body: data.body || "New notification",
-      tag: `${notificationId}-${timestamp}`, // Make each notification unique
-      renotify: true,
-      requireInteraction: !isIOS,
-      icon: data.data?.icon || "/img/defaultuser.png",
-      badge: "/img/defaultuser.png",
-      timestamp: timestamp,
-      actions: [
-        {
-          action: "play",
-          title: "▶️ Play Now",
-        },
-      ],
-      data: {
-        url: "/slotbot",
-        playUrl: `/out/${notificationId}`,
-        id: notificationId,
-        timestamp: timestamp,
-      },
-    };
+        console.log("Showing notification with options:", options);
 
-    console.log("Notification options:", options);
+        // Show the notification
+        await self.registration.showNotification(options.title, options);
+        console.log("Notification shown successfully");
 
-    await self.registration.showNotification("SlotBot Message", options);
-
-    // Store notification in logs
-    const db = await openLogsDB();
-    const tx = db.transaction("logs", "readwrite");
-    const store = tx.objectStore("logs");
-    await store.put({
-      id: `${notificationId}-${timestamp}`,
-      timestamp: timestamp,
-      data: data,
-      status: "shown",
-      platform: isIOS ? "ios" : "web",
-    });
-  } catch (error) {
-    console.error("Error showing notification:", error);
-  }
+        // Store notification in logs
+        const db = await openLogsDB();
+        const tx = db.transaction("logs", "readwrite");
+        const store = tx.objectStore("logs");
+        await store.put({
+          id: `${notificationId}-${timestamp}`,
+          timestamp: timestamp,
+          data: data,
+          status: "shown",
+          platform: isIOS ? "ios" : "web",
+        });
+      } catch (error) {
+        console.error("Error in push event handler:", error);
+        // Show a fallback notification if something went wrong
+        await self.registration.showNotification("New Alert", {
+          body: "New SlotBot alert available",
+        });
+      }
+    })()
+  );
 });
 
 self.addEventListener("notificationclick", function (event) {

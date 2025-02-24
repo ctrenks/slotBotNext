@@ -65,10 +65,20 @@ export default function AlertDisplay({
 
   const { permission, isSupported, requestPermission } = useNotifications();
 
+  // Only show notification prompt if not on mobile and permission is default
+  const showNotificationPrompt =
+    !isMobile && isSupported && permission === "default";
+
   // Log before rendering
   console.log("Rendering AlertDisplay:", {
     alertsCount: alerts.length,
     hasAlerts: alerts.length > 0,
+    showNotificationPrompt,
+    notificationState: {
+      permission,
+      isSupported,
+      isMobile,
+    },
     firstAlert: alerts[0]
       ? {
           id: alerts[0].id,
@@ -84,7 +94,7 @@ export default function AlertDisplay({
 
   return (
     <div className="space-y-6">
-      {!isMobile && isSupported && permission === "default" && (
+      {showNotificationPrompt && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <p className="text-blue-800 mb-2">
             Would you like to receive notifications for new alerts?
