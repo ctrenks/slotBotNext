@@ -3,6 +3,17 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 
+// Add TSS type definition at the top of the file
+interface TSSState {
+  state?: {
+    excluded?: boolean;
+  };
+}
+
+interface WindowWithTSS extends Window {
+  TSS?: TSSState;
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
@@ -29,6 +40,7 @@ export default function ClientProviders({
     let updateInterval: NodeJS.Timeout | null = null;
     let retryCount = 0;
     const MAX_RETRIES = 3;
+    const TSS_WAIT_TIME = 5000; // Wait 5 seconds for TSS to initialize
 
     async function registerServiceWorker() {
       try {
@@ -52,8 +64,18 @@ export default function ClientProviders({
           return;
         }
 
-        // Wait for any TSS initialization to complete
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Wait for TSS initialization to complete
+        console.log("Waiting for TSS initialization...");
+        await new Promise((resolve) => setTimeout(resolve, TSS_WAIT_TIME));
+
+        // Check if we're in an excluded state
+        const tssState = (window as WindowWithTSS).TSS?.state;
+        if (tssState?.excluded) {
+          console.log(
+            "TSS exclusion detected, skipping service worker registration"
+          );
+          return;
+        }
 
         // Unregister any existing service workers
         const existingRegistrations =
@@ -67,17 +89,16 @@ export default function ClientProviders({
           await reg.unregister();
         }
 
-        // Wait a moment before registering new service worker
+        // Wait for any in-progress TSS operations
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Register new service worker with module type
+        // Register new service worker with classic type for better compatibility
         console.log("Registering new service worker...");
         const readyRegistration = await navigator.serviceWorker.register(
           "/sw.js",
           {
             scope: "/",
-            type: "module",
-            updateViaCache: "none",
+            type: "classic",
           }
         );
 
@@ -161,15 +182,14 @@ export default function ClientProviders({
       } catch (error) {
         console.error("Service Worker registration failed:", error);
 
-        // Retry logic
+        // Retry logic with exponential backoff
         if (retryCount < MAX_RETRIES) {
           retryCount++;
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
           console.log(
-            `Retrying service worker registration (attempt ${retryCount}/${MAX_RETRIES})...`
+            `Retrying service worker registration in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})...`
           );
-          await new Promise((resolve) =>
-            setTimeout(resolve, 2000 * retryCount)
-          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
           await registerServiceWorker();
         }
       }
