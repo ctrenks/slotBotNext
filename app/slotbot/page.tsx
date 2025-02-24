@@ -83,7 +83,7 @@ export default async function SlotBot() {
         </p>
       </div>
       <div className="mt-8">
-        <EnableNotifications variant="banner" />
+        <EnableNotifications context="banner" />
         <GlobalAlertDisplay />
       </div>
     </div>
