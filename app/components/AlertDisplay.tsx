@@ -1,59 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import Image from "next/image";
 import { AlertWithRead } from "@/app/types/alert";
 
-export default function AlertDisplay({
+const AlertDisplay = memo(function AlertDisplay({
   initialAlerts,
 }: {
   initialAlerts: AlertWithRead[];
 }) {
-  console.log("AlertDisplay component mounted with:", {
-    initialAlertsCount: initialAlerts.length,
-    initialAlerts: initialAlerts.map((a) => ({
-      id: a.id,
-      message: a.message.substring(0, 50) + "...",
-      casinoName: a.casinoName,
-      slot: a.slot,
-      rtp: a.rtp,
-      read: a.read,
-      hasButton: !!a.casino?.button,
-      hasSlotImage: !!a.slotImage,
-    })),
-  });
-
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
 
-  // Log when alerts state changes
+  // Update alerts only when initialAlerts actually changes
   useEffect(() => {
-    console.log("Alerts state updated:", {
-      alertsCount: alerts.length,
-      alerts: alerts.map((a) => ({
-        id: a.id,
-        message: a.message.substring(0, 50) + "...",
-        casinoName: a.casinoName,
-        slot: a.slot,
-        rtp: a.rtp,
-        read: a.read,
-        hasButton: !!a.casino?.button,
-        hasSlotImage: !!a.slotImage,
-      })),
-    });
-  }, [alerts, alerts.length]);
+    const hasChanges =
+      alerts.length !== initialAlerts.length ||
+      initialAlerts.some((newAlert, index) => {
+        const existingAlert = alerts[index];
+        return (
+          !existingAlert ||
+          newAlert.id !== existingAlert.id ||
+          newAlert.read !== existingAlert.read
+        );
+      });
 
-  // Update alerts when initialAlerts changes
-  useEffect(() => {
-    console.log("Initial alerts changed:", {
-      oldCount: alerts.length,
-      newCount: initialAlerts.length,
-      initialAlerts: initialAlerts.map((a) => ({
-        id: a.id,
-        message: a.message.substring(0, 50) + "...",
-        read: a.read,
-      })),
-    });
-    setAlerts(initialAlerts);
+    if (hasChanges) {
+      console.log("Updating alerts due to changes:", {
+        oldCount: alerts.length,
+        newCount: initialAlerts.length,
+        alerts: initialAlerts.map((a) => ({
+          id: a.id,
+          message: a.message.substring(0, 50) + "...",
+          read: a.read,
+        })),
+      });
+      setAlerts(initialAlerts);
+    }
   }, [initialAlerts]);
 
   return (
@@ -182,4 +164,6 @@ export default function AlertDisplay({
       )}
     </div>
   );
-}
+});
+
+export default AlertDisplay;

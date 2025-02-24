@@ -26,6 +26,8 @@ export default function ClientProviders({
   const { data: session } = useSession();
 
   useEffect(() => {
+    let registration: ServiceWorkerRegistration | null = null;
+
     async function registerServiceWorker() {
       try {
         if (!("serviceWorker" in navigator)) {
@@ -33,89 +35,92 @@ export default function ClientProviders({
           return;
         }
 
-        // Check for existing service worker
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        let registration;
-
-        if (registrations.length > 0) {
-          // Use the existing registration if it's valid
-          registration = registrations[0];
-          console.log("Found existing service worker:", {
-            scope: registration.scope,
+        // First, check if we already have a controlling service worker
+        if (navigator.serviceWorker.controller) {
+          registration = await navigator.serviceWorker.ready;
+          console.log("Using existing service worker controller:", {
             state: registration.active?.state,
             scriptURL: registration.active?.scriptURL,
           });
-
-          // Check if update is needed
-          try {
-            await registration.update();
-            console.log("Service worker updated");
-          } catch (error) {
-            console.error("Error updating service worker:", error);
-          }
         } else {
-          // Register new service worker if none exists
+          // Register new service worker
           console.log("Registering new service worker...");
           registration = await navigator.serviceWorker.register("/sw.js", {
             scope: "/",
             updateViaCache: "none",
           });
+          console.log("New service worker registered");
+        }
+
+        // Ensure registration is available before proceeding
+        if (!registration) {
+          throw new Error("Failed to obtain service worker registration");
         }
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log("Service Worker is active:", {
+        console.log("Service Worker is ready:", {
           scope: registration.scope,
           state: registration.active?.state,
           scriptURL: registration.active?.scriptURL,
         });
 
-        // Test push manager and notification support
+        // Set up push notifications if supported
         if (
           "PushManager" in window &&
           "Notification" in window &&
           session?.user?.email
         ) {
           try {
-            // Request notification permission first
             const permission = await Notification.requestPermission();
             console.log("Notification permission status:", permission);
 
             if (permission === "granted") {
-              // Get VAPID key
-              console.log("Fetching VAPID key...");
-              const response = await fetch("/api/push/vapid-public-key");
-              if (!response.ok) {
-                throw new Error("Failed to fetch VAPID key");
-              }
-              const vapidPublicKey = await response.text();
-              console.log("Received VAPID key");
-
-              // Convert VAPID key
-              const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
-              // Check existing subscription
+              // Get existing subscription first
               let subscription =
                 await registration.pushManager.getSubscription();
 
-              // Only create new subscription if none exists or if validation fails
+              if (subscription) {
+                // Validate existing subscription
+                try {
+                  const validateResponse = await fetch("/api/push/validate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ endpoint: subscription.endpoint }),
+                  });
+
+                  if (!validateResponse.ok) {
+                    console.log(
+                      "Existing subscription is invalid, will create new one"
+                    );
+                    await subscription.unsubscribe();
+                    subscription = null;
+                  } else {
+                    console.log("Using existing valid subscription");
+                  }
+                } catch (error) {
+                  console.error("Error validating subscription:", error);
+                  subscription = null;
+                }
+              }
+
               if (!subscription) {
-                console.log("Creating new push subscription...");
+                // Get VAPID key and create new subscription
+                const response = await fetch("/api/push/vapid-public-key");
+                if (!response.ok) throw new Error("Failed to fetch VAPID key");
+
+                const vapidPublicKey = await response.text();
+                const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
                 subscription = await registration.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: convertedVapidKey,
                 });
 
-                console.log("Push subscription created:", {
-                  endpoint: subscription.endpoint,
-                });
-
-                // Send subscription to server
+                // Register new subscription with server
                 const registerResponse = await fetch("/api/push/register", {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     subscription,
                     userEmail: session.user.email,
@@ -124,85 +129,49 @@ export default function ClientProviders({
 
                 if (!registerResponse.ok) {
                   throw new Error(
-                    "Failed to register push subscription with server"
+                    "Failed to register subscription with server"
                   );
                 }
 
-                console.log("Push subscription registered with server");
-              } else {
-                console.log("Using existing push subscription:", {
-                  endpoint: subscription.endpoint,
-                });
+                console.log("New push subscription registered successfully");
               }
             }
           } catch (error) {
             console.error("Error setting up push notifications:", error);
           }
-        } else if (!session?.user?.email) {
-          console.log(
-            "Skipping push notification setup - no user email available"
-          );
         }
 
         // Handle service worker updates
-        registration.addEventListener("updatefound", () => {
-          const newWorker = registration.installing;
+        const currentRegistration = registration;
+        currentRegistration.addEventListener("updatefound", () => {
+          const newWorker = currentRegistration.installing;
           if (newWorker) {
             newWorker.addEventListener("statechange", () => {
               console.log("Service Worker state changed:", newWorker.state);
               if (newWorker.state === "activated") {
-                console.log(
-                  "New service worker activated, reloading for clean state"
-                );
-                window.location.reload();
+                console.log("New service worker activated");
               }
             });
           }
         });
 
-        // Check for updates every 30 minutes
-        setInterval(() => {
-          registration.update().catch((err) => {
-            console.error("Error updating service worker:", err);
-          });
-        }, 1800000);
-
-        // Test IndexedDB
-        if ("indexedDB" in window) {
-          try {
-            const request = indexedDB.open("NotificationLogs", 2);
-            request.onerror = () => {
-              console.error(
-                "IndexedDB error:",
-                request.error?.message || "Unknown error"
-              );
-            };
-            request.onsuccess = () => {
-              console.log("Successfully opened IndexedDB");
-              const db = request.result;
-              console.log(
-                "Available object stores:",
-                Array.from(db.objectStoreNames)
-              );
-              db.close();
-            };
-          } catch (error) {
-            console.error("Error testing IndexedDB:", error);
+        // Check for updates periodically
+        const updateInterval = setInterval(() => {
+          if (currentRegistration) {
+            currentRegistration.update().catch(console.error);
           }
-        }
+        }, 60 * 60 * 1000); // Check every hour
+
+        return () => {
+          clearInterval(updateInterval);
+        };
       } catch (error) {
         console.error("Service Worker registration failed:", error);
       }
     }
 
-    // Call the registration function immediately
     registerServiceWorker();
-
-    // Cleanup function
-    return () => {
-      // No cleanup needed for service worker
-    };
-  }, [session]); // Add session to dependency array
+  }, [session]);
 
   return <>{children}</>;
 }
