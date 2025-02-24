@@ -55,7 +55,7 @@ export default function EnableNotifications({
   // Show banner variant at the top of the page
   if (context === "banner") {
     return (
-      <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
+      <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mb-4">
         <p className="font-bold">Enable Notifications</p>
         <p className="mb-2">
           Get instant alerts when new slots become available.
@@ -63,7 +63,7 @@ export default function EnableNotifications({
         <Button
           onClick={requestPermission}
           variant="outline"
-          className="bg-blue-500 text-white hover:bg-blue-600"
+          className="bg-orange-500 text-white hover:bg-orange-600 border-orange-500"
         >
           Enable Notifications
         </Button>
@@ -71,11 +71,8 @@ export default function EnableNotifications({
     );
   }
 
-  // Show button variant in header/mobile menu based on device type
-  if (
-    (context === "header" && !isMobile) ||
-    (context === "mobile-menu" && isMobile)
-  ) {
+  // Show button variant in mobile menu only
+  if (context === "mobile-menu" && isMobile) {
     return (
       <Button onClick={requestPermission} variant="outline">
         Enable Notifications

@@ -4,7 +4,6 @@ import Link from "next/link";
 import HeaderUserSection from "./HeaderUserSection";
 import MobileMenu from "./MobileMenu";
 import SlotBotButton from "./SlotBotButton";
-import EnableNotifications from "./EnableNotifications";
 
 export default function Header() {
   const menuItems = [
@@ -47,7 +46,6 @@ export default function Header() {
               </Link>
             ))}
             <SlotBotButton />
-            <EnableNotifications context="header" />
           </nav>
 
           <div className="flex items-center gap-4">
