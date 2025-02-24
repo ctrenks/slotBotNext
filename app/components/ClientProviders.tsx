@@ -23,9 +23,28 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
+    // Only proceed if we have an authenticated session
+    if (status !== "authenticated" || !session?.user?.email) {
+      console.log(
+        "Waiting for authentication before registering service worker...",
+        {
+          status,
+          hasSession: !!session,
+          userEmail: session?.user?.email,
+        }
+      );
+      return;
+    }
+
+    console.log("Starting service worker registration process...", {
+      status,
+      userEmail: session.user.email,
+      timestamp: new Date().toISOString(),
+    });
+
     let registration: ServiceWorkerRegistration | null = null;
 
     async function registerServiceWorker() {
@@ -35,22 +54,34 @@ export default function ClientProviders({
           return;
         }
 
-        // First, check if we already have a controlling service worker
-        if (navigator.serviceWorker.controller) {
-          registration = await navigator.serviceWorker.ready;
-          console.log("Using existing service worker controller:", {
-            state: registration.active?.state,
-            scriptURL: registration.active?.scriptURL,
+        // Unregister any existing service workers first
+        const existingRegistrations =
+          await navigator.serviceWorker.getRegistrations();
+        console.log(
+          "Found existing service workers:",
+          existingRegistrations.length
+        );
+
+        for (const reg of existingRegistrations) {
+          console.log("Unregistering existing service worker:", {
+            scope: reg.scope,
+            state: reg.active?.state,
           });
-        } else {
-          // Register new service worker
-          console.log("Registering new service worker...");
-          registration = await navigator.serviceWorker.register("/sw.js", {
-            scope: "/",
-            updateViaCache: "none",
-          });
-          console.log("New service worker registered");
+          await reg.unregister();
         }
+
+        // Register new service worker
+        console.log("Registering new service worker...");
+        registration = await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+          updateViaCache: "none",
+        });
+
+        console.log("New service worker registered:", {
+          scope: registration.scope,
+          state: registration.active?.state,
+          scriptURL: registration.active?.scriptURL,
+        });
 
         // Ensure registration is available before proceeding
         if (!registration) {
@@ -171,7 +202,7 @@ export default function ClientProviders({
     }
 
     registerServiceWorker();
-  }, [session]);
+  }, [session, status]); // Add status to dependencies
 
   return <>{children}</>;
 }
