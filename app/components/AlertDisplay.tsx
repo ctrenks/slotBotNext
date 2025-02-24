@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useNotifications } from "@/app/hooks/useNotifications";
 import { AlertWithRead } from "@/app/types/alert";
 
 export default function AlertDisplay({
@@ -25,12 +24,6 @@ export default function AlertDisplay({
   });
 
   const [alerts, setAlerts] = useState<AlertWithRead[]>(initialAlerts);
-  const [isMobile] = useState(
-    typeof window !== "undefined" &&
-      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        navigator.userAgent.toLowerCase()
-      )
-  );
 
   // Log when alerts state changes
   useEffect(() => {
@@ -63,51 +56,8 @@ export default function AlertDisplay({
     setAlerts(initialAlerts);
   }, [initialAlerts]);
 
-  const { permission, isSupported, requestPermission } = useNotifications();
-
-  // Only show notification prompt if not on mobile and permission is default
-  const showNotificationPrompt =
-    !isMobile && isSupported && permission === "default";
-
-  // Log before rendering
-  console.log("Rendering AlertDisplay:", {
-    alertsCount: alerts.length,
-    hasAlerts: alerts.length > 0,
-    showNotificationPrompt,
-    notificationState: {
-      permission,
-      isSupported,
-      isMobile,
-    },
-    firstAlert: alerts[0]
-      ? {
-          id: alerts[0].id,
-          message: alerts[0].message.substring(0, 50) + "...",
-          casinoName: alerts[0].casinoName,
-          slot: alerts[0].slot,
-          rtp: alerts[0].rtp,
-          hasButton: !!alerts[0].casino?.button,
-          hasSlotImage: !!alerts[0].slotImage,
-        }
-      : null,
-  });
-
   return (
     <div className="space-y-6">
-      {showNotificationPrompt && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-          <p className="text-blue-800 mb-2">
-            Would you like to receive notifications for new alerts?
-          </p>
-          <button
-            onClick={requestPermission}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Enable Notifications
-          </button>
-        </div>
-      )}
-
       {alerts.length > 0 ? (
         <div>
           <h3 className="text-lg font-semibold mb-3">Active Alerts</h3>
