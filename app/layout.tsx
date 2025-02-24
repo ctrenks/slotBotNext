@@ -19,9 +19,9 @@ export const metadata: Metadata = {
     title: "SlotBot",
   },
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: "/img/defaultuser.png",
     apple: [
-      { url: "/icons/apple-icon-180.png", sizes: "180x180", type: "image/png" },
+      { url: "/img/defaultuser.png", sizes: "180x180", type: "image/png" },
       {
         url: "/icons/apple-splash-2048-2732.png",
         media:

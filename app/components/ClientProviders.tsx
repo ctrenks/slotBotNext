@@ -53,10 +53,12 @@ export default function ClientProviders({
           window.matchMedia("(display-mode: standalone)").matches ||
           (navigator as SafariNavigator).standalone === true;
 
-        console.log("Platform detection:", {
+        console.log("Starting service worker registration:", {
           isIOS,
           isPWA,
           userAgent: navigator.userAgent,
+          email: session.user.email,
+          timestamp: new Date().toISOString(),
         });
 
         // Always unregister existing service workers first
@@ -66,39 +68,50 @@ export default function ClientProviders({
           console.log("Unregistering existing service worker:", {
             scope: reg.scope,
             state: reg.active?.state,
+            timestamp: new Date().toISOString(),
           });
           await reg.unregister();
         }
 
-        // Register new service worker with specific options for iOS
+        // Wait a moment before registering new service worker
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Register new service worker
         console.log("Registering new service worker...");
         registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
           updateViaCache: "none",
-          type: isIOS ? "classic" : "module",
-        });
-
-        console.log("Service worker registered:", {
-          scope: registration.scope,
-          state: registration.active?.state,
-          scriptURL: registration.active?.scriptURL,
-          isIOS,
-          isPWA,
         });
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
+        console.log("Service worker is ready:", {
+          scope: registration.scope,
+          state: registration.active?.state,
+          scriptURL: registration.active?.scriptURL,
+          timestamp: new Date().toISOString(),
+        });
 
         // Set up push notifications if supported
         if ("PushManager" in window && "Notification" in window) {
           try {
-            const permission = await Notification.requestPermission();
+            // Check if we already have permission
+            let permission = Notification.permission;
+            if (permission === "default") {
+              console.log("Requesting notification permission...");
+              permission = await Notification.requestPermission();
+            }
             console.log("Notification permission status:", permission);
 
             if (permission === "granted") {
               // Get existing subscription first
               let subscription =
                 await registration.pushManager.getSubscription();
+              console.log("Existing push subscription:", {
+                exists: !!subscription,
+                endpoint: subscription?.endpoint,
+                timestamp: new Date().toISOString(),
+              });
 
               if (subscription) {
                 // Validate existing subscription
@@ -129,18 +142,21 @@ export default function ClientProviders({
 
               if (!subscription) {
                 // Get VAPID key and create new subscription
+                console.log("Fetching VAPID key...");
                 const response = await fetch("/api/push/vapid-public-key");
                 if (!response.ok) throw new Error("Failed to fetch VAPID key");
 
                 const vapidPublicKey = await response.text();
                 const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
+                console.log("Creating new push subscription...");
                 subscription = await registration.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: convertedVapidKey,
                 });
 
                 // Register new subscription with server
+                console.log("Registering subscription with server...");
                 const registerResponse = await fetch("/api/push/register", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -156,7 +172,10 @@ export default function ClientProviders({
                   );
                 }
 
-                console.log("New push subscription registered successfully");
+                console.log("Push subscription registered successfully:", {
+                  endpoint: subscription.endpoint,
+                  timestamp: new Date().toISOString(),
+                });
               }
             }
           } catch (error) {
@@ -171,7 +190,10 @@ export default function ClientProviders({
             const newWorker = currentReg.installing;
             if (newWorker) {
               newWorker.addEventListener("statechange", () => {
-                console.log("Service Worker state changed:", newWorker.state);
+                console.log("Service Worker state changed:", {
+                  state: newWorker.state,
+                  timestamp: new Date().toISOString(),
+                });
               });
             }
           });
@@ -179,6 +201,7 @@ export default function ClientProviders({
           // Set up periodic update checks
           updateInterval = setInterval(() => {
             if (currentReg && document.visibilityState === "visible") {
+              console.log("Checking for service worker updates...");
               currentReg.update().catch(console.error);
             }
           }, 60 * 60 * 1000); // Check every hour
