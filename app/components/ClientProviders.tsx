@@ -26,29 +26,19 @@ export default function ClientProviders({
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Only proceed if we have an authenticated session
-    if (status !== "authenticated" || !session?.user?.email) {
-      console.log(
-        "Waiting for authentication before registering service worker...",
-        {
-          status,
-          hasSession: !!session,
-          userEmail: session?.user?.email,
-        }
-      );
-      return;
-    }
-
-    console.log("Starting service worker registration process...", {
-      status,
-      userEmail: session.user.email,
-      timestamp: new Date().toISOString(),
-    });
-
     let registration: ServiceWorkerRegistration | null = null;
+    let updateInterval: NodeJS.Timeout | null = null;
 
     async function registerServiceWorker() {
       try {
+        // Double check session data
+        if (!session?.user?.email) {
+          console.log(
+            "No session data available, skipping service worker registration"
+          );
+          return;
+        }
+
         if (!("serviceWorker" in navigator)) {
           console.error("Service Worker not supported in this browser");
           return;
@@ -83,11 +73,6 @@ export default function ClientProviders({
           scriptURL: registration.active?.scriptURL,
         });
 
-        // Ensure registration is available before proceeding
-        if (!registration) {
-          throw new Error("Failed to obtain service worker registration");
-        }
-
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
         console.log("Service Worker is ready:", {
@@ -97,11 +82,7 @@ export default function ClientProviders({
         });
 
         // Set up push notifications if supported
-        if (
-          "PushManager" in window &&
-          "Notification" in window &&
-          session?.user?.email
-        ) {
+        if ("PushManager" in window && "Notification" in window) {
           try {
             const permission = await Notification.requestPermission();
             console.log("Notification permission status:", permission);
@@ -117,7 +98,10 @@ export default function ClientProviders({
                   const validateResponse = await fetch("/api/push/validate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ endpoint: subscription.endpoint }),
+                    body: JSON.stringify({
+                      endpoint: subscription.endpoint,
+                      userEmail: session.user.email,
+                    }),
                   });
 
                   if (!validateResponse.ok) {
@@ -173,36 +157,40 @@ export default function ClientProviders({
         }
 
         // Handle service worker updates
-        const currentRegistration = registration;
-        currentRegistration.addEventListener("updatefound", () => {
-          const newWorker = currentRegistration.installing;
-          if (newWorker) {
-            newWorker.addEventListener("statechange", () => {
-              console.log("Service Worker state changed:", newWorker.state);
-              if (newWorker.state === "activated") {
-                console.log("New service worker activated");
-              }
-            });
-          }
-        });
+        // Store registration in a local variable to ensure TypeScript knows it's not null
+        const currentReg = registration;
+        if (currentReg) {
+          currentReg.addEventListener("updatefound", () => {
+            const newWorker = currentReg.installing;
+            if (newWorker) {
+              newWorker.addEventListener("statechange", () => {
+                console.log("Service Worker state changed:", newWorker.state);
+              });
+            }
+          });
 
-        // Check for updates periodically
-        const updateInterval = setInterval(() => {
-          if (currentRegistration) {
-            currentRegistration.update().catch(console.error);
-          }
-        }, 60 * 60 * 1000); // Check every hour
-
-        return () => {
-          clearInterval(updateInterval);
-        };
+          // Set up periodic update checks
+          updateInterval = setInterval(() => {
+            currentReg.update().catch(console.error);
+          }, 60 * 60 * 1000); // Check every hour
+        }
       } catch (error) {
         console.error("Service Worker registration failed:", error);
       }
     }
 
-    registerServiceWorker();
-  }, [session, status]); // Add status to dependencies
+    // Only register service worker if we have a valid session
+    if (status === "authenticated" && session?.user?.email) {
+      registerServiceWorker();
+    }
+
+    // Cleanup function
+    return () => {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
+  }, [session, status]);
 
   return <>{children}</>;
 }
