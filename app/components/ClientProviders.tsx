@@ -44,14 +44,24 @@ export default function ClientProviders({
           return;
         }
 
-        // Unregister any existing service workers first
+        // Check if we're on iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        interface SafariNavigator extends Navigator {
+          standalone?: boolean;
+        }
+        const isPWA =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          (navigator as SafariNavigator).standalone === true;
+
+        console.log("Platform detection:", {
+          isIOS,
+          isPWA,
+          userAgent: navigator.userAgent,
+        });
+
+        // Always unregister existing service workers first
         const existingRegistrations =
           await navigator.serviceWorker.getRegistrations();
-        console.log(
-          "Found existing service workers:",
-          existingRegistrations.length
-        );
-
         for (const reg of existingRegistrations) {
           console.log("Unregistering existing service worker:", {
             scope: reg.scope,
@@ -60,26 +70,24 @@ export default function ClientProviders({
           await reg.unregister();
         }
 
-        // Register new service worker
+        // Register new service worker with specific options for iOS
         console.log("Registering new service worker...");
         registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
           updateViaCache: "none",
+          type: isIOS ? "classic" : "module",
         });
 
-        console.log("New service worker registered:", {
+        console.log("Service worker registered:", {
           scope: registration.scope,
           state: registration.active?.state,
           scriptURL: registration.active?.scriptURL,
+          isIOS,
+          isPWA,
         });
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log("Service Worker is ready:", {
-          scope: registration.scope,
-          state: registration.active?.state,
-          scriptURL: registration.active?.scriptURL,
-        });
 
         // Set up push notifications if supported
         if ("PushManager" in window && "Notification" in window) {
@@ -157,7 +165,6 @@ export default function ClientProviders({
         }
 
         // Handle service worker updates
-        // Store registration in a local variable to ensure TypeScript knows it's not null
         const currentReg = registration;
         if (currentReg) {
           currentReg.addEventListener("updatefound", () => {
@@ -171,7 +178,9 @@ export default function ClientProviders({
 
           // Set up periodic update checks
           updateInterval = setInterval(() => {
-            currentReg.update().catch(console.error);
+            if (currentReg && document.visibilityState === "visible") {
+              currentReg.update().catch(console.error);
+            }
           }, 60 * 60 * 1000); // Check every hour
         }
       } catch (error) {
