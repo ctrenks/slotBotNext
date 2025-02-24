@@ -7,14 +7,16 @@ const urlsToCache = [
   "/img/defaultuser.png",
 ];
 
-// Helper function to open IndexedDB
+// Helper function to open IndexedDB with better error handling
 async function openLogsDB() {
   return new Promise((resolve, reject) => {
+    console.log("Opening IndexedDB...");
     const request = indexedDB.open("NotificationLogs", 2);
 
-    request.onerror = (event) => {
-      console.error("IndexedDB error:", event.target.error);
-      reject(event.target.error);
+    request.onerror = () => {
+      const error = request.error;
+      console.error("IndexedDB error:", error?.message || "Unknown error");
+      reject(error || new Error("Failed to open IndexedDB"));
     };
 
     request.onsuccess = () => {
@@ -35,64 +37,93 @@ async function openLogsDB() {
       if (event.oldVersion < 1) {
         if (!db.objectStoreNames.contains("logs")) {
           console.log("Creating logs store");
-          db.createObjectStore("logs", { keyPath: "id" });
+          const logsStore = db.createObjectStore("logs", { keyPath: "id" });
+          logsStore.createIndex("timestamp", "timestamp");
         }
       }
 
       if (event.oldVersion < 2) {
         if (!db.objectStoreNames.contains("shown")) {
           console.log("Creating shown store");
-          db.createObjectStore("shown", { keyPath: "id" });
+          const shownStore = db.createObjectStore("shown", { keyPath: "id" });
+          shownStore.createIndex("timestamp", "timestamp");
         }
       }
     };
   });
 }
 
-// Helper function to log to IndexedDB
+// Helper function to log to IndexedDB with better error handling
 async function logToIndexedDB(data) {
   try {
+    console.log("Attempting to log to IndexedDB:", data);
     const db = await openLogsDB();
-    const tx = db.transaction("logs", "readwrite");
-    const store = tx.objectStore("logs");
 
-    const timestamp = Date.now();
-    const id = `${data.id || "notification"}-${timestamp}`;
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("logs", "readwrite");
+      const store = tx.objectStore("logs");
 
-    await store.put({
-      id,
-      timestamp,
-      data,
-      status: "logged",
-      platform: /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "")
-        ? "ios"
-        : "web",
+      const timestamp = Date.now();
+      const id = `${data.id || "notification"}-${timestamp}`;
+
+      const record = {
+        id,
+        timestamp,
+        data,
+        status: "logged",
+        platform: /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "")
+          ? "ios"
+          : "web",
+      };
+
+      const request = store.put(record);
+
+      request.onerror = () => {
+        const error = request.error;
+        console.error(
+          "Failed to write to IndexedDB:",
+          error?.message || "Unknown error"
+        );
+        reject(error || new Error("Failed to write to IndexedDB"));
+      };
+
+      request.onsuccess = () => {
+        console.log("Successfully logged to IndexedDB:", id);
+        resolve(id);
+      };
+
+      tx.oncomplete = () => {
+        console.log("IndexedDB transaction completed");
+      };
     });
-
-    console.log("Successfully logged to IndexedDB:", id);
   } catch (error) {
     console.error("Failed to log to IndexedDB:", error);
+    throw error;
   }
 }
 
 // Helper function to clean up old notifications
 async function cleanupOldNotifications() {
   try {
+    console.log("Cleaning up old notifications...");
     const db = await openLogsDB();
     const tx = db.transaction("shown", "readwrite");
     const store = tx.objectStore("shown");
+    const index = store.index("timestamp");
     const tenSecondsAgo = Date.now() - 10 * 1000;
 
-    // Get all records
-    const request = store.openCursor();
+    const request = index.openCursor(IDBKeyRange.upperBound(tenSecondsAgo));
+
     request.onsuccess = (event) => {
       const cursor = event.target.result;
       if (cursor) {
-        if (cursor.value.timestamp < tenSecondsAgo) {
-          store.delete(cursor.key);
-        }
+        store.delete(cursor.primaryKey);
         cursor.continue();
       }
+    };
+
+    tx.oncomplete = () => {
+      console.log("Cleanup completed");
     };
   } catch (error) {
     console.error("Error cleaning up old notifications:", error);
@@ -129,7 +160,18 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   console.log("Service Worker activating...");
   // Claim control immediately
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    (async () => {
+      await clients.claim();
+      // Test IndexedDB access
+      try {
+        await openLogsDB();
+        console.log("IndexedDB access confirmed during activation");
+      } catch (error) {
+        console.error("Failed to access IndexedDB during activation:", error);
+      }
+    })()
+  );
 });
 
 self.addEventListener("fetch", (event) => {
@@ -142,17 +184,21 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", async function (event) {
+  console.log("Push event received");
+
   event.waitUntil(
     (async function () {
       try {
         if (!event.data) {
           console.log("Push event has no data, showing default notification");
-          await self.registration.showNotification("New Alert", {
-            body: "New SlotBot alert available",
-          });
           await logToIndexedDB({
             type: "default",
             message: "No data in push event",
+            timestamp: Date.now(),
+          });
+
+          await self.registration.showNotification("New Alert", {
+            body: "New SlotBot alert available",
           });
           return;
         }
@@ -161,7 +207,11 @@ self.addEventListener("push", async function (event) {
         console.log("Received push data:", data);
 
         // Log the push event immediately
-        await logToIndexedDB(data);
+        await logToIndexedDB({
+          type: "push",
+          data: data,
+          timestamp: Date.now(),
+        });
 
         const notificationId = data.data?.alertId || Date.now().toString();
         const timestamp = Date.now();
@@ -204,6 +254,7 @@ self.addEventListener("push", async function (event) {
         // Store notification in logs
         await logToIndexedDB({
           id: `${notificationId}-${timestamp}`,
+          type: "notification",
           timestamp: timestamp,
           data: data,
           status: "shown",
@@ -211,7 +262,13 @@ self.addEventListener("push", async function (event) {
         });
       } catch (error) {
         console.error("Error in push event handler:", error);
-        // Show a fallback notification if something went wrong
+        // Log the error
+        await logToIndexedDB({
+          type: "error",
+          message: error instanceof Error ? error.message : "Unknown error",
+          timestamp: Date.now(),
+        });
+        // Show a fallback notification
         await self.registration.showNotification("New Alert", {
           body: "New SlotBot alert available",
         });
@@ -221,6 +278,8 @@ self.addEventListener("push", async function (event) {
 });
 
 self.addEventListener("notificationclick", function (event) {
+  console.log("Notification clicked:", event.notification.tag);
+
   event.notification.close();
 
   let urlToOpen;
