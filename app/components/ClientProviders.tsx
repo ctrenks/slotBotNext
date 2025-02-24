@@ -26,8 +26,9 @@ export default function ClientProviders({
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    let registration: ServiceWorkerRegistration | null = null;
     let updateInterval: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
     async function registerServiceWorker() {
       try {
@@ -43,12 +44,16 @@ export default function ClientProviders({
           email: session.user.email,
           timestamp: new Date().toISOString(),
           status,
+          retryCount,
         });
 
         if (!("serviceWorker" in navigator)) {
           console.error("Service Worker not supported in this browser");
           return;
         }
+
+        // Wait for any TSS initialization to complete
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         // Unregister any existing service workers
         const existingRegistrations =
@@ -65,19 +70,23 @@ export default function ClientProviders({
         // Wait a moment before registering new service worker
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Register new service worker
+        // Register new service worker with module type
         console.log("Registering new service worker...");
-        registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-          type: "classic",
-        });
+        const readyRegistration = await navigator.serviceWorker.register(
+          "/sw.js",
+          {
+            scope: "/",
+            type: "module",
+            updateViaCache: "none",
+          }
+        );
 
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
         console.log("Service worker is ready:", {
-          scope: registration.scope,
-          state: registration.active?.state,
-          scriptURL: registration.active?.scriptURL,
+          scope: readyRegistration.scope,
+          state: readyRegistration.active?.state,
+          scriptURL: readyRegistration.active?.scriptURL,
           timestamp: new Date().toISOString(),
         });
 
@@ -95,7 +104,7 @@ export default function ClientProviders({
             if (permission === "granted") {
               // Get existing subscription first
               let subscription =
-                await registration.pushManager.getSubscription();
+                await readyRegistration.pushManager.getSubscription();
               console.log("Existing push subscription:", {
                 exists: !!subscription,
                 endpoint: subscription?.endpoint,
@@ -112,7 +121,7 @@ export default function ClientProviders({
                 const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
                 console.log("Creating new push subscription...");
-                subscription = await registration.pushManager.subscribe({
+                subscription = await readyRegistration.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: convertedVapidKey,
                 });
@@ -144,13 +153,25 @@ export default function ClientProviders({
 
         // Set up periodic update checks
         updateInterval = setInterval(() => {
-          if (registration && document.visibilityState === "visible") {
+          if (readyRegistration && document.visibilityState === "visible") {
             console.log("Checking for service worker updates...");
-            registration.update().catch(console.error);
+            readyRegistration.update().catch(console.error);
           }
         }, 60 * 60 * 1000); // Check every hour
       } catch (error) {
         console.error("Service Worker registration failed:", error);
+
+        // Retry logic
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          console.log(
+            `Retrying service worker registration (attempt ${retryCount}/${MAX_RETRIES})...`
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 2000 * retryCount)
+          );
+          await registerServiceWorker();
+        }
       }
     }
 
