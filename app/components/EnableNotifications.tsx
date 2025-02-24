@@ -102,6 +102,11 @@ export default function EnableNotifications({
     return null;
   }
 
+  // Don't show our UI when browser's native prompt might be showing
+  if (permission === "default" && !isPWA) {
+    return null;
+  }
+
   // Don't show button in header on mobile
   if (context === "header" && isMobile) {
     return null;
