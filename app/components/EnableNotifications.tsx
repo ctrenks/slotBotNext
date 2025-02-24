@@ -194,7 +194,11 @@ export default function EnableNotifications({
   }
 
   // Only show button if notifications are supported and not already granted
-  if (!isSupported || permission === "granted") {
+  if (!isSupported) {
+    return null;
+  }
+
+  if (permission === "granted") {
     return null;
   }
 
