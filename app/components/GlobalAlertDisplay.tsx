@@ -6,6 +6,45 @@ import AlertDisplay from "./AlertDisplay";
 import { Session } from "next-auth";
 import { AlertWithRead } from "@/app/types/alert";
 
+// Add type definitions for extended Window interfaces
+interface WindowWithMSStream extends Window {
+  MSStream?: boolean;
+}
+
+interface WindowWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+// Helper function for VAPID key conversion
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Platform detection
+function detectPlatform() {
+  if (typeof window === "undefined") return { isIOS: false, isPWA: false };
+
+  const isIOS =
+    /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
+    !(window as WindowWithMSStream).MSStream;
+  const isPWA =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as WindowWithStandalone).standalone === true;
+
+  return { isIOS, isPWA };
+}
+
 // IndexedDB setup
 async function openAlertsDB() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -84,6 +123,7 @@ export default function GlobalAlertDisplay() {
   const [alerts, setAlerts] = useState<AlertWithRead[]>([]);
   const [notificationPermission, setNotificationPermission] =
     useState<NotificationPermission>("default");
+  const [platform] = useState(detectPlatform());
 
   // Check notification permission on mount
   useEffect(() => {
@@ -91,6 +131,75 @@ export default function GlobalAlertDisplay() {
       setNotificationPermission(Notification.permission);
     }
   }, []);
+
+  // iOS PWA service worker registration
+  const registerServiceWorker = useCallback(async () => {
+    if (platform.isIOS && platform.isPWA && "serviceWorker" in navigator) {
+      try {
+        console.log("Registering service worker for iOS PWA...");
+        const registration = await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+          type: "classic",
+        });
+
+        // Set up push subscription if we have permission
+        if (notificationPermission === "granted" && session?.user?.email) {
+          let subscription = await registration.pushManager.getSubscription();
+
+          if (!subscription) {
+            const response = await fetch("/api/push/vapid-public-key");
+            if (!response.ok) throw new Error("Failed to fetch VAPID key");
+
+            const vapidPublicKey = await response.text();
+            const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedVapidKey,
+            });
+
+            await fetch("/api/push/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                subscription,
+                userEmail: session.user.email,
+              }),
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to register service worker:", error);
+      }
+    }
+  }, [
+    platform.isIOS,
+    platform.isPWA,
+    notificationPermission,
+    session?.user?.email,
+  ]);
+
+  // Register service worker for iOS PWA
+  useEffect(() => {
+    if (platform.isIOS && platform.isPWA) {
+      registerServiceWorker();
+
+      // Re-register when page becomes visible
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          registerServiceWorker();
+        }
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      return () => {
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
+    }
+  }, [platform.isIOS, platform.isPWA, registerServiceWorker]);
 
   // Handle new alerts and show notifications
   const handleNewAlerts = useCallback(
@@ -106,6 +215,7 @@ export default function GlobalAlertDisplay() {
         console.log("New alerts detected:", {
           oldCount: alerts.length,
           newCount: newAlerts.length,
+          platform: platform,
         });
 
         // Find truly new alerts (not just updates)
@@ -114,11 +224,15 @@ export default function GlobalAlertDisplay() {
             !alerts.some((existingAlert) => existingAlert.id === newAlert.id)
         );
 
-        // Show notifications for new alerts
-        if (brandNewAlerts.length > 0 && notificationPermission === "granted") {
+        // Show notifications for new alerts (desktop only)
+        if (
+          brandNewAlerts.length > 0 &&
+          notificationPermission === "granted" &&
+          !platform.isIOS
+        ) {
+          // Skip for iOS as it uses service worker
           for (const alert of brandNewAlerts) {
             try {
-              // Check if we've already shown this alert
               const alreadyShown = await hasAlertBeenShown(alert.id);
               if (!alreadyShown) {
                 const notification = new Notification(
@@ -157,7 +271,7 @@ export default function GlobalAlertDisplay() {
         setAlerts(newAlerts);
       }
     },
-    [alerts, notificationPermission]
+    [alerts, notificationPermission, platform]
   );
 
   // Alert polling effect
