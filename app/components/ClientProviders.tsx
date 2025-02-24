@@ -15,18 +15,7 @@ export default function ClientProviders({
           return;
         }
 
-        // Check if we already have an active service worker
-        const existingRegistration =
-          await navigator.serviceWorker.getRegistration();
-        if (existingRegistration?.active) {
-          console.log(
-            "Service Worker already active:",
-            existingRegistration.scope
-          );
-          return;
-        }
-
-        // Register the service worker
+        // Always register the service worker
         console.log("Registering service worker...");
         const registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
@@ -37,6 +26,10 @@ export default function ClientProviders({
           "Service Worker registration successful with scope:",
           registration.scope
         );
+
+        // Wait for the service worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log("Service Worker is ready");
 
         // Handle updates
         registration.addEventListener("updatefound", () => {
@@ -61,10 +54,6 @@ export default function ClientProviders({
           registration.update();
         }, 3600000);
 
-        // Wait for the service worker to be ready
-        await navigator.serviceWorker.ready;
-        console.log("Service Worker is ready");
-
         // Handle communication with service worker
         navigator.serviceWorker.addEventListener("message", (event) => {
           if (event.data && event.data.type === "NOTIFICATION_CLICKED") {
@@ -73,6 +62,25 @@ export default function ClientProviders({
             window.location.href = event.data.url || "/slotbot";
           }
         });
+
+        // Test IndexedDB
+        if ("indexedDB" in window) {
+          try {
+            const request = indexedDB.open("NotificationLogs", 2);
+            request.onerror = () => {
+              const error = request.error;
+              console.error(
+                "IndexedDB error:",
+                error?.message || "Unknown error"
+              );
+            };
+            request.onsuccess = () => {
+              console.log("Successfully opened IndexedDB");
+            };
+          } catch (error) {
+            console.error("Error testing IndexedDB:", error);
+          }
+        }
       } catch (error) {
         if (error instanceof Error) {
           console.error("Service Worker registration failed:", error.message);
