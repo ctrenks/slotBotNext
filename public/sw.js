@@ -333,6 +333,8 @@ self.addEventListener("push", async function (event) {
             tag: `error-${Date.now()}`,
             renotify: true,
             requireInteraction: false,
+            icon: "/img/defaultuser.png",
+            badge: "/img/defaultuser.png",
           });
         } catch (e) {
           console.error("Critical error in error handler:", e);
