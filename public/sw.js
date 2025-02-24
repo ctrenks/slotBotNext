@@ -165,7 +165,7 @@ self.addEventListener("activate", (event) => {
       try {
         await clients.claim();
         // Test IndexedDB access
-        const db = await openLogsDB();
+        await openLogsDB();
         console.log("IndexedDB access confirmed during activation");
 
         // Log activation success
@@ -174,6 +174,15 @@ self.addEventListener("activate", (event) => {
           status: "success",
           timestamp: Date.now(),
         });
+
+        // Clean up any old caches
+        const cacheKeys = await caches.keys();
+        await Promise.all(
+          cacheKeys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        );
+        console.log("Old caches cleaned up");
       } catch (error) {
         console.error("Failed to access IndexedDB during activation:", error);
         // Try to log the error even if IndexedDB failed
@@ -202,56 +211,75 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", async function (event) {
-  console.log("Push event received");
+  console.log(
+    "Push event received with data:",
+    event.data ? await event.data.text() : "no data"
+  );
 
   event.waitUntil(
     (async function () {
       try {
+        // Check if we can show notifications
+        if (
+          !(self.Notification && self.Notification.permission === "granted")
+        ) {
+          console.error("Notifications not permitted");
+          return;
+        }
+
         // Log push event receipt immediately
         await logToIndexedDB({
           type: "push_received",
           timestamp: Date.now(),
           data: event.data ? await event.data.text() : null,
-        });
+        }).catch((err) => console.error("Failed to log push event:", err));
 
+        let notificationData;
         if (!event.data) {
           console.log("Push event has no data, showing default notification");
-          await logToIndexedDB({
-            type: "default",
-            message: "No data in push event",
-            timestamp: Date.now(),
-          });
-
-          await self.registration.showNotification("New Alert", {
+          notificationData = {
+            title: "New Alert",
             body: "New SlotBot alert available",
-            tag: `default-${Date.now()}`,
-            renotify: true,
-          });
-          return;
+            data: { url: "/slotbot" },
+          };
+        } else {
+          try {
+            const rawData = await event.data.text();
+            console.log("Raw push data:", rawData);
+            notificationData = JSON.parse(rawData);
+          } catch (error) {
+            console.error("Error parsing push data:", error);
+            notificationData = {
+              title: "New Alert",
+              body: "New SlotBot alert available",
+              data: { url: "/slotbot" },
+            };
+          }
         }
 
-        const data = event.data.json();
-        console.log("Received push data:", data);
-
-        const notificationId = data.data?.alertId || Date.now().toString();
         const timestamp = Date.now();
+        const notificationId =
+          notificationData.data?.alertId || timestamp.toString();
 
-        // Clean up old notifications periodically
-        await cleanupOldNotifications();
+        // Clean up old notifications
+        await cleanupOldNotifications().catch((err) =>
+          console.error("Failed to cleanup old notifications:", err)
+        );
 
         // Detect iOS
         const isIOS = /iPhone|iPad|iPod/.test(self.navigator?.userAgent || "");
+        console.log("Platform detection:", { isIOS });
 
         // Configure notification options
         const options = {
-          title: data.title || "SlotBot Message",
-          body: data.body || "New notification",
+          body: notificationData.body || "New notification",
           tag: `${notificationId}-${timestamp}`,
           renotify: true,
-          requireInteraction: !isIOS, // Don't require interaction on iOS
-          icon: data.data?.icon || "/img/defaultuser.png",
+          requireInteraction: !isIOS,
+          icon: notificationData.data?.icon || "/img/defaultuser.png",
           badge: "/img/defaultuser.png",
-          vibrate: isIOS ? undefined : [100, 50, 100], // No vibration on iOS
+          silent: isIOS, // No sound on iOS
+          vibrate: isIOS ? undefined : [100, 50, 100],
           timestamp: timestamp,
           data: {
             url: "/slotbot",
@@ -262,7 +290,6 @@ self.addEventListener("push", async function (event) {
           },
         };
 
-        // Add actions only if not on iOS
         if (!isIOS) {
           options.actions = [
             {
@@ -272,10 +299,13 @@ self.addEventListener("push", async function (event) {
           ];
         }
 
-        console.log("Showing notification with options:", options);
+        console.log("Attempting to show notification with options:", options);
 
         // Show the notification
-        await self.registration.showNotification(options.title, options);
+        await self.registration.showNotification(
+          notificationData.title || "SlotBot Message",
+          options
+        );
         console.log("Notification shown successfully");
 
         // Store notification in logs
@@ -283,25 +313,30 @@ self.addEventListener("push", async function (event) {
           id: `${notificationId}-${timestamp}`,
           type: "notification",
           timestamp: timestamp,
-          data: data,
+          data: notificationData,
           status: "shown",
           platform: isIOS ? "ios" : "web",
-        });
+        }).catch((err) => console.error("Failed to log notification:", err));
       } catch (error) {
         console.error("Error in push event handler:", error);
-        // Log the error
-        await logToIndexedDB({
-          type: "error",
-          message: error instanceof Error ? error.message : "Unknown error",
-          timestamp: Date.now(),
-          data: event.data ? await event.data.text() : null,
-        });
-        // Show a fallback notification
-        await self.registration.showNotification("New Alert", {
-          body: "New SlotBot alert available",
-          tag: `error-${Date.now()}`,
-          renotify: true,
-        });
+        // Log the error and show fallback notification
+        try {
+          await logToIndexedDB({
+            type: "error",
+            message: error instanceof Error ? error.message : "Unknown error",
+            timestamp: Date.now(),
+            data: event.data ? await event.data.text() : null,
+          });
+
+          await self.registration.showNotification("New Alert", {
+            body: "New SlotBot alert available",
+            tag: `error-${Date.now()}`,
+            renotify: true,
+            requireInteraction: false,
+          });
+        } catch (e) {
+          console.error("Critical error in error handler:", e);
+        }
       }
     })()
   );
