@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -22,6 +23,8 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
+
   useEffect(() => {
     async function registerServiceWorker() {
       try {
@@ -68,7 +71,11 @@ export default function ClientProviders({
         });
 
         // Test push manager and notification support
-        if ("PushManager" in window && "Notification" in window) {
+        if (
+          "PushManager" in window &&
+          "Notification" in window &&
+          session?.user?.email
+        ) {
           try {
             // Request notification permission first
             const permission = await Notification.requestPermission();
@@ -111,7 +118,7 @@ export default function ClientProviders({
                   },
                   body: JSON.stringify({
                     subscription,
-                    userEmail: "chris@trenkas.com", // TODO: Get from session
+                    userEmail: session.user.email,
                   }),
                 });
 
@@ -131,6 +138,10 @@ export default function ClientProviders({
           } catch (error) {
             console.error("Error setting up push notifications:", error);
           }
+        } else if (!session?.user?.email) {
+          console.log(
+            "Skipping push notification setup - no user email available"
+          );
         }
 
         // Handle service worker updates
@@ -191,7 +202,7 @@ export default function ClientProviders({
     return () => {
       // No cleanup needed for service worker
     };
-  }, []);
+  }, [session]); // Add session to dependency array
 
   return <>{children}</>;
 }
