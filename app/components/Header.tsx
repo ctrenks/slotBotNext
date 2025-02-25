@@ -58,10 +58,10 @@ export default function Header() {
                   Alerts
                 </Link>
                 <Link
-                  href="/admin/affiliates"
+                  href="/admin/affiliate"
                   className="text-white hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Affiliates
+                  Affiliate
                 </Link>
               </>
             )}
