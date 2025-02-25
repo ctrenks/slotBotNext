@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affiliate Tracking System - Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #eee;
+            background-color: #121212;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #4ADE80;
+        }
+        code {
+            background-color: #1e1e1e;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        a {
+            color: #4ADE80;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Affiliate Tracking System</h1>
+        <p>This document explains how the affiliate tracking system works in the SlotBot application.</p>
+
+        <h2>Overview</h2>
+        <p>The system captures <code>clickid</code> parameters from URLs and associates them with users during registration. This allows for tracking conversions and sending postbacks to affiliate networks.</p>
+
+        <h2>How It Works</h2>
+        <ol>
+            <li><strong>Capturing ClickID</strong>: When a user visits the site with a <code>clickid</code> parameter in the URL (e.g., <code>/?clickid=abc123</code>), the system stores this value in localStorage.</li>
+            <li><strong>Registration</strong>: During user registration/sign-in, the stored clickid is associated with the user's account in the database.</li>
+            <li><strong>Postbacks</strong>: After a successful conversion (e.g., registration, payment), the system can send a postback to the affiliate network using the stored clickid.</li>
+        </ol>
+
+        <h2>Admin Configuration</h2>
+        <p>Administrators can configure the postback URL through the admin interface:</p>
+        <ol>
+            <li>Navigate to <code>/admin/affiliates</code></li>
+            <li>Enter the postback URL with placeholders:
+                <ul>
+                    <li>Use <code>${SUBID}</code> as a placeholder for the clickid</li>
+                    <li>Use <code>${PAYOUT}</code> as a placeholder for the conversion amount</li>
+                </ul>
+            </li>
+        </ol>
+
+        <p>Example postback URL:</p>
+        <pre><code>http://ad.propellerads.com/conversion.php?aid=3781363&pid=&tid=141360&visitor_id=${SUBID}&payout=${PAYOUT}</code></pre>
+
+        <h2>Usage Examples</h2>
+        <h3>Tracking Affiliate Links</h3>
+        <p>Create affiliate links with clickid parameters:</p>
+        <pre><code>https://yourdomain.com/?clickid=AFFILIATE_ID_123</code></pre>
+
+        <h3>Sending Postbacks</h3>
+        <p>To send a postback for a conversion:</p>
+        <pre><code>import { sendPostback } from "@/app/utils/affiliates";
+
+// After a successful conversion
+await sendPostback(user.clickId, "signup");</code></pre>
+
+        <h3>Checking Postbacks</h3>
+        <p>You can manually trigger a postback by visiting:</p>
+        <pre><code>https://yourdomain.com/api/postback?clickid=AFFILIATE_ID_123</code></pre>
+
+        <h3>PropellerAds Integration</h3>
+        <p>For PropellerAds, use the following postback URL format:</p>
+        <pre><code>http://ad.propellerads.com/conversion.php?aid=3781363&pid=&tid=141360&visitor_id=${SUBID}&payout=${PAYOUT}</code></pre>
+
+        <p>Where:</p>
+        <ul>
+            <li><code>aid</code>: Your PropellerAds advertiser ID</li>
+            <li><code>tid</code>: Your PropellerAds tracking ID</li>
+            <li><code>visitor_id</code>: The clickid parameter (replaced with <code>${SUBID}</code>)</li>
+            <li><code>payout</code>: The conversion amount (replaced with <code>${PAYOUT}</code>)</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>Implementation Details</h2>
+        <h3>Database Schema</h3>
+        <p>The User model includes a <code>clickId</code> field:</p>
+        <pre><code>model User {
+  // other fields...
+  clickId       String?          // Tracking ID for affiliate postbacks
+}</code></pre>
+
+        <p>The Setting model stores application settings, including the postback URL:</p>
+        <pre><code>model Setting {
+  key   String @id
+  value String
+}</code></pre>
+    </div>
+
+    <div class="container">
+        <p><a href="/admin/affiliate">&larr; Back to Affiliate Dashboard</a></p>
+    </div>
+</body>
+</html>

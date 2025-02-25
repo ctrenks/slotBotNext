@@ -84,7 +84,7 @@ export default async function AffiliateManagementPage() {
             View documentation on how to use the affiliate tracking system.
           </p>
           <a
-            href="/docs/affiliate-tracking.md"
+            href="/docs/affiliate-tracking.html"
             target="_blank"
             className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium"
           >

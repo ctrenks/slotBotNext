@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   description: "View affiliate conversion statistics and metrics",
 };
 
+// Define interface for monthly data
+interface MonthlyData {
+  month: string | Date; // Allow for string or Date type
+  total: number;
+  with_clickid: number;
+}
+
 export default async function AffiliateStatsPage() {
   const session = await auth();
 
@@ -66,7 +73,7 @@ export default async function AffiliateStatsPage() {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const monthlyData = await prisma.$queryRaw`
+  const monthlyData = await prisma.$queryRaw<MonthlyData[]>`
     SELECT
       DATE_TRUNC('month', "createdAt") as month,
       COUNT(*) as total,
@@ -166,13 +173,16 @@ export default async function AffiliateStatsPage() {
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {Array.isArray(monthlyData) &&
-                  monthlyData.map((month: any, index: number) => (
+                  monthlyData.map((month, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {new Date(month.month).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                        })}
+                        {new Date(month.month as string).toLocaleDateString(
+                          undefined,
+                          {
+                            year: "numeric",
+                            month: "long",
+                          }
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {month.total}

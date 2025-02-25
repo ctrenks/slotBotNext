@@ -36,7 +36,7 @@ const AlertDisplay = memo(function AlertDisplay({
       });
       setAlerts(initialAlerts);
     }
-  }, [initialAlerts]);
+  }, [initialAlerts, alerts]);
 
   return (
     <div className="space-y-6">
