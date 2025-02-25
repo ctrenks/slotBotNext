@@ -10,11 +10,12 @@ export const metadata: Metadata = {
   description: "View and manage user details",
 };
 
-interface UserDetailPageProps {
+type UserDetailPageProps = {
   params: {
     id: string;
   };
-}
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
 export default async function UserDetailPage({ params }: UserDetailPageProps) {
   const session = await auth();
@@ -47,7 +48,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
       alert: true,
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
     take: 10,
   });
@@ -78,7 +79,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-gray-400 text-sm">Name</p>
-              <p className="text-lg">{user.name || 'No Name'}</p>
+              <p className="text-lg">{user.name || "No Name"}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Email</p>
@@ -86,27 +87,35 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Registration Date</p>
-              <p className="text-lg">{new Date(user.createdAt).toLocaleDateString()}</p>
+              <p className="text-lg">
+                {new Date(user.createdAt).toLocaleDateString()}
+              </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Last Updated</p>
-              <p className="text-lg">{new Date(user.updatedAt).toLocaleDateString()}</p>
+              <p className="text-lg">
+                {new Date(user.updatedAt).toLocaleDateString()}
+              </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Paid Status</p>
               <p className="text-lg">
-                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  user.paid
-                    ? 'bg-green-800 text-green-100'
-                    : 'bg-yellow-800 text-yellow-100'
-                }`}>
-                  {user.paid ? 'Paid' : 'Free'}
+                <span
+                  className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    user.paid
+                      ? "bg-green-800 text-green-100"
+                      : "bg-yellow-800 text-yellow-100"
+                  }`}
+                >
+                  {user.paid ? "Paid" : "Free"}
                 </span>
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Location</p>
-              <p className="text-lg">{user.location || user.geo || 'Unknown'}</p>
+              <p className="text-lg">
+                {user.location || user.geo || "Unknown"}
+              </p>
             </div>
           </div>
         </div>
@@ -118,7 +127,9 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
               <p className="text-gray-400 text-sm">ClickID</p>
               {user.clickId ? (
                 <div className="flex items-center space-x-2">
-                  <p className="text-lg font-mono bg-gray-700 px-2 py-1 rounded">{user.clickId}</p>
+                  <p className="text-lg font-mono bg-gray-700 px-2 py-1 rounded">
+                    {user.clickId}
+                  </p>
                   <a
                     href={`/api/postback?clickid=${user.clickId}`}
                     target="_blank"
@@ -133,16 +144,16 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Referral Code</p>
-              <p className="text-lg">{user.refferal || 'None'}</p>
+              <p className="text-lg">{user.refferal || "None"}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Affiliate Code</p>
-              <p className="text-lg">{user.affiliate || 'None'}</p>
+              <p className="text-lg">{user.affiliate || "None"}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Authentication</p>
               <div className="space-y-1">
-                {user.accounts.map(account => (
+                {user.accounts.map((account) => (
                   <p key={account.provider} className="text-sm">
                     <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-800 text-blue-100">
                       {account.provider}
@@ -165,13 +176,22 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-gray-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Alert
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Date
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Read
                   </th>
                 </tr>
@@ -180,21 +200,27 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
                 {alerts.map((alertRecipient) => (
                   <tr key={alertRecipient.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">{alertRecipient.alert.message}</div>
+                      <div className="text-sm font-medium">
+                        {alertRecipient.alert.message}
+                      </div>
                       {alertRecipient.alert.casinoName && (
-                        <div className="text-sm text-gray-400">{alertRecipient.alert.casinoName}</div>
+                        <div className="text-sm text-gray-400">
+                          {alertRecipient.alert.casinoName}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {new Date(alertRecipient.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        alertRecipient.read
-                          ? 'bg-green-800 text-green-100'
-                          : 'bg-red-800 text-red-100'
-                      }`}>
-                        {alertRecipient.read ? 'Read' : 'Unread'}
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          alertRecipient.read
+                            ? "bg-green-800 text-green-100"
+                            : "bg-red-800 text-red-100"
+                        }`}
+                      >
+                        {alertRecipient.read ? "Read" : "Unread"}
                       </span>
                     </td>
                   </tr>
