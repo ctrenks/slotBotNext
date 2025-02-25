@@ -6,6 +6,7 @@ import AuthWrapper from "./components/AuthWrapper";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import SafeAreaStyles from "./components/SafeAreaStyles";
+import ClickIdCapture from "./components/ClickIdCapture";
 import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({ subsets: ["latin"] });
 
@@ -154,6 +155,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-black text-[#4ADE80]`}>
         <AuthContext>
           <AuthWrapper>
+            <ClickIdCapture />
             <Header />
             <main className="container mx-auto px-4">{children}</main>
             <Footer />

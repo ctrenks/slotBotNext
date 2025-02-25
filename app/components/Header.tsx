@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import HeaderUserSection from "./HeaderUserSection";
 import MobileMenu from "./MobileMenu";
 import SlotBotButton from "./SlotBotButton";
 
 export default function Header() {
+  const { data: session } = useSession();
+
   const menuItems = [
     { name: "Trial", href: "/trial" },
     { name: "Pricing", href: "/pricing" },
@@ -46,6 +49,22 @@ export default function Header() {
               </Link>
             ))}
             <SlotBotButton />
+            {session?.user?.email === "chris@trenkas.com" && (
+              <>
+                <Link
+                  href="/admin/alerts"
+                  className="text-white hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Alerts
+                </Link>
+                <Link
+                  href="/admin/affiliates"
+                  className="text-white hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Affiliates
+                </Link>
+              </>
+            )}
           </nav>
 
           <div className="flex items-center gap-4">

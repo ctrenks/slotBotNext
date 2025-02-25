@@ -36,6 +36,7 @@ model User {
   refferal      String?
   geo           String?
   affiliate     String?          @unique
+  clickId       String?          // Tracking ID for affiliate postbacks
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   alerts        AlertRecipient[]
@@ -685,4 +686,10 @@ model UserAlert {
   @@index([createdAt])
   @@index([geo])
   @@map("user_alerts")
+}
+
+// Application settings model
+model Setting {
+  key   String @id
+  value String
 }

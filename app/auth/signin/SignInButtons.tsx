@@ -2,13 +2,24 @@
 
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getStoredClickId, clearStoredClickId } from "@/app/utils/urlParams";
 
 export default function SignInButtons() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [clickId, setClickId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get stored clickId from localStorage
+    const storedClickId = getStoredClickId();
+    if (storedClickId) {
+      setClickId(storedClickId);
+      console.log("Retrieved clickId for sign-in:", storedClickId);
+    }
+  }, []);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,9 +27,11 @@ export default function SignInButtons() {
     setError(null);
 
     try {
+      // Include clickId in the sign-in call
       const result = await signIn("resend", {
         email,
         redirect: false,
+        clickId: clickId || undefined,
       });
 
       console.log("Sign in result:", result);
@@ -26,6 +39,11 @@ export default function SignInButtons() {
       if (result?.error) {
         setError(result.error);
       } else if (result?.ok) {
+        // Clear the clickId from localStorage after it's been used
+        if (clickId) {
+          clearStoredClickId();
+          console.log("Cleared clickId from localStorage after sign-in");
+        }
         router.replace("/auth/verify-request");
       }
     } catch (e) {
@@ -33,6 +51,20 @@ export default function SignInButtons() {
       setError(e instanceof Error ? e.message : "An error occurred");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    // Include clickId in the sign-in call
+    signIn("google", {
+      callbackUrl: "/",
+      clickId: clickId || undefined,
+    });
+
+    // Clear the clickId from localStorage after it's been used
+    if (clickId) {
+      clearStoredClickId();
+      console.log("Cleared clickId from localStorage after Google sign-in");
     }
   };
 
@@ -86,7 +118,7 @@ export default function SignInButtons() {
       </div>
 
       <button
-        onClick={() => signIn("google", { callbackUrl: "/" })}
+        onClick={handleGoogleSignIn}
         className="w-full rounded-md border border-primary/20 dark:border-accent-dark/20
         bg-background dark:bg-background-dark px-4 py-2
         text-foreground dark:text-foreground-dark hover:bg-primary/5
