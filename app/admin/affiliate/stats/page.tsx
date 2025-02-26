@@ -176,13 +176,10 @@ export default async function AffiliateStatsPage() {
                   monthlyData.map((month, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {new Date(month.month as string).toLocaleDateString(
-                          undefined,
-                          {
-                            year: "numeric",
-                            month: "long",
-                          }
-                        )}
+                        {new Date(month.month).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {month.total}

@@ -10,14 +10,15 @@ export const metadata: Metadata = {
   description: "View and manage user details",
 };
 
-type UserDetailPageProps = {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
-export default async function UserDetailPage({ params }: UserDetailPageProps) {
+export default async function Page({
+  params,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { id } = await params;
   const session = await auth();
 
   // Check if user is admin
@@ -28,7 +29,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   // Fetch user details
   const user = await prisma.user.findUnique({
     where: {
-      id: params.id,
+      id: id,
     },
     include: {
       accounts: true,
