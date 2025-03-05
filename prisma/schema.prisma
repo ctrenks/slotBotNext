@@ -41,6 +41,7 @@ model User {
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   alerts        AlertRecipient[]
+  clickTracks   ClickTrack[]     // Relation to click tracking data
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -693,4 +694,24 @@ model UserAlert {
 model Setting {
   key   String @id
   value String
+}
+
+model ClickTrack {
+  id         String   @id @default(cuid())
+  ip         String?
+  referrer   String?
+  clickId    String?
+  offerCode  String?
+  userAgent  String?
+  geo        String?  @db.Char(2) // 2 letter country code
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  convertedToUser Boolean @default(false)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([clickId])
+  @@index([offerCode])
+  @@index([geo])
+  @@index([createdAt])
 }

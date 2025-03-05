@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click Tracking System - Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #eee;
+            background-color: #121212;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #4ADE80;
+        }
+        code {
+            background-color: #1e1e1e;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        a {
+            color: #4ADE80;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Click Tracking System</h1>
+        <p>This document explains how the click tracking system works in the SlotBot application.</p>
+
+        <h2>Overview</h2>
+        <p>The system captures inbound traffic data including IP address, referrer, clickID, offerCode, and geographical location. This data is stored in a database and can be viewed in the admin dashboard.</p>
+
+        <h2>How It Works</h2>
+        <ol>
+            <li><strong>Data Capture</strong>: When a user visits the site, the system automatically captures:
+                <ul>
+                    <li>IP address</li>
+                    <li>Referrer URL</li>
+                    <li>User agent (browser information)</li>
+                    <li>Geographical location (country code)</li>
+                    <li>ClickID (if present in URL)</li>
+                    <li>Offer code (if present in URL)</li>
+                </ul>
+            </li>
+            <li><strong>Storage</strong>: This data is stored in the database for analysis.</li>
+            <li><strong>Conversion Tracking</strong>: When a user registers, any click tracking data associated with their session is marked as converted.</li>
+            <li><strong>Analysis</strong>: Administrators can view and analyze this data in the admin dashboard.</li>
+        </ol>
+
+        <h2>Admin Dashboard</h2>
+        <p>Administrators can view click tracking data in the admin dashboard:</p>
+        <ol>
+            <li>Navigate to <code>/admin/clicks</code></li>
+            <li>View statistics on total clicks, clicks with ClickID, clicks with offer code, and converted clicks</li>
+            <li>View geographical distribution of clicks</li>
+            <li>View detailed information about individual clicks</li>
+        </ol>
+    </div>
+
+    <div class="container">
+        <h2>Implementation Details</h2>
+        <h3>Database Schema</h3>
+        <p>The ClickTrack model includes the following fields:</p>
+        <pre><code>model ClickTrack {
+  id         String   @id @default(cuid())
+  ip         String?
+  referrer   String?
+  clickId    String?
+  offerCode  String?
+  userAgent  String?
+  geo        String?  @db.Char(2) // 2 letter country code
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  convertedToUser Boolean @default(false)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+}</code></pre>
+
+        <h3>API Endpoints</h3>
+        <p>The system includes the following API endpoints:</p>
+        <ul>
+            <li><code>/api/track</code> - Records click tracking data</li>
+        </ul>
+
+        <h3>Client-Side Tracking</h3>
+        <p>The <code>ClickIdCapture</code> component runs on every page load and captures tracking data:</p>
+        <pre><code>// app/components/ClickIdCapture.tsx
+"use client";
+
+import { useEffect } from "react";
+import { storeClickId, getUrlParams, getStoredReferrer } from "../utils/urlParams";
+
+export default function ClickIdCapture() {
+  useEffect(() => {
+    // Store clickid from URL if present
+    storeClickId();
+
+    // Send click tracking data to the API
+    const trackClick = async () => {
+      // Implementation details...
+    };
+
+    trackClick();
+  }, []);
+
+  // This component doesn't render anything
+  return null;
+}</code></pre>
+    </div>
+
+    <div class="container">
+        <h2>Usage Examples</h2>
+        <h3>Tracking Affiliate Links</h3>
+        <p>Create affiliate links with clickid parameters:</p>
+        <pre><code>https://yourdomain.com/?clickid=AFFILIATE_ID_123</code></pre>
+
+        <h3>Tracking Promotional Offers</h3>
+        <p>Create promotional links with offercode parameters:</p>
+        <pre><code>https://yourdomain.com/?offercode=SUMMER2023</code></pre>
+
+        <h3>Combined Tracking</h3>
+        <p>You can combine clickid and offercode parameters in the URL:</p>
+        <pre><code>https://yourdomain.com/?clickid=AFFILIATE_ID_123&offercode=SUMMER2023</code></pre>
+    </div>
+
+    <div class="container">
+        <p><a href="/admin/affiliate">&larr; Back to Affiliate Dashboard</a></p>
+    </div>
+</body>
+</html>

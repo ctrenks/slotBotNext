@@ -74,8 +74,8 @@ export const {
       //   | string
       //   | undefined;
 
-      if (clickId && user.email) {
-        const updateData: Record<string, string> = {};
+      if (user.email) {
+        const updateData: Record<string, string | null> = {};
 
         if (clickId) {
           console.log(`Storing clickId ${clickId} for user ${user.email}`);
@@ -89,10 +89,21 @@ export const {
         // }
 
         // Store the data with the user
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
           where: { email: user.email },
           data: updateData,
         });
+
+        // Update any click tracking records with this clickId to mark them as converted
+        if (clickId) {
+          await prisma.ClickTrack.updateMany({
+            where: { clickId },
+            data: {
+              convertedToUser: true,
+              userId: updatedUser.id,
+            },
+          });
+        }
       }
 
       return true;

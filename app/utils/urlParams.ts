@@ -18,7 +18,7 @@ export function getUrlParams(): Record<string, string> {
 }
 
 /**
- * Stores the clickid in localStorage for later use during registration
+ * Stores the clickid, offercode, and referrer in localStorage for later use
  */
 export function storeClickId(): void {
   if (typeof window === "undefined") return;
@@ -33,6 +33,13 @@ export function storeClickId(): void {
   if (params.offercode) {
     localStorage.setItem("offercode", params.offercode);
     console.log("Stored offercode:", params.offercode);
+  }
+
+  // Store referrer information
+  const referrer = document.referrer;
+  if (referrer) {
+    localStorage.setItem("referrer", referrer);
+    console.log("Stored referrer:", referrer);
   }
 }
 
@@ -66,4 +73,17 @@ export function clearStoredOfferCode(): void {
   if (typeof window === "undefined") return;
 
   localStorage.removeItem("offercode");
+}
+
+// New functions for referrer
+export function getStoredReferrer(): string | null {
+  if (typeof window === "undefined") return null;
+
+  return localStorage.getItem("referrer");
+}
+
+export function clearStoredReferrer(): void {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("referrer");
 }
