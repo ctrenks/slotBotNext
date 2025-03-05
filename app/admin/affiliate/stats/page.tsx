@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 // Define interface for monthly data
 interface MonthlyData {
   month: string | Date; // Allow for string or Date type
-  total: number;
-  with_clickid: number;
-  with_offercode: number;
+  total: bigint;
+  with_clickid: bigint;
+  with_offercode: bigint;
 }
 
 export default async function AffiliateStatsPage() {
@@ -27,6 +27,7 @@ export default async function AffiliateStatsPage() {
 
   // Get total users
   const totalUsers = await prisma.user.count();
+  const totalUsersNum = Number(totalUsers);
 
   // Get users with clickId
   const usersWithClickId = await prisma.user.count({
@@ -36,6 +37,7 @@ export default async function AffiliateStatsPage() {
       },
     },
   });
+  const usersWithClickIdNum = Number(usersWithClickId);
 
   // Get users with offerCode
   const usersWithOfferCode = await prisma.user.count({
@@ -45,6 +47,7 @@ export default async function AffiliateStatsPage() {
       },
     },
   });
+  const usersWithOfferCodeNum = Number(usersWithOfferCode);
 
   // Get paid users with clickId
   const paidUsersWithClickId = await prisma.user.count({
@@ -55,6 +58,7 @@ export default async function AffiliateStatsPage() {
       paid: true,
     },
   });
+  const paidUsersWithClickIdNum = Number(paidUsersWithClickId);
 
   // Get paid users with offerCode
   const paidUsersWithOfferCode = await prisma.user.count({
@@ -65,6 +69,7 @@ export default async function AffiliateStatsPage() {
       paid: true,
     },
   });
+  const paidUsersWithOfferCodeNum = Number(paidUsersWithOfferCode);
 
   // Get users registered in the last 30 days
   const thirtyDaysAgo = new Date();
@@ -77,6 +82,7 @@ export default async function AffiliateStatsPage() {
       },
     },
   });
+  const recentUsersNum = Number(recentUsers);
 
   const recentUsersWithClickId = await prisma.user.count({
     where: {
@@ -88,6 +94,7 @@ export default async function AffiliateStatsPage() {
       },
     },
   });
+  const recentUsersWithClickIdNum = Number(recentUsersWithClickId);
 
   // Get monthly registration data for the last 6 months
   const sixMonthsAgo = new Date();
@@ -120,37 +127,37 @@ export default async function AffiliateStatsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Total Users</h3>
-          <p className="text-3xl font-bold">{totalUsers}</p>
+          <p className="text-3xl font-bold">{totalUsersNum}</p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Users with ClickID</h3>
-          <p className="text-3xl font-bold">{usersWithClickId}</p>
+          <p className="text-3xl font-bold">{usersWithClickIdNum}</p>
           <p className="text-sm text-gray-400 mt-2">
-            {totalUsers > 0
+            {totalUsersNum > 0
               ? `${Math.round(
-                  (usersWithClickId / totalUsers) * 100
+                  (usersWithClickIdNum / totalUsersNum) * 100
                 )}% of total users`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Users with OfferCode</h3>
-          <p className="text-3xl font-bold">{usersWithOfferCode}</p>
+          <p className="text-3xl font-bold">{usersWithOfferCodeNum}</p>
           <p className="text-sm text-gray-400 mt-2">
-            {totalUsers > 0
+            {totalUsersNum > 0
               ? `${Math.round(
-                  (usersWithOfferCode / totalUsers) * 100
+                  (usersWithOfferCodeNum / totalUsersNum) * 100
                 )}% of total users`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Paid Conversions</h3>
-          <p className="text-3xl font-bold">{paidUsersWithClickId}</p>
+          <p className="text-3xl font-bold">{paidUsersWithClickIdNum}</p>
           <p className="text-sm text-gray-400 mt-2">
-            {usersWithClickId > 0
+            {usersWithClickIdNum > 0
               ? `${Math.round(
-                  (paidUsersWithClickId / usersWithClickId) * 100
+                  (paidUsersWithClickIdNum / usersWithClickIdNum) * 100
                 )}% conversion rate`
               : "0%"}
           </p>
@@ -159,11 +166,11 @@ export default async function AffiliateStatsPage() {
           <h3 className="text-lg font-semibold mb-2">
             Paid Conversions with OfferCode
           </h3>
-          <p className="text-3xl font-bold">{paidUsersWithOfferCode}</p>
+          <p className="text-3xl font-bold">{paidUsersWithOfferCodeNum}</p>
           <p className="text-sm text-gray-400 mt-2">
-            {paidUsersWithClickId > 0
+            {paidUsersWithClickIdNum > 0
               ? `${Math.round(
-                  (paidUsersWithOfferCode / paidUsersWithClickId) * 100
+                  (paidUsersWithOfferCodeNum / paidUsersWithClickIdNum) * 100
                 )}% conversion rate`
               : "0%"}
           </p>
@@ -171,12 +178,12 @@ export default async function AffiliateStatsPage() {
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Last 30 Days</h3>
           <p className="text-3xl font-bold">
-            {recentUsersWithClickId} / {recentUsers}
+            {recentUsersWithClickIdNum} / {recentUsersNum}
           </p>
           <p className="text-sm text-gray-400 mt-2">
-            {recentUsers > 0
+            {recentUsersNum > 0
               ? `${Math.round(
-                  (recentUsersWithClickId / recentUsers) * 100
+                  (recentUsersWithClickIdNum / recentUsersNum) * 100
                 )}% from affiliates`
               : "0%"}
           </p>
@@ -224,36 +231,42 @@ export default async function AffiliateStatsPage() {
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {Array.isArray(monthlyData) &&
-                  monthlyData.map((month, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {new Date(month.month).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {month.total}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {month.with_clickid}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {month.with_offercode}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {month.total > 0
-                          ? `${Math.round(
-                              (month.with_clickid / month.total) * 100
-                            )}%`
-                          : "0%"}
-                      </td>
-                    </tr>
-                  ))}
+                  monthlyData.map((month, index) => {
+                    const totalNum = Number(month.total);
+                    const withClickIdNum = Number(month.with_clickid);
+                    const withOfferCodeNum = Number(month.with_offercode);
+
+                    return (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {new Date(month.month).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {totalNum}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {withClickIdNum}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {withOfferCodeNum}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {totalNum > 0
+                            ? `${Math.round(
+                                (withClickIdNum / totalNum) * 100
+                              )}%`
+                            : "0%"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 {(!Array.isArray(monthlyData) || monthlyData.length === 0) && (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-6 py-4 text-center text-sm text-gray-400"
                     >
                       No data available
@@ -277,7 +290,7 @@ export default async function AffiliateStatsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold inline-block text-gray-300">
-                    {totalUsers}
+                    {totalUsersNum}
                   </span>
                 </div>
               </div>
@@ -298,9 +311,9 @@ export default async function AffiliateStatsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold inline-block text-gray-300">
-                    {usersWithClickId} (
-                    {totalUsers > 0
-                      ? Math.round((usersWithClickId / totalUsers) * 100)
+                    {usersWithClickIdNum} (
+                    {totalUsersNum > 0
+                      ? Math.round((usersWithClickIdNum / totalUsersNum) * 100)
                       : 0}
                     %)
                   </span>
@@ -310,7 +323,9 @@ export default async function AffiliateStatsPage() {
                 <div
                   style={{
                     width: `${
-                      totalUsers > 0 ? (usersWithClickId / totalUsers) * 100 : 0
+                      totalUsersNum > 0
+                        ? (usersWithClickIdNum / totalUsersNum) * 100
+                        : 0
                     }%`,
                   }}
                   className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"
@@ -327,9 +342,11 @@ export default async function AffiliateStatsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold inline-block text-gray-300">
-                    {usersWithOfferCode} (
-                    {totalUsers > 0
-                      ? Math.round((usersWithOfferCode / totalUsers) * 100)
+                    {usersWithOfferCodeNum} (
+                    {totalUsersNum > 0
+                      ? Math.round(
+                          (usersWithOfferCodeNum / totalUsersNum) * 100
+                        )
                       : 0}
                     %)
                   </span>
@@ -339,8 +356,8 @@ export default async function AffiliateStatsPage() {
                 <div
                   style={{
                     width: `${
-                      totalUsers > 0
-                        ? (usersWithOfferCode / totalUsers) * 100
+                      totalUsersNum > 0
+                        ? (usersWithOfferCodeNum / totalUsersNum) * 100
                         : 0
                     }%`,
                   }}
@@ -358,10 +375,10 @@ export default async function AffiliateStatsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold inline-block text-gray-300">
-                    {paidUsersWithClickId} (
-                    {usersWithClickId > 0
+                    {paidUsersWithClickIdNum} (
+                    {usersWithClickIdNum > 0
                       ? Math.round(
-                          (paidUsersWithClickId / usersWithClickId) * 100
+                          (paidUsersWithClickIdNum / usersWithClickIdNum) * 100
                         )
                       : 0}
                     %)
@@ -372,8 +389,8 @@ export default async function AffiliateStatsPage() {
                 <div
                   style={{
                     width: `${
-                      usersWithClickId > 0
-                        ? (paidUsersWithClickId / usersWithClickId) * 100
+                      usersWithClickIdNum > 0
+                        ? (paidUsersWithClickIdNum / usersWithClickIdNum) * 100
                         : 0
                     }%`,
                   }}
@@ -391,10 +408,12 @@ export default async function AffiliateStatsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-semibold inline-block text-gray-300">
-                    {paidUsersWithOfferCode} (
-                    {paidUsersWithClickId > 0
+                    {paidUsersWithOfferCodeNum} (
+                    {paidUsersWithClickIdNum > 0
                       ? Math.round(
-                          (paidUsersWithOfferCode / paidUsersWithClickId) * 100
+                          (paidUsersWithOfferCodeNum /
+                            paidUsersWithClickIdNum) *
+                            100
                         )
                       : 0}
                     %)
@@ -405,8 +424,10 @@ export default async function AffiliateStatsPage() {
                 <div
                   style={{
                     width: `${
-                      paidUsersWithClickId > 0
-                        ? (paidUsersWithOfferCode / paidUsersWithClickId) * 100
+                      paidUsersWithClickIdNum > 0
+                        ? (paidUsersWithOfferCodeNum /
+                            paidUsersWithClickIdNum) *
+                          100
                         : 0
                     }%`,
                   }}
@@ -422,8 +443,8 @@ export default async function AffiliateStatsPage() {
               <div className="bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-400">Affiliate Acquisition</p>
                 <p className="text-xl font-bold">
-                  {totalUsers > 0
-                    ? Math.round((usersWithClickId / totalUsers) * 100)
+                  {totalUsersNum > 0
+                    ? Math.round((usersWithClickIdNum / totalUsersNum) * 100)
                     : 0}
                   %
                 </p>
@@ -431,9 +452,9 @@ export default async function AffiliateStatsPage() {
               <div className="bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-400">Conversion Rate</p>
                 <p className="text-xl font-bold">
-                  {usersWithClickId > 0
+                  {usersWithClickIdNum > 0
                     ? Math.round(
-                        (paidUsersWithClickId / usersWithClickId) * 100
+                        (paidUsersWithClickIdNum / usersWithClickIdNum) * 100
                       )
                     : 0}
                   %

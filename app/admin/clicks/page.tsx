@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default async function ClickTrackingPage() {
   const session = await auth();
 
-  // Check if user is authenticated and is an admin
-  if (!session || session.user?.email !== "admin@slotbot.com") {
+  // Check if user is admin
+  if (session?.user?.email !== "chris@trenkas.com") {
     redirect("/");
   }
 
@@ -34,6 +34,9 @@ export default async function ClickTrackingPage() {
   const clicksConverted = await prisma.clickTrack.count({
     where: { convertedToUser: true },
   });
+
+  // Convert totalClicks to number for calculations
+  const totalClicksNum = Number(totalClicks);
 
   // Group by country
   type CountryCount = {
@@ -58,38 +61,32 @@ export default async function ClickTrackingPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">Total Clicks</h2>
-          <p className="text-4xl font-bold text-green-500">{totalClicks}</p>
+          <p className="text-4xl font-bold text-green-500">{totalClicks.toString()}</p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">With ClickID</h2>
-          <p className="text-4xl font-bold text-blue-500">
-            {clicksWithClickId}
-          </p>
+          <p className="text-4xl font-bold text-blue-500">{clicksWithClickId.toString()}</p>
           <p className="text-sm text-gray-400">
-            {totalClicks > 0
-              ? `${((clicksWithClickId / totalClicks) * 100).toFixed(1)}%`
+            {totalClicksNum > 0
+              ? `${((Number(clicksWithClickId) / totalClicksNum) * 100).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">With Offer Code</h2>
-          <p className="text-4xl font-bold text-purple-500">
-            {clicksWithOfferCode}
-          </p>
+          <p className="text-4xl font-bold text-purple-500">{clicksWithOfferCode.toString()}</p>
           <p className="text-sm text-gray-400">
-            {totalClicks > 0
-              ? `${((clicksWithOfferCode / totalClicks) * 100).toFixed(1)}%`
+            {totalClicksNum > 0
+              ? `${((Number(clicksWithOfferCode) / totalClicksNum) * 100).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">Converted</h2>
-          <p className="text-4xl font-bold text-yellow-500">
-            {clicksConverted}
-          </p>
+          <p className="text-4xl font-bold text-yellow-500">{clicksConverted.toString()}</p>
           <p className="text-sm text-gray-400">
-            {totalClicks > 0
-              ? `${((clicksConverted / totalClicks) * 100).toFixed(1)}%`
+            {totalClicksNum > 0
+              ? `${((Number(clicksConverted) / totalClicksNum) * 100).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
@@ -108,21 +105,20 @@ export default async function ClickTrackingPage() {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(countryCounts) &&
-                countryCounts.map((country) => (
+              {Array.isArray(countryCounts) && countryCounts.map((country) => {
+                const countNum = Number(country.count);
+                return (
                   <tr key={country.geo} className="border-b border-gray-700">
                     <td className="py-2">{country.geo}</td>
-                    <td className="text-right py-2">{Number(country.count)}</td>
+                    <td className="text-right py-2">{countNum}</td>
                     <td className="text-right py-2">
-                      {totalClicks > 0
-                        ? `${(
-                            (Number(country.count) / totalClicks) *
-                            100
-                          ).toFixed(1)}%`
+                      {totalClicksNum > 0
+                        ? `${((countNum / totalClicksNum) * 100).toFixed(1)}%`
                         : "0%"}
                     </td>
                   </tr>
-                ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
