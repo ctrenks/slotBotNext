@@ -28,6 +28,12 @@ export function storeClickId(): void {
     localStorage.setItem("clickid", params.clickid);
     console.log("Stored clickid:", params.clickid);
   }
+
+  // Also check for offercode parameter
+  if (params.offercode) {
+    localStorage.setItem("offercode", params.offercode);
+    console.log("Stored offercode:", params.offercode);
+  }
 }
 
 /**
@@ -47,4 +53,17 @@ export function clearStoredClickId(): void {
   if (typeof window === "undefined") return;
 
   localStorage.removeItem("clickid");
+}
+
+// New functions for offercode
+export function getStoredOfferCode(): string | null {
+  if (typeof window === "undefined") return null;
+
+  return localStorage.getItem("offercode");
+}
+
+export function clearStoredOfferCode(): void {
+  if (typeof window === "undefined") return;
+
+  localStorage.removeItem("offercode");
 }

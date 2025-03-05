@@ -10,6 +10,8 @@ declare module "next-auth" {
     geo?: string | null;
     refferal?: string | null;
     clickId?: string | null;
+    // Temporarily commented out to avoid database errors
+    // offerCode?: string | null;
   }
 
   interface Session {
@@ -20,6 +22,8 @@ declare module "next-auth" {
       geo?: string | null;
       refferal?: string | null;
       clickId?: string | null;
+      // Temporarily commented out to avoid database errors
+      // offerCode?: string | null;
     };
   }
 }
@@ -64,13 +68,30 @@ export const {
         | string
         | undefined;
 
-      if (clickId && user.email) {
-        console.log(`Storing clickId ${clickId} for user ${user.email}`);
+      // Temporarily commented out to avoid database errors
+      // Check if there's an offerCode in the params
+      // const offerCode = (params as Record<string, unknown>).offerCode as
+      //   | string
+      //   | undefined;
 
-        // Store the clickId with the user
+      if (clickId && user.email) {
+        const updateData: Record<string, string> = {};
+
+        if (clickId) {
+          console.log(`Storing clickId ${clickId} for user ${user.email}`);
+          updateData.clickId = clickId;
+        }
+
+        // Temporarily commented out to avoid database errors
+        // if (offerCode) {
+        //   console.log(`Storing offerCode ${offerCode} for user ${user.email}`);
+        //   updateData.offerCode = offerCode;
+        // }
+
+        // Store the data with the user
         await prisma.user.update({
           where: { email: user.email },
-          data: { clickId },
+          data: updateData,
         });
       }
 
@@ -86,6 +107,8 @@ export const {
           geo: true,
           refferal: true,
           clickId: true,
+          // Temporarily commented out to avoid database errors
+          // offerCode: true,
         },
       });
 
@@ -96,6 +119,8 @@ export const {
         session.user.geo = user.geo;
         session.user.refferal = user.refferal;
         session.user.clickId = user.clickId;
+        // Temporarily commented out to avoid database errors
+        // session.user.offerCode = user.offerCode;
       }
 
       return session;

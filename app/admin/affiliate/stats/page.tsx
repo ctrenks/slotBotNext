@@ -14,6 +14,7 @@ interface MonthlyData {
   month: string | Date; // Allow for string or Date type
   total: number;
   with_clickid: number;
+  with_offercode: number;
 }
 
 export default async function AffiliateStatsPage() {
@@ -36,10 +37,29 @@ export default async function AffiliateStatsPage() {
     },
   });
 
+  // Get users with offerCode
+  const usersWithOfferCode = await prisma.user.count({
+    where: {
+      offerCode: {
+        not: null,
+      },
+    },
+  });
+
   // Get paid users with clickId
   const paidUsersWithClickId = await prisma.user.count({
     where: {
       clickId: {
+        not: null,
+      },
+      paid: true,
+    },
+  });
+
+  // Get paid users with offerCode
+  const paidUsersWithOfferCode = await prisma.user.count({
+    where: {
+      offerCode: {
         not: null,
       },
       paid: true,
@@ -77,7 +97,8 @@ export default async function AffiliateStatsPage() {
     SELECT
       DATE_TRUNC('month', "createdAt") as month,
       COUNT(*) as total,
-      COUNT(CASE WHEN "clickId" IS NOT NULL THEN 1 END) as with_clickid
+      COUNT(CASE WHEN "clickId" IS NOT NULL THEN 1 END) as with_clickid,
+      COUNT(CASE WHEN "offerCode" IS NOT NULL THEN 1 END) as with_offercode
     FROM "User"
     WHERE "createdAt" >= ${sixMonthsAgo}
     GROUP BY DATE_TRUNC('month', "createdAt")
@@ -113,12 +134,36 @@ export default async function AffiliateStatsPage() {
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2">Users with OfferCode</h3>
+          <p className="text-3xl font-bold">{usersWithOfferCode}</p>
+          <p className="text-sm text-gray-400 mt-2">
+            {totalUsers > 0
+              ? `${Math.round(
+                  (usersWithOfferCode / totalUsers) * 100
+                )}% of total users`
+              : "0%"}
+          </p>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-2">Paid Conversions</h3>
           <p className="text-3xl font-bold">{paidUsersWithClickId}</p>
           <p className="text-sm text-gray-400 mt-2">
             {usersWithClickId > 0
               ? `${Math.round(
                   (paidUsersWithClickId / usersWithClickId) * 100
+                )}% conversion rate`
+              : "0%"}
+          </p>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2">
+            Paid Conversions with OfferCode
+          </h3>
+          <p className="text-3xl font-bold">{paidUsersWithOfferCode}</p>
+          <p className="text-sm text-gray-400 mt-2">
+            {paidUsersWithClickId > 0
+              ? `${Math.round(
+                  (paidUsersWithOfferCode / paidUsersWithClickId) * 100
                 )}% conversion rate`
               : "0%"}
           </p>
@@ -167,6 +212,12 @@ export default async function AffiliateStatsPage() {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
                   >
+                    With OfferCode
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                  >
                     Percentage
                   </th>
                 </tr>
@@ -186,6 +237,9 @@ export default async function AffiliateStatsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {month.with_clickid}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {month.with_offercode}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {month.total > 0
@@ -268,6 +322,37 @@ export default async function AffiliateStatsPage() {
               <div className="flex mb-2 items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-gray-700 text-gray-300">
+                    Users with OfferCode
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold inline-block text-gray-300">
+                    {usersWithOfferCode} (
+                    {totalUsers > 0
+                      ? Math.round((usersWithOfferCode / totalUsers) * 100)
+                      : 0}
+                    %)
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-700">
+                <div
+                  style={{
+                    width: `${
+                      totalUsers > 0
+                        ? (usersWithOfferCode / totalUsers) * 100
+                        : 0
+                    }%`,
+                  }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500"
+                ></div>
+              </div>
+            </div>
+
+            <div className="relative pt-1">
+              <div className="flex mb-2 items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-gray-700 text-gray-300">
                     Paid Conversions
                   </span>
                 </div>
@@ -293,6 +378,39 @@ export default async function AffiliateStatsPage() {
                     }%`,
                   }}
                   className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-yellow-500"
+                ></div>
+              </div>
+            </div>
+
+            <div className="relative pt-1">
+              <div className="flex mb-2 items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-gray-700 text-gray-300">
+                    Paid Conversions with OfferCode
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold inline-block text-gray-300">
+                    {paidUsersWithOfferCode} (
+                    {paidUsersWithClickId > 0
+                      ? Math.round(
+                          (paidUsersWithOfferCode / paidUsersWithClickId) * 100
+                        )
+                      : 0}
+                    %)
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-700">
+                <div
+                  style={{
+                    width: `${
+                      paidUsersWithClickId > 0
+                        ? (paidUsersWithOfferCode / paidUsersWithClickId) * 100
+                        : 0
+                    }%`,
+                  }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-pink-500"
                 ></div>
               </div>
             </div>

@@ -1,25 +1,49 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getStoredClickId, clearStoredClickId } from "@/app/utils/urlParams";
+import {
+  getStoredClickId,
+  clearStoredClickId,
+  getStoredOfferCode,
+  // clearStoredOfferCode, // Commented out as it's not used
+} from "@/app/utils/urlParams";
 
 export default function SignInButtons() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [clickId, setClickId] = useState<string | null>(null);
+  const [offerCode, setOfferCode] = useState<string | null>(null);
 
+  // Get clickId and offerCode from URL params or localStorage on component mount
   useEffect(() => {
-    // Get stored clickId from localStorage
+    // First check URL parameters (highest priority)
+    const urlOfferCode = searchParams.get("offercode");
+    if (urlOfferCode) {
+      setOfferCode(urlOfferCode);
+      console.log("Retrieved offerCode from URL:", urlOfferCode);
+      // Store in localStorage for persistence
+      localStorage.setItem("offercode", urlOfferCode);
+      return;
+    }
+
+    // Then check localStorage
     const storedClickId = getStoredClickId();
     if (storedClickId) {
       setClickId(storedClickId);
       console.log("Retrieved clickId for sign-in:", storedClickId);
     }
-  }, []);
+
+    const storedOfferCode = getStoredOfferCode();
+    if (storedOfferCode) {
+      setOfferCode(storedOfferCode);
+      console.log("Retrieved offerCode for sign-in:", storedOfferCode);
+    }
+  }, [searchParams]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +51,27 @@ export default function SignInButtons() {
     setError(null);
 
     try {
+      // Create a callback URL that redirects to the homepage
+      const callbackUrl = "/";
+
+      // If we have an offer code, add it to the callback URL
+      if (offerCode) {
+        // Store the offer code in a special session storage key that will be checked after authentication
+        sessionStorage.setItem("auth_pending_offercode", offerCode);
+        console.log(
+          "Stored offerCode in sessionStorage for auth callback:",
+          offerCode
+        );
+      }
+
       // Include clickId in the sign-in call
+      // Temporarily removed offerCode to avoid database errors
       const result = await signIn("resend", {
         email,
         redirect: false,
         clickId: clickId || undefined,
+        // offerCode: offerCode || undefined,
+        callbackUrl,
       });
 
       console.log("Sign in result:", result);
@@ -44,28 +84,42 @@ export default function SignInButtons() {
           clearStoredClickId();
           console.log("Cleared clickId from localStorage after sign-in");
         }
+
+        // Don't clear the offerCode yet - we'll need it after authentication
+        // if (offerCode) {
+        //   clearStoredOfferCode();
+        //   console.log("Cleared offerCode from localStorage after sign-in");
+        // }
+
+        // Redirect to the verification page
         router.replace("/auth/verify-request");
+        setEmail("");
       }
-    } catch (e) {
-      console.error("Sign in exception:", e);
-      setError(e instanceof Error ? e.message : "An error occurred");
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    // Include clickId in the sign-in call
+    // If we have an offer code, store it in sessionStorage for the callback handler
+    if (offerCode) {
+      sessionStorage.setItem("auth_pending_offercode", offerCode);
+      console.log(
+        "Stored offerCode in sessionStorage for Google auth callback:",
+        offerCode
+      );
+    }
+
+    // Include clickId in the Google sign-in call
+    // Temporarily removed offerCode to avoid database errors
     signIn("google", {
       callbackUrl: "/",
       clickId: clickId || undefined,
+      // offerCode: offerCode || undefined,
     });
-
-    // Clear the clickId from localStorage after it's been used
-    if (clickId) {
-      clearStoredClickId();
-      console.log("Cleared clickId from localStorage after Google sign-in");
-    }
   };
 
   return (

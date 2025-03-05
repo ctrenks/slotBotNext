@@ -37,6 +37,7 @@ model User {
   geo           String?
   affiliate     String?          @unique
   clickId       String?          // Tracking ID for affiliate postbacks
+  offerCode     String?          // Promotional offer code
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   alerts        AlertRecipient[]

@@ -4,6 +4,10 @@ import { useRef, useState, useEffect } from "react";
 import { redeemCoupon } from "@/app/actions/coupon";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import {
+  getStoredOfferCode,
+  clearStoredOfferCode,
+} from "@/app/utils/urlParams";
 
 export default function CouponRedemption() {
   const { data: session } = useSession();
@@ -15,6 +19,7 @@ export default function CouponRedemption() {
   const [hasAccess, setHasAccess] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [checkedForOfferCode, setCheckedForOfferCode] = useState(false);
 
   useEffect(() => {
     async function checkAccess() {
@@ -32,6 +37,19 @@ export default function CouponRedemption() {
     checkAccess();
   }, [session]);
 
+  // Check for stored offer code and autofill the coupon field
+  useEffect(() => {
+    if (checkedForOfferCode) return;
+
+    const storedOfferCode = getStoredOfferCode();
+    if (storedOfferCode) {
+      console.log("Autofilling coupon code with offer code:", storedOfferCode);
+      setCouponCode(storedOfferCode.toUpperCase());
+    }
+
+    setCheckedForOfferCode(true);
+  }, [checkedForOfferCode]);
+
   // Return null if user has access (paid or trial)
   if (hasAccess) {
     return null;
@@ -45,6 +63,9 @@ export default function CouponRedemption() {
     if (result.error) {
       setMessage({ text: result.error, isError: true });
     } else if (result.success) {
+      // Clear the stored offer code after successful redemption
+      clearStoredOfferCode();
+
       setMessage({ text: result.message!, isError: false });
       setCouponCode("");
       formRef.current?.reset();

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { ContactForm } from "@/app/components/ContactForm";
 import CouponRedemption from "@/app/components/CouponRedemption";
+import OfferCodeCapture from "@/app/components/OfferCodeCapture";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 export default function Pricing() {
   return (
     <div>
+      <OfferCodeCapture />
+
       <h1 className="text-2xl font-bold p-6">Simple Pricing Model</h1>
       <div className="text-lg border-y border-green-900 py-4">
         <p>

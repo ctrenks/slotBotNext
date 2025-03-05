@@ -79,12 +79,27 @@ export default async function AffiliateManagementPage() {
 
         {/* Documentation Card */}
         <div className="bg-gray-800 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
-          <h2 className="text-xl font-bold mb-3">Documentation</h2>
+          <h2 className="text-xl font-bold mb-3">Affiliate Tracking</h2>
           <p className="text-gray-300 mb-4">
             View documentation on how to use the affiliate tracking system.
           </p>
           <a
             href="/docs/affiliate-tracking.html"
+            target="_blank"
+            className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium"
+          >
+            View Documentation
+          </a>
+        </div>
+
+        {/* Offer Code Documentation Card */}
+        <div className="bg-gray-800 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+          <h2 className="text-xl font-bold mb-3">Offer Code Tracking</h2>
+          <p className="text-gray-300 mb-4">
+            View documentation on how to use the offer code tracking system.
+          </p>
+          <a
+            href="/docs/offer-code-tracking.html"
             target="_blank"
             className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium"
           >
