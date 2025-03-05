@@ -96,7 +96,7 @@ export const {
 
         // Update any click tracking records with this clickId to mark them as converted
         if (clickId) {
-          await prisma.ClickTrack.updateMany({
+          await prisma.clickTrack.updateMany({
             where: { clickId },
             data: {
               convertedToUser: true,

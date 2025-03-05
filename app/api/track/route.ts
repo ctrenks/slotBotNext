@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
-import { headers } from "next/headers";
 
 /**
  * API endpoint to record click tracking data
@@ -12,12 +11,14 @@ export async function POST(request: Request) {
     const { referrer, clickId, offerCode, userAgent, geo } = data;
 
     // Get IP address from request headers
-    const headersList = headers();
-    const forwardedFor = headersList.get("x-forwarded-for") || null;
-    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : null;
+    let ip = null;
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    if (forwardedFor) {
+      ip = forwardedFor.split(",")[0].trim();
+    }
 
     // Create a new click tracking record
-    const clickTrack = await prisma.ClickTrack.create({
+    const clickTrack = await prisma.clickTrack.create({
       data: {
         ip,
         referrer,
@@ -56,13 +57,13 @@ export async function GET(request: Request) {
     const geo = searchParams.get("geo");
 
     // Build the query
-    const where: Record<string, string | undefined> = {};
+    const where: Record<string, string | undefined | { not: null }> = {};
     if (clickId) where.clickId = clickId;
     if (offerCode) where.offerCode = offerCode;
     if (geo) where.geo = geo;
 
     // Get the click tracking data
-    const clickTracks = await prisma.ClickTrack.findMany({
+    const clickTracks = await prisma.clickTrack.findMany({
       where,
       take: limit,
       skip: offset,
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
     });
 
     // Get the total count
-    const total = await prisma.ClickTrack.count({ where });
+    const total = await prisma.clickTrack.count({ where });
 
     return NextResponse.json({
       success: true,
