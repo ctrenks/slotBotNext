@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+// Add dynamic export to prevent pre-rendering
+export const dynamic = "force-dynamic";
+// Add runtime export to force client-side rendering
+export const runtime = "edge";
+
 interface PushData {
   message?: string;
   body?: string;
@@ -74,6 +79,9 @@ export default function NotificationDebug() {
   const [isMacSafari, setIsMacSafari] = useState(false);
 
   useEffect(() => {
+    // Check if window is defined (client-side)
+    if (typeof window === "undefined") return;
+
     // Check platform
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isSafariOnMac =
@@ -230,7 +238,7 @@ export default function NotificationDebug() {
     }
 
     checkServiceWorker();
-  }, [isMacSafari]);
+  }, []);
 
   // Fetch logs on mount and periodically
   useEffect(() => {

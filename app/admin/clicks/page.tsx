@@ -2,75 +2,21 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { prisma } from "@/prisma";
-import type { ClickTrack, Prisma } from "@prisma/client";
 import ClickFilters from "@/app/components/ClickFilters";
+import ClicksTable from "@/app/components/ClicksTable";
 
 export const metadata: Metadata = {
   title: "Click Tracking",
   description: "View and analyze inbound click tracking data",
 };
 
-export default async function ClickTrackingPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function ClickTrackingPage() {
   const session = await auth();
 
   // Check if user is admin
   if (session?.user?.email !== "chris@trenkas.com") {
     redirect("/");
   }
-
-  // Get filter parameters
-  const geoFilter =
-    typeof searchParams.geo === "string" ? searchParams.geo : undefined;
-  const codeFilter =
-    typeof searchParams.code === "string" ? searchParams.code : undefined;
-
-  // Build the where clause for filtering
-  const whereClause: Prisma.ClickTrackWhereInput = {};
-  if (geoFilter) whereClause.geo = geoFilter;
-  if (codeFilter) whereClause.offerCode = codeFilter;
-
-  // Get the latest click tracking data with filters
-  const clickTracks = await prisma.clickTrack.findMany({
-    where: whereClause,
-    take: 100,
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Get some statistics based on the current filters
-  const totalClicks = await prisma.clickTrack.count({
-    where: whereClause,
-  });
-  const clicksWithClickId = await prisma.clickTrack.count({
-    where: {
-      ...whereClause,
-      clickId: { not: null },
-    },
-  });
-  const clicksWithOfferCode = await prisma.clickTrack.count({
-    where: {
-      ...whereClause,
-      offerCode: { not: null },
-    },
-  });
-  const clicksConverted = await prisma.clickTrack.count({
-    where: {
-      ...whereClause,
-      convertedToUser: true,
-    },
-  });
-
-  // Convert totalClicks to number for calculations
-  const totalClicksNum = Number(totalClicks);
-
-  // Group by country with filters
-  type CountryCount = {
-    geo: string;
-    count: bigint;
-  };
 
   // Get all available geos for the filter dropdown
   const allGeos = await prisma.$queryRaw<{ geo: string }[]>`
@@ -90,37 +36,35 @@ export default async function ClickTrackingPage({
   `;
   const availableOfferCodes = allOfferCodes.map((o) => o.offerCode);
 
-  // Build the SQL query for country counts with filters
-  let countryQuery = `
+  // Get some statistics
+  const totalClicks = await prisma.clickTrack.count();
+  const clicksWithClickId = await prisma.clickTrack.count({
+    where: { clickId: { not: null } },
+  });
+  const clicksWithOfferCode = await prisma.clickTrack.count({
+    where: { offerCode: { not: null } },
+  });
+  const clicksConverted = await prisma.clickTrack.count({
+    where: { convertedToUser: true },
+  });
+
+  // Convert totalClicks to number for calculations
+  const totalClicksNum = Number(totalClicks);
+
+  // Group by country
+  type CountryCount = {
+    geo: string;
+    count: bigint;
+  };
+
+  const countryCounts = await prisma.$queryRaw<CountryCount[]>`
     SELECT geo, COUNT(*) as count
     FROM "ClickTrack"
     WHERE geo IS NOT NULL
-  `;
-
-  const queryParams: string[] = [];
-
-  if (geoFilter || codeFilter) {
-    if (geoFilter) {
-      countryQuery += ` AND geo = $1`;
-      queryParams.push(geoFilter);
-    }
-
-    if (codeFilter) {
-      countryQuery += ` AND "offerCode" = $${queryParams.length + 1}`;
-      queryParams.push(codeFilter);
-    }
-  }
-
-  countryQuery += `
     GROUP BY geo
     ORDER BY count DESC
     LIMIT 10
   `;
-
-  const countryCounts = await prisma.$queryRawUnsafe<CountryCount[]>(
-    countryQuery,
-    ...queryParams
-  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -138,25 +82,6 @@ export default async function ClickTrackingPage({
         availableGeos={availableGeos}
         availableOfferCodes={availableOfferCodes}
       />
-
-      {/* Filter Status */}
-      {(geoFilter || codeFilter) && (
-        <div className="bg-gray-800 rounded-lg p-4 mb-8">
-          <h2 className="text-xl font-bold mb-2">Active Filters</h2>
-          <div className="flex flex-wrap gap-2">
-            {geoFilter && (
-              <div className="bg-blue-600 px-3 py-1 rounded-full text-sm">
-                Country: {geoFilter}
-              </div>
-            )}
-            {codeFilter && (
-              <div className="bg-purple-600 px-3 py-1 rounded-full text-sm">
-                Offer Code: {codeFilter}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -241,50 +166,8 @@ export default async function ClickTrackingPage({
         </div>
       </div>
 
-      {/* Recent Clicks Table */}
-      <div className="bg-gray-800 rounded-lg p-6 shadow-md">
-        <h2 className="text-xl font-bold mb-4">
-          {geoFilter || codeFilter ? "Filtered Clicks" : "Recent Clicks"}
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-2">Date</th>
-                <th className="text-left py-2">IP</th>
-                <th className="text-left py-2">Country</th>
-                <th className="text-left py-2">Referrer</th>
-                <th className="text-left py-2">ClickID</th>
-                <th className="text-left py-2">Offer Code</th>
-                <th className="text-left py-2">Converted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clickTracks.map((click: ClickTrack) => (
-                <tr key={click.id} className="border-b border-gray-700">
-                  <td className="py-2">
-                    {new Date(click.createdAt).toLocaleString()}
-                  </td>
-                  <td className="py-2">{click.ip || "-"}</td>
-                  <td className="py-2">{click.geo || "-"}</td>
-                  <td className="py-2 max-w-xs truncate">
-                    {click.referrer || "-"}
-                  </td>
-                  <td className="py-2">{click.clickId || "-"}</td>
-                  <td className="py-2">{click.offerCode || "-"}</td>
-                  <td className="py-2">
-                    {click.convertedToUser ? (
-                      <span className="text-green-500">Yes</span>
-                    ) : (
-                      <span className="text-gray-400">No</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Client-side Clicks Table with Filtering */}
+      <ClicksTable />
     </div>
   );
 }
