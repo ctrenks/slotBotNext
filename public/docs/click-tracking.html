@@ -64,6 +64,14 @@
                     <li>Offer code (if present in URL)</li>
                 </ul>
             </li>
+            <li><strong>Filtering</strong>: The system automatically excludes internal traffic from:
+                <ul>
+                    <li>beatonlineslots.com (our own domain)</li>
+                    <li>localhost</li>
+                    <li>127.0.0.1</li>
+                </ul>
+                This ensures that only external traffic is tracked and analyzed.
+            </li>
             <li><strong>Storage</strong>: This data is stored in the database for analysis.</li>
             <li><strong>Conversion Tracking</strong>: When a user registers, any click tracking data associated with their session is marked as converted.</li>
             <li><strong>Analysis</strong>: Administrators can view and analyze this data in the admin dashboard.</li>

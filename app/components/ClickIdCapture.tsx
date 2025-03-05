@@ -21,6 +21,17 @@ export default function ClickIdCapture() {
         const referrer = document.referrer || getStoredReferrer() || null;
         const userAgent = navigator.userAgent || null;
 
+        // Skip tracking for internal traffic from our own domain
+        if (
+          referrer &&
+          (referrer.includes("beatonlineslots.com") ||
+            referrer.includes("localhost") ||
+            referrer.includes("127.0.0.1"))
+        ) {
+          console.log("Skipping tracking for internal traffic");
+          return;
+        }
+
         // Try to get country from localStorage if previously stored
         let geo = localStorage.getItem("user_geo") || null;
 

@@ -10,6 +10,19 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { referrer, clickId, offerCode, userAgent, geo } = data;
 
+    // Skip tracking for internal traffic from our own domain
+    if (
+      referrer &&
+      (referrer.includes("beatonlineslots.com") ||
+        referrer.includes("localhost") ||
+        referrer.includes("127.0.0.1"))
+    ) {
+      return NextResponse.json({
+        success: true,
+        message: "Skipped tracking for internal traffic",
+      });
+    }
+
     // Get IP address from request headers
     let ip = null;
     const forwardedFor = request.headers.get("x-forwarded-for");

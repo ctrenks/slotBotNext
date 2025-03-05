@@ -57,36 +57,58 @@ export default async function ClickTrackingPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Click Tracking Dashboard</h1>
 
+      <div className="bg-blue-900 rounded-lg p-4 mb-8">
+        <p className="text-white">
+          <strong>Note:</strong> Internal traffic from beatonlineslots.com,
+          localhost, and 127.0.0.1 is automatically excluded from tracking.
+        </p>
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">Total Clicks</h2>
-          <p className="text-4xl font-bold text-green-500">{totalClicks.toString()}</p>
+          <p className="text-4xl font-bold text-green-500">
+            {totalClicks.toString()}
+          </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">With ClickID</h2>
-          <p className="text-4xl font-bold text-blue-500">{clicksWithClickId.toString()}</p>
+          <p className="text-4xl font-bold text-blue-500">
+            {clicksWithClickId.toString()}
+          </p>
           <p className="text-sm text-gray-400">
             {totalClicksNum > 0
-              ? `${((Number(clicksWithClickId) / totalClicksNum) * 100).toFixed(1)}%`
+              ? `${((Number(clicksWithClickId) / totalClicksNum) * 100).toFixed(
+                  1
+                )}%`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">With Offer Code</h2>
-          <p className="text-4xl font-bold text-purple-500">{clicksWithOfferCode.toString()}</p>
+          <p className="text-4xl font-bold text-purple-500">
+            {clicksWithOfferCode.toString()}
+          </p>
           <p className="text-sm text-gray-400">
             {totalClicksNum > 0
-              ? `${((Number(clicksWithOfferCode) / totalClicksNum) * 100).toFixed(1)}%`
+              ? `${(
+                  (Number(clicksWithOfferCode) / totalClicksNum) *
+                  100
+                ).toFixed(1)}%`
               : "0%"}
           </p>
         </div>
         <div className="bg-gray-800 rounded-lg p-6 shadow-md">
           <h2 className="text-xl font-bold mb-2">Converted</h2>
-          <p className="text-4xl font-bold text-yellow-500">{clicksConverted.toString()}</p>
+          <p className="text-4xl font-bold text-yellow-500">
+            {clicksConverted.toString()}
+          </p>
           <p className="text-sm text-gray-400">
             {totalClicksNum > 0
-              ? `${((Number(clicksConverted) / totalClicksNum) * 100).toFixed(1)}%`
+              ? `${((Number(clicksConverted) / totalClicksNum) * 100).toFixed(
+                  1
+                )}%`
               : "0%"}
           </p>
         </div>
@@ -105,20 +127,21 @@ export default async function ClickTrackingPage() {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(countryCounts) && countryCounts.map((country) => {
-                const countNum = Number(country.count);
-                return (
-                  <tr key={country.geo} className="border-b border-gray-700">
-                    <td className="py-2">{country.geo}</td>
-                    <td className="text-right py-2">{countNum}</td>
-                    <td className="text-right py-2">
-                      {totalClicksNum > 0
-                        ? `${((countNum / totalClicksNum) * 100).toFixed(1)}%`
-                        : "0%"}
-                    </td>
-                  </tr>
-                );
-              })}
+              {Array.isArray(countryCounts) &&
+                countryCounts.map((country) => {
+                  const countNum = Number(country.count);
+                  return (
+                    <tr key={country.geo} className="border-b border-gray-700">
+                      <td className="py-2">{country.geo}</td>
+                      <td className="text-right py-2">{countNum}</td>
+                      <td className="text-right py-2">
+                        {totalClicksNum > 0
+                          ? `${((countNum / totalClicksNum) * 100).toFixed(1)}%`
+                          : "0%"}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
