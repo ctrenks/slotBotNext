@@ -49,15 +49,41 @@ export default function ClicksTable() {
     }
   };
 
+  // Handle export to CSV
+  const handleExport = () => {
+    // Build the query parameters
+    const params = new URLSearchParams();
+    if (activeFilters.geo) params.append("geo", activeFilters.geo);
+    if (activeFilters.code) params.append("code", activeFilters.code);
+
+    // Create the export URL
+    const exportUrl = `/api/clicks/export?${params.toString()}`;
+
+    // Open the export URL in a new tab
+    window.open(exportUrl, "_blank");
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6 shadow-md">
-      <h2 className="text-xl font-bold mb-4">
-        {Object.keys(activeFilters).some(
-          (key) => activeFilters[key as keyof typeof activeFilters]
-        )
-          ? "Filtered Clicks"
-          : "Recent Clicks"}
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">
+          {Object.keys(activeFilters).some(
+            (key) => activeFilters[key as keyof typeof activeFilters]
+          )
+            ? "Filtered Clicks"
+            : "Recent Clicks"}
+        </h2>
+
+        {/* Export button - only show when filters are applied */}
+        {(activeFilters.geo || activeFilters.code) && (
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium"
+          >
+            Export to CSV
+          </button>
+        )}
+      </div>
 
       {/* Active Filters Display */}
       {(activeFilters.geo || activeFilters.code) && (

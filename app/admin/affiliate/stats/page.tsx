@@ -17,13 +17,48 @@ interface MonthlyData {
   with_offercode: bigint;
 }
 
-export default async function AffiliateStatsPage() {
+// Client component for export button
+const ExportButton = ({ geo, code }: { geo?: string; code?: string }) => {
+  "use client";
+
+  const handleExport = () => {
+    // Build the query parameters
+    const params = new URLSearchParams();
+    if (geo) params.append("geo", geo);
+    if (code) params.append("code", code);
+
+    // Create the export URL
+    const exportUrl = `/api/clicks/export?${params.toString()}`;
+
+    // Open the export URL in a new tab
+    window.open(exportUrl, "_blank");
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium ml-2"
+    >
+      Export to CSV
+    </button>
+  );
+};
+
+export default async function AffiliateStatsPage({
+  searchParams,
+}: {
+  searchParams: { geo?: string; code?: string };
+}) {
   const session = await auth();
 
   // Check if user is admin
   if (session?.user?.email !== "chris@trenkas.com") {
     redirect("/");
   }
+
+  // Get filter parameters
+  const { geo, code } = searchParams;
+  const hasFilters = !!geo || !!code;
 
   // Get total users
   const totalUsers = await prisma.user.count();
@@ -116,13 +151,41 @@ export default async function AffiliateStatsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Affiliate Statistics</h1>
-        <Link
-          href="/admin/affiliate"
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium"
-        >
-          Back to Affiliate Dashboard
-        </Link>
+        <div className="flex items-center">
+          {hasFilters && <ExportButton geo={geo} code={code} />}
+          <Link
+            href="/admin/affiliate"
+            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium ml-2"
+          >
+            Back to Affiliate Dashboard
+          </Link>
+        </div>
       </div>
+
+      {/* Filter information */}
+      {hasFilters && (
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <h2 className="text-lg font-semibold mb-2">Active Filters</h2>
+          <div className="flex flex-wrap gap-2">
+            {geo && (
+              <div className="bg-gray-700 px-3 py-1 rounded-full text-sm">
+                Country: {geo}
+              </div>
+            )}
+            {code && (
+              <div className="bg-gray-700 px-3 py-1 rounded-full text-sm">
+                Offer Code: {code}
+              </div>
+            )}
+            <Link
+              href="/admin/affiliate/stats"
+              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full text-sm"
+            >
+              Clear Filters
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gray-800 rounded-lg p-6">
