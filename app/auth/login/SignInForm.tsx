@@ -1,20 +1,67 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  getStoredClickId,
+  clearStoredClickId,
+  getStoredOfferCode,
+  clearStoredOfferCode,
+} from "@/app/utils/urlParams";
 
 export default function SignInForm() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [clickId, setClickId] = useState<string | null>(null);
+  const [offerCode, setOfferCode] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // Get clickId and offerCode from URL params or localStorage on component mount
+  useEffect(() => {
+    // First check URL parameters (highest priority)
+    const urlOfferCode = searchParams.get("offercode");
+    if (urlOfferCode) {
+      setOfferCode(urlOfferCode);
+      console.log("Retrieved offerCode from URL:", urlOfferCode);
+      // Store in localStorage for persistence
+      localStorage.setItem("offercode", urlOfferCode);
+      return;
+    }
+
+    // Then check localStorage
+    const storedClickId = getStoredClickId();
+    if (storedClickId) {
+      setClickId(storedClickId);
+      console.log("Retrieved clickId for sign-in:", storedClickId);
+    }
+
+    const storedOfferCode = getStoredOfferCode();
+    if (storedOfferCode) {
+      setOfferCode(storedOfferCode);
+      console.log("Retrieved offerCode for sign-in:", storedOfferCode);
+    }
+  }, [searchParams]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // If we have an offer code, store it in sessionStorage for the callback handler
+      if (offerCode) {
+        sessionStorage.setItem("auth_pending_offercode", offerCode);
+        console.log(
+          "Stored offerCode in sessionStorage for auth callback:",
+          offerCode
+        );
+      }
+
       const result = await signIn("resend", {
         email,
         callbackUrl: "/",
         redirect: false,
+        clickId: clickId || undefined,
+        offerCode: offerCode || undefined,
       });
 
       console.log("Sign in result:", result);
@@ -22,6 +69,18 @@ export default function SignInForm() {
       if (result?.error) {
         console.error("Sign in error:", result.error);
       } else {
+        // Clear the clickId from localStorage after it's been used
+        if (clickId) {
+          clearStoredClickId();
+          console.log("Cleared clickId from localStorage after sign-in");
+        }
+
+        // Clear the offerCode from localStorage after it's been used
+        if (offerCode) {
+          clearStoredOfferCode();
+          console.log("Cleared offerCode from localStorage after sign-in");
+        }
+
         window.location.href = "/auth/verify-request";
       }
     } catch (error) {
@@ -32,7 +91,20 @@ export default function SignInForm() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
+    // If we have an offer code, store it in sessionStorage for the callback handler
+    if (offerCode) {
+      sessionStorage.setItem("auth_pending_offercode", offerCode);
+      console.log(
+        "Stored offerCode in sessionStorage for Google auth callback:",
+        offerCode
+      );
+    }
+
+    signIn("google", {
+      callbackUrl: "/",
+      clickId: clickId || undefined,
+      offerCode: offerCode || undefined,
+    });
   };
 
   return (

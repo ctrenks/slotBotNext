@@ -7,7 +7,7 @@ import {
   getStoredClickId,
   clearStoredClickId,
   getStoredOfferCode,
-  // clearStoredOfferCode, // Commented out as it's not used
+  clearStoredOfferCode,
 } from "@/app/utils/urlParams";
 
 export default function SignInButtons() {
@@ -64,13 +64,12 @@ export default function SignInButtons() {
         );
       }
 
-      // Include clickId in the sign-in call
-      // Temporarily removed offerCode to avoid database errors
+      // Include clickId and offerCode in the sign-in call
       const result = await signIn("resend", {
         email,
         redirect: false,
         clickId: clickId || undefined,
-        // offerCode: offerCode || undefined,
+        offerCode: offerCode || undefined,
         callbackUrl,
       });
 
@@ -85,11 +84,11 @@ export default function SignInButtons() {
           console.log("Cleared clickId from localStorage after sign-in");
         }
 
-        // Don't clear the offerCode yet - we'll need it after authentication
-        // if (offerCode) {
-        //   clearStoredOfferCode();
-        //   console.log("Cleared offerCode from localStorage after sign-in");
-        // }
+        // Clear the offerCode from localStorage after it's been used
+        if (offerCode) {
+          clearStoredOfferCode();
+          console.log("Cleared offerCode from localStorage after sign-in");
+        }
 
         // Redirect to the verification page
         router.replace("/auth/verify-request");
@@ -113,12 +112,11 @@ export default function SignInButtons() {
       );
     }
 
-    // Include clickId in the Google sign-in call
-    // Temporarily removed offerCode to avoid database errors
+    // Include clickId and offerCode in the Google sign-in call
     signIn("google", {
       callbackUrl: "/",
       clickId: clickId || undefined,
-      // offerCode: offerCode || undefined,
+      offerCode: offerCode || undefined,
     });
   };
 
