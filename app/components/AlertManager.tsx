@@ -343,7 +343,7 @@ export default function AlertManager() {
                 message: "Message must be at least 10 characters",
               },
             })}
-            className={`w-full p-2 border rounded-md ${
+            className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
               errors.message ? "border-red-500" : ""
             }`}
             rows={4}
@@ -364,7 +364,7 @@ export default function AlertManager() {
             {...register("casinoId", {
               required: "Casino selection is required",
             })}
-            className={`w-full p-2 border rounded-md ${
+            className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
               errors.casinoId ? "border-red-500" : ""
             }`}
             onChange={(e) => {
@@ -395,7 +395,7 @@ export default function AlertManager() {
             </label>
             <select
               {...register("slot", { required: "Slot selection is required" })}
-              className={`w-full p-2 border rounded-md ${
+              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
                 errors.slot ? "border-red-500" : ""
               }`}
               disabled={isSubmitting}
@@ -434,7 +434,7 @@ export default function AlertManager() {
                 },
               },
             })}
-            className={`w-full p-2 border rounded-md ${
+            className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
               errors.customUrl ? "border-red-500" : ""
             }`}
             placeholder="example.com/custom-slot-url"
@@ -455,7 +455,7 @@ export default function AlertManager() {
             <input
               type="datetime-local"
               {...register("startTime", { required: "Start time is required" })}
-              className={`w-full p-2 border rounded-md ${
+              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
                 errors.startTime ? "border-red-500" : ""
               }`}
               disabled={isSubmitting}
@@ -474,7 +474,7 @@ export default function AlertManager() {
             <input
               type="datetime-local"
               {...register("endTime", { required: "End time is required" })}
-              className={`w-full p-2 border rounded-md ${
+              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
                 errors.endTime ? "border-red-500" : ""
               }`}
               disabled={isSubmitting}
@@ -496,7 +496,7 @@ export default function AlertManager() {
               type="number"
               step="0.01"
               {...register("maxPotential", { min: 0 })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="e.g., 5000"
             />
           </div>
@@ -509,7 +509,7 @@ export default function AlertManager() {
               type="number"
               step="0.01"
               {...register("recommendedBet", { min: 0 })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="e.g., 0.40"
             />
           </div>
@@ -522,7 +522,7 @@ export default function AlertManager() {
               type="number"
               step="0.01"
               {...register("stopLimit", { min: 0 })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="e.g., 100"
             />
           </div>
@@ -535,7 +535,7 @@ export default function AlertManager() {
               type="number"
               step="0.01"
               {...register("targetWin", { min: 0 })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="e.g., 500"
             />
           </div>
@@ -548,7 +548,7 @@ export default function AlertManager() {
               type="number"
               step="0.01"
               {...register("maxWin", { min: 0 })}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="e.g., 1000"
             />
           </div>
@@ -565,7 +565,7 @@ export default function AlertManager() {
                 min: { value: 0, message: "RTP must be greater than 0" },
                 max: { value: 1000, message: "RTP cannot exceed 1000%" },
               })}
-              className={`w-full p-2 border rounded-md ${
+              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
                 errors.rtp ? "border-red-500" : ""
               }`}
               placeholder="e.g., 96.5"
@@ -584,7 +584,7 @@ export default function AlertManager() {
               type="text"
               value={geoInput}
               onChange={(e) => setGeoInput(e.target.value)}
-              className="flex-1 p-2 border rounded-md"
+              className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="Enter geo location (or leave empty for all)"
             />
             <button
@@ -599,7 +599,7 @@ export default function AlertManager() {
             {selectedGeos.map((geo) => (
               <span
                 key={geo}
-                className="px-2 py-1 bg-green-100 rounded-md flex items-center gap-2"
+                className="px-2 py-1 bg-green-100 text-green-800 rounded-md flex items-center gap-2"
               >
                 {geo}
                 <button
@@ -626,7 +626,7 @@ export default function AlertManager() {
               type="text"
               value={referralInput}
               onChange={(e) => setReferralInput(e.target.value)}
-              className="flex-1 p-2 border rounded-md"
+              className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
               placeholder="Enter referral code (or leave empty for all)"
             />
             <button
@@ -641,7 +641,7 @@ export default function AlertManager() {
             {selectedReferrals.map((ref) => (
               <span
                 key={ref}
-                className="px-2 py-1 bg-green-100 rounded-md flex items-center gap-2"
+                className="px-2 py-1 bg-green-100 text-green-800 rounded-md flex items-center gap-2"
               >
                 {ref}
                 <button
