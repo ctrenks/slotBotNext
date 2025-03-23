@@ -44,6 +44,14 @@ export default function Footer() {
                   Betting Guide
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/howto"
+                  className="text-foreground/70 dark:text-foreground-dark/70 hover:text-primary dark:hover:text-accent-dark transition-colors"
+                >
+                  User Guide
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -13,6 +13,7 @@ export default function Header() {
     { name: "Trial", href: "/trial" },
     { name: "Pricing", href: "/pricing" },
     { name: "Betting Guide", href: "/betting-guide" },
+    { name: "User Guide", href: "/howto" },
   ];
   return (
     <header className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur supports-[backdrop-filter]:bg-black/60">

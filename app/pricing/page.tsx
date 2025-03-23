@@ -17,7 +17,7 @@ export default function Pricing() {
       <div className="text-lg border-y border-green-900 py-4">
         <p>
           Most users after a short trial period opt for the lifetime membership,
-          although you can also continue testing for a 1 year option as well.
+          although you can request a code for a demo period in the contact page.
           All payments are made via contact form.
         </p>
         <ul className="list-disc pl-6 space-y-2">
