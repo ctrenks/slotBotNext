@@ -34,7 +34,7 @@ export default function HowTo() {
                 accept alert notificarions.
               </li>
               <li>
-                On desktop just having the SlotBiot page open should allow
+                On desktop just having the SlotBot page open should allow
                 allerts to appear on your desktop, either way when your ready to
                 play be sure to refresh or re open on your device to assure you
                 get the alerts.
