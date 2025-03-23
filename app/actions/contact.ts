@@ -47,8 +47,8 @@ export async function submitContactForm(formData: FormData) {
 
   try {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM!,
-      to: ["support@allfreechips.com"],
+      from: `${name} <${process.env.EMAIL_FROM!}>`,
+      to: ["accounts@beatonlineslots.com"],
       subject: "New Contact Form Submission",
       html: `
         <h2>New Contact Form Submission</h2>
