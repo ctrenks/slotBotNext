@@ -26,11 +26,11 @@ export default async function AffiliateUserManagementPage() {
       clickId: true,
       createdAt: true,
       paid: true,
-      offerCode: true,
+      refferal: true,
       _count: {
         select: {
           clickTracks: true,
-        }
+        },
       },
     },
     orderBy: {
@@ -154,9 +154,9 @@ export default async function AffiliateUserManagementPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
-                      {user.offerCode ? (
+                      {user.refferal ? (
                         <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-800 text-blue-100">
-                          {user.offerCode}
+                          {user.refferal}
                         </span>
                       ) : (
                         <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">

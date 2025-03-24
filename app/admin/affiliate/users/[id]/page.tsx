@@ -164,12 +164,8 @@ export default async function Page({
               )}
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Referral Code</p>
+              <p className="text-gray-400 text-sm">Coupon Code</p>
               <p className="text-lg">{user.refferal || "None"}</p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Offer Code</p>
-              <p className="text-lg">{user.offerCode || "None"}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Affiliate Code</p>

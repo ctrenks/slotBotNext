@@ -15,6 +15,7 @@ declare module "next-auth" {
 
   interface Session {
     user: User & {
+      id: string;
       email: string;
       image?: string | null;
       name?: string | null;
@@ -126,6 +127,7 @@ export const {
         const user = await prisma.user.findUnique({
           where: { email: session.user.email! },
           select: {
+            id: true,
             image: true,
             name: true,
             geo: true,
@@ -137,6 +139,7 @@ export const {
 
         // Update session with database values
         if (user) {
+          session.user.id = user.id;
           session.user.image = user.image;
           session.user.name = user.name;
           session.user.geo = user.geo;
