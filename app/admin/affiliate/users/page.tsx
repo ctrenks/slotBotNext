@@ -29,7 +29,7 @@ export default async function AffiliateUserManagementPage() {
       refferal: true,
       _count: {
         select: {
-          clickTracks: true,
+          alertClicks: true,
         },
       },
     },
@@ -181,7 +181,7 @@ export default async function AffiliateUserManagementPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">
-                      {user._count.clickTracks} clicks
+                      {user._count.alertClicks} clicks
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

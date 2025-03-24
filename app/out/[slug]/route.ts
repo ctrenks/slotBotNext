@@ -36,22 +36,44 @@ export async function GET(
 
     // Get user details if logged in
     let userGeo = null;
+    let userId = null;
+    const userEmail = session?.user?.email || null;
+    let username = session?.user?.name || null;
+
     if (session?.user?.id) {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { geo: true, name: true },
+        select: { id: true, geo: true, name: true },
       });
-      userGeo = user?.geo || null;
+      if (user) {
+        userGeo = user.geo || null;
+        userId = user.id;
+        username = user.name || null;
+      }
+    } else if (userEmail) {
+      // If we have an email but no session ID, try to find the user by email
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail },
+        select: { id: true, geo: true, name: true },
+      });
+      if (user) {
+        userId = user.id;
+        userGeo = user.geo || null;
+        username = user.name || null;
+      }
     }
-    //console.log("WRITING CLICK", alert.id);
-    // Record the click
+
+    // Record the click with proper user association
     const click = await prisma.alertClick.create({
       data: {
         alertId: alert.id,
-        userId: session?.user?.id || null,
-        userEmail: session?.user?.email || null,
-        username: session?.user?.name || null,
+        userId: userId,
+        userEmail: userEmail,
+        username: username,
         geo: userGeo,
+      },
+      include: {
+        user: true,
       },
     });
 
@@ -59,9 +81,9 @@ export async function GET(
     console.log("Alert click recorded:", {
       clickId: click.id,
       alertId: alert.id,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      username: session?.user?.name,
+      userId: userId,
+      userEmail: userEmail,
+      username: username,
       geo: userGeo,
       timestamp: new Date(),
     });
