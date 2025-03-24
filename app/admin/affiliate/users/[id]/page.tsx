@@ -33,6 +33,12 @@ export default async function Page({
     },
     include: {
       accounts: true,
+      clickTracks: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10,
+      },
     },
   });
 
@@ -42,6 +48,20 @@ export default async function Page({
 
   // Fetch alerts for this user
   const alerts = await prisma.alertRecipient.findMany({
+    where: {
+      userId: user.id,
+    },
+    include: {
+      alert: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
+  });
+
+  // Fetch alert clicks for this user
+  const alertClicks = await prisma.alertClick.findMany({
     where: {
       userId: user.id,
     },
@@ -176,66 +196,162 @@ export default async function Page({
 
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-xl font-bold mb-4">Recent Alerts</h2>
-        {alerts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
-                  >
-                    Alert
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
-                  >
-                    Date
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
-                  >
-                    Read
-                  </th>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Alert
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Read
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {alerts.map((recipient) => (
+                <tr key={recipient.id}>
+                  <td className="px-6 py-4">
+                    <p className="text-sm">{recipient.alert.message}</p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {new Date(recipient.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        recipient.read
+                          ? "bg-green-800 text-green-100"
+                          : "bg-yellow-800 text-yellow-100"
+                      }`}
+                    >
+                      {recipient.read ? "Read" : "Unread"}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {alerts.map((alertRecipient) => (
-                  <tr key={alertRecipient.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">
-                        {alertRecipient.alert.message}
-                      </div>
-                      {alertRecipient.alert.casinoName && (
-                        <div className="text-sm text-gray-400">
-                          {alertRecipient.alert.casinoName}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(alertRecipient.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          alertRecipient.read
-                            ? "bg-green-800 text-green-100"
-                            : "bg-red-800 text-red-100"
-                        }`}
-                      >
-                        {alertRecipient.read ? "Read" : "Unread"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-400">No alerts for this user</p>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-6 mt-8">
+        <h2 className="text-xl font-bold mb-4">Alert Clicks</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Alert
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Location
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {alertClicks.map((click) => (
+                <tr key={click.id}>
+                  <td className="px-6 py-4">
+                    <p className="text-sm">
+                      {click.alert?.message || "Direct Casino Click"}
+                    </p>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {new Date(click.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">
+                      {click.geo || "Unknown"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-6 mt-8">
+        <h2 className="text-xl font-bold mb-4">Click History</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Click ID
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Location
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Referrer
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {user.clickTracks.map((click) => (
+                <tr key={click.id}>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-800 text-blue-100">
+                      {click.clickId || "No ID"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {new Date(click.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">
+                      {click.geo || "Unknown"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {click.referrer || "Direct"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

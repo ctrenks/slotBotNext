@@ -26,6 +26,12 @@ export default async function AffiliateUserManagementPage() {
       clickId: true,
       createdAt: true,
       paid: true,
+      offerCode: true,
+      _count: {
+        select: {
+          clickTracks: true,
+        }
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -90,6 +96,12 @@ export default async function AffiliateUserManagementPage() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
                 >
+                  Coupon Code
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
                   Registration Date
                 </th>
                 <th
@@ -97,6 +109,12 @@ export default async function AffiliateUserManagementPage() {
                   className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
                 >
                   Paid Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  Clicks
                 </th>
                 <th
                   scope="col"
@@ -134,6 +152,19 @@ export default async function AffiliateUserManagementPage() {
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      {user.offerCode ? (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-800 text-blue-100">
+                          {user.offerCode}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">
+                          No Code
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
@@ -146,6 +177,11 @@ export default async function AffiliateUserManagementPage() {
                       }`}
                     >
                       {user.paid ? "Paid" : "Free"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-300">
+                      {user._count.clickTracks} clicks
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
