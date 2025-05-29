@@ -25,7 +25,6 @@ export default async function Page({
   const isAdmin =
     session?.user?.email === "chris@trenkas.com" ||
     session?.user?.email === "carringtoncenno180@gmail.com";
-
   if (!isAdmin) {
     redirect("/");
   }
