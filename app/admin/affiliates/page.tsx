@@ -12,7 +12,7 @@ export default async function AffiliateSettingsPage() {
   const session = await auth();
 
   // Check if user is admin
-  if (session?.user?.email !== "chris@trenkas.com") {
+  if (session?.user?.email !== "chris@trenkas.com" || "carringtoncenno180@gmail.com" ) {
     redirect("/");
   }
 
