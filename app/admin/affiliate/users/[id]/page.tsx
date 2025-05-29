@@ -23,8 +23,8 @@ export default async function Page({
 
   // Check if user is admin
   if (
-    session?.user?.email !== "chris@trenkas.com" ||
-    "carringtoncenno180@gmail.com"
+    session?.user?.email !== "chris@trenkas.com" &&
+    session?.user?.email !== "carringtoncenno180@gmail.com"
   ) {
     redirect("/");
   }

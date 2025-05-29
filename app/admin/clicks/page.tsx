@@ -14,12 +14,14 @@ export default async function ClickTrackingPage() {
   const session = await auth();
 
   // Check if user is admin
+  // Check if user is admin
   if (
-    session?.user?.email !== "chris@trenkas.com" ||
-    "carringtoncenno180@gmail.com"
+    session?.user?.email !== "chris@trenkas.com" &&
+    session?.user?.email !== "carringtoncenno180@gmail.com"
   ) {
     redirect("/");
   }
+
 
   // Get all available geos for the filter dropdown
   const allGeos = await prisma.$queryRaw<{ geo: string }[]>`
