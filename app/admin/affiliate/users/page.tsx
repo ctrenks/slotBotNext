@@ -14,13 +14,13 @@ export default async function AffiliateUserManagementPage() {
 
   // Check if user is admin
   // Check if user is admin
-  if (
-    session?.user?.email !== "chris@trenkas.com" &&
-    session?.user?.email !== "carringtoncenno180@gmail.com"
-  ) {
+  const isAdmin =
+    session?.user?.email === "chris@trenkas.com" ||
+    session?.user?.email === "carringtoncenno180@gmail.com";
+
+  if (!isAdmin) {
     redirect("/");
   }
-
 
   // Fetch users with clickId information
   const users = await prisma.user.findMany({

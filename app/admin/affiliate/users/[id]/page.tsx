@@ -22,10 +22,11 @@ export default async function Page({
   const session = await auth();
 
   // Check if user is admin
-  if (
-    session?.user?.email !== "chris@trenkas.com" &&
-    session?.user?.email !== "carringtoncenno180@gmail.com"
-  ) {
+  const isAdmin =
+    session?.user?.email === "chris@trenkas.com" ||
+    session?.user?.email === "carringtoncenno180@gmail.com";
+
+  if (!isAdmin) {
     redirect("/");
   }
 

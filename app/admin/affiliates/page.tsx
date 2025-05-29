@@ -13,13 +13,13 @@ export default async function AffiliateSettingsPage() {
 
   // Check if user is admin
   // Check if user is admin
-  if (
-    session?.user?.email !== "chris@trenkas.com" &&
-    session?.user?.email !== "carringtoncenno180@gmail.com"
-  ) {
+  const isAdmin =
+    session?.user?.email === "chris@trenkas.com" ||
+    session?.user?.email === "carringtoncenno180@gmail.com";
+
+  if (!isAdmin) {
     redirect("/");
   }
-
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
