@@ -571,7 +571,7 @@ export default function AlertManager() {
               value={referralInput}
               onChange={(e) => setReferralInput(e.target.value)}
               className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
-              placeholder="Enter referral code (or leave empty for all)"
+              placeholder="Enter referral code, or use NOCODE for users without codes"
             />
             <button
               type="button"
@@ -580,12 +580,31 @@ export default function AlertManager() {
             >
               Add
             </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                if (!selectedReferrals.includes("NOCODE")) {
+                  setSelectedReferrals([...selectedReferrals, "NOCODE"]);
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md"
+            >
+              + NOCODE
+            </button>
           </div>
+          <p className="text-sm text-gray-500 mb-2">
+            Use "NOCODE" to target users who don't have any referral code set.
+          </p>
           <div className="flex flex-wrap gap-2">
             {selectedReferrals.map((ref) => (
               <span
                 key={ref}
-                className="px-2 py-1 bg-green-100 text-green-800 rounded-md flex items-center gap-2"
+                className={`px-2 py-1 rounded-md flex items-center gap-2 ${
+                  ref === "NOCODE"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-green-100 text-green-800"
+                }`}
               >
                 {ref}
                 <button

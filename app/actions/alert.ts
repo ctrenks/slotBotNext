@@ -131,9 +131,22 @@ export async function createAlert(data: CreateAlertData) {
             AND: [
               // Geo targeting
               geoTargets.includes("all") ? {} : { geo: { in: geoTargets } },
-              // Referral targeting
+              // Referral targeting with NOCODE support
               referralCodes.includes("all")
                 ? {}
+                : referralCodes.includes("NOCODE")
+                ? {
+                    OR: [
+                      // Users with NOCODE in referral codes AND users with null/empty referral
+                      {
+                        refferal: {
+                          in: referralCodes.filter((code) => code !== "NOCODE"),
+                        },
+                      },
+                      { refferal: null },
+                      { refferal: "" },
+                    ],
+                  }
                 : { refferal: { in: referralCodes } },
             ],
           },
@@ -146,6 +159,7 @@ export async function createAlert(data: CreateAlertData) {
       totalUsers: users.length,
       geoTargets,
       referralCodes,
+      hasNoCodeTargeting: referralCodes.includes("NOCODE"),
       userDetails: users.map((u) => ({
         id: u.id,
         email: u.email,
@@ -155,7 +169,9 @@ export async function createAlert(data: CreateAlertData) {
           geoTargets.includes("all") || (u.geo && geoTargets.includes(u.geo)),
         matchedByReferral:
           referralCodes.includes("all") ||
-          (u.refferal && referralCodes.includes(u.refferal)),
+          (u.refferal && referralCodes.includes(u.refferal)) ||
+          (referralCodes.includes("NOCODE") &&
+            (!u.refferal || u.refferal === "")),
       })),
     });
 
