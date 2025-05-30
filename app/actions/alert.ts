@@ -3,6 +3,7 @@
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { sendAlertEmails } from "@/app/utils/alertEmailService";
 
 export interface CreateAlertData {
   message: string;
@@ -192,6 +193,37 @@ export async function createAlert(data: CreateAlertData) {
         refferal: r.user.refferal,
       })),
     });
+
+    // Send email notifications to recipients
+    if (createdRecipients.length > 0) {
+      try {
+        console.log("Sending alert email notifications...");
+
+        // Fetch casino details if casinoId is provided
+        let casinoDetails = null;
+        if (alert.casinoId) {
+          casinoDetails = await prisma.casino_p_casinos.findUnique({
+            where: { id: alert.casinoId },
+            select: {
+              id: true,
+              url: true,
+              button: true,
+              clean_name: true,
+            },
+          });
+        }
+
+        const emailResult = await sendAlertEmails({
+          ...alert,
+          casino: casinoDetails,
+        });
+
+        console.log("Email notification result:", emailResult);
+      } catch (emailError) {
+        // Log email errors but don't fail the alert creation
+        console.error("Failed to send alert email notifications:", emailError);
+      }
+    }
 
     revalidatePath("/");
     return alert;
