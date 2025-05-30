@@ -38,6 +38,21 @@ export default async function MyProfilePage() {
     );
   }
 
+  // Create a properly typed user object for ProfileForm
+  const profileUser = {
+    ...user,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    paid: false,
+    trial: null,
+    refferal: null,
+    geo: null,
+    affiliate: null,
+    clickId: null,
+    offerCode: null,
+    emailVerified: null,
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-8">
       <h1 className="text-2xl font-bold mb-6">My Profile</h1>
@@ -45,7 +60,7 @@ export default async function MyProfilePage() {
       {/* Profile Information */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
-        <ProfileForm user={user as any} />
+        <ProfileForm user={profileUser} />
       </div>
 
       {/* Email Notification Settings */}
