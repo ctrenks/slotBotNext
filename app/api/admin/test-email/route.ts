@@ -76,11 +76,11 @@ function generateTestAlertEmailHTML(
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000;" bgcolor="#000000">
         <tr>
           <td align="center" style="padding: 20px 0; background-color: #000000;" bgcolor="#000000">
-            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; border-radius: 12px; overflow: hidden;" bgcolor="#1a1a1a">
+            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a !important; border-radius: 12px; overflow: hidden;" bgcolor="#1a1a1a">
               <!-- Header -->
               <tr>
-                <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center;" bgcolor="#10b981">
-                  <h1 style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); color: #ffffff;">
+                <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); background-color: #10b981; padding: 30px 20px; text-align: center;" bgcolor="#10b981">
+                  <h1 style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); color: #ffffff !important;">
                     🎰 TEST SlotBot Alert!
                   </h1>
                 </td>
@@ -88,23 +88,25 @@ function generateTestAlertEmailHTML(
 
               <!-- Content -->
               <tr>
-                <td style="padding: 40px 30px; background-color: #1a1a1a;" bgcolor="#1a1a1a">
-                  <p style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0; color: #ffffff;">
-                    Hello <strong>${user.name || "there"}</strong>!
+                <td style="padding: 40px 30px; background-color: #1a1a1a !important;" bgcolor="#1a1a1a">
+                  <p style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0; color: #ffffff !important;">
+                    Hello <strong style="color: #ffffff !important;">${
+                      user.name || "there"
+                    }</strong>!
                   </p>
 
-                  <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; color: #b3b3b3;">
-                    This is a <strong style="color: #ffffff;">TEST EMAIL</strong> for the following alert:
+                  <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; color: #b3b3b3 !important;">
+                    This is a <strong style="color: #ffffff !important;">TEST EMAIL</strong> for the following alert:
                   </p>
 
                   <!-- Alert Content -->
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;" bgcolor="#2d2d2d">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d !important; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;" bgcolor="#2d2d2d">
                     <tr>
-                      <td style="padding: 25px; background-color: #2d2d2d;" bgcolor="#2d2d2d">
+                      <td style="padding: 25px; background-color: #2d2d2d !important;" bgcolor="#2d2d2d">
                         ${
                           casinoImageUrl
                             ? `
-                          <div class="text-center mb-20" style="text-align: center; margin-bottom: 20px;">
+                          <div style="text-align: center; margin-bottom: 20px;">
                             <img src="${casinoImageUrl}" alt="${
                                 alertData.casinoName || "Casino"
                               }" style="max-width: 180px; height: auto; margin: 0 auto; border-radius: 8px;" />
@@ -116,7 +118,7 @@ function generateTestAlertEmailHTML(
                         ${
                           slotImageUrl
                             ? `
-                          <div class="text-center mb-20" style="text-align: center; margin-bottom: 20px;">
+                          <div style="text-align: center; margin-bottom: 20px;">
                             <img src="${slotImageUrl}" alt="${
                                 alertData.slot || "Slot"
                               }" style="max-width: 120px; height: auto; border-radius: 12px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
@@ -125,7 +127,7 @@ function generateTestAlertEmailHTML(
                             : ""
                         }
 
-                        <div class="text-white" style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px; color: #ffffff;">
+                        <div style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px; color: #ffffff !important;">
                           ${alertData.message || "No message provided"}
                         </div>
 
@@ -134,8 +136,8 @@ function generateTestAlertEmailHTML(
                             ? `
                           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
                             <tr>
-                              <td style="padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; text-align: center;">
-                                <strong class="text-white" style="font-size: 20px; color: #ffffff;">💰 Max Win: $${alertData.maxWin.toLocaleString()}</strong>
+                              <td style="padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); background-color: #10b981; border-radius: 10px; text-align: center;" bgcolor="#10b981">
+                                <strong style="font-size: 20px; color: #ffffff !important;">💰 Max Win: $${alertData.maxWin.toLocaleString()}</strong>
                               </td>
                             </tr>
                           </table>
@@ -148,9 +150,9 @@ function generateTestAlertEmailHTML(
                             ${
                               alertData.recommendedBet
                                 ? `
-                              <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
-                                <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Recommended Bet</div>
-                                <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alertData.recommendedBet}</div>
+                              <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
+                                <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;">Recommended Bet</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;">$${alertData.recommendedBet}</div>
                               </td>
                               <td width="4%"></td>
                             `
@@ -160,9 +162,9 @@ function generateTestAlertEmailHTML(
                             ${
                               alertData.rtp
                                 ? `
-                              <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
-                                <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">RTP</div>
-                                <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">${alertData.rtp}%</div>
+                              <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
+                                <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;">RTP</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;">${alertData.rtp}%</div>
                               </td>
                             `
                                 : ""
@@ -178,9 +180,9 @@ function generateTestAlertEmailHTML(
                               ${
                                 alertData.targetWin
                                   ? `
-                                <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
-                                  <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Target Win</div>
-                                  <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alertData.targetWin.toLocaleString()}</div>
+                                <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
+                                  <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;">Target Win</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;">$${alertData.targetWin.toLocaleString()}</div>
                                 </td>
                                 <td width="4%"></td>
                               `
@@ -190,9 +192,9 @@ function generateTestAlertEmailHTML(
                               ${
                                 alertData.stopLimit
                                   ? `
-                                <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
-                                  <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Stop Limit</div>
-                                  <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alertData.stopLimit.toLocaleString()}</div>
+                                <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
+                                  <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;">Stop Limit</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;">$${alertData.stopLimit.toLocaleString()}</div>
                                 </td>
                               `
                                   : ""
@@ -210,7 +212,7 @@ function generateTestAlertEmailHTML(
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 40px 0;">
                     <tr>
                       <td style="text-align: center;">
-                        <a href="${playUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                        <a href="${playUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
                           🎰 PLAY NOW
                         </a>
                       </td>
@@ -220,8 +222,8 @@ function generateTestAlertEmailHTML(
                   <!-- Test Warning -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
                     <tr>
-                      <td style="background-color: #fbbf24; border-radius: 10px; padding: 20px; border-left: 5px solid #f59e0b;">
-                        <p class="text-orange" style="font-size: 16px; margin: 0; font-weight: bold; text-align: center; color: #f59e0b;">
+                      <td style="background-color: #fbbf24 !important; border-radius: 10px; padding: 20px; border-left: 5px solid #f59e0b;" bgcolor="#fbbf24">
+                        <p style="font-size: 16px; margin: 0; font-weight: bold; text-align: center; color: #f59e0b !important;">
                           ⚠️ This is a test email. No actual alert has been created.
                         </p>
                       </td>
@@ -232,15 +234,15 @@ function generateTestAlertEmailHTML(
 
               <!-- Footer -->
               <tr>
-                <td style="background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333;">
-                  <p class="text-gray" style="font-size: 12px; margin: 0 0 15px 0; text-align: center; color: #b3b3b3;">
+                <td style="background-color: #0f0f0f !important; padding: 25px 20px; border-top: 1px solid #333;" bgcolor="#0f0f0f">
+                  <p style="font-size: 12px; margin: 0 0 15px 0; text-align: center; color: #b3b3b3 !important;">
                     This is a test email for SlotBot alert functionality.
                   </p>
-                  <p class="text-gray" style="font-size: 12px; margin: 0; text-align: center; color: #b3b3b3;">
-                    <a href="${unsubscribeUrl}" style="color: #10b981; text-decoration: underline;">
+                  <p style="font-size: 12px; margin: 0; text-align: center; color: #b3b3b3 !important;">
+                    <a href="${unsubscribeUrl}" style="color: #10b981 !important; text-decoration: underline;">
                       Disable Future Alert Emails
                     </a> |
-                    <a href="${baseUrl}" style="color: #10b981; text-decoration: underline;">
+                    <a href="${baseUrl}" style="color: #10b981 !important; text-decoration: underline;">
                       Beatonlineslots.com
                     </a>
                   </p>
