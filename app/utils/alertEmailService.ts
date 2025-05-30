@@ -35,17 +35,34 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             id: true,
             email: true,
             name: true,
+            emailNotifications: true,
           },
         },
       },
     });
 
+    console.log(
+      `Found ${recipients.length} total recipients for alert ${alert.id}`
+    );
+    console.log(
+      "Recipients details:",
+      recipients.map((r) => ({
+        email: r.user.email,
+        emailNotifications: r.user.emailNotifications,
+      }))
+    );
+
     // Filter recipients who have email notifications enabled
     // emailNotifications defaults to true, so we only exclude users who explicitly set it to false
     const emailEnabledRecipients = recipients.filter((recipient) => {
-      // Check if user has emailNotifications enabled (default to true if field doesn't exist yet)
-      const user = recipient.user as { emailNotifications?: boolean };
-      return user.emailNotifications !== false;
+      const emailNotifications = recipient.user.emailNotifications;
+      const isEnabled = emailNotifications !== false; // null, undefined, or true = enabled
+
+      console.log(
+        `User ${recipient.user.email}: emailNotifications=${emailNotifications}, isEnabled=${isEnabled}`
+      );
+
+      return isEnabled;
     });
 
     console.log(
@@ -65,15 +82,23 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     for (let i = 0; i < emailEnabledRecipients.length; i += batchSize) {
       const batch = emailEnabledRecipients.slice(i, i + batchSize);
 
+      console.log(
+        `Processing batch ${Math.floor(i / batchSize) + 1}, emails: ${batch
+          .map((r) => r.user.email)
+          .join(", ")}`
+      );
+
       const emailPromises = batch.map(async (recipient) => {
         try {
+          console.log(`Attempting to send email to: ${recipient.user.email}`);
+
           const unsubscribeUrl = `${
             process.env.NEXTAUTH_URL
           }/api/unsubscribe?token=${generateUnsubscribeToken(
             recipient.user.id
           )}`;
 
-          await resend.emails.send({
+          const emailResult = await resend.emails.send({
             from: "SlotBot Alerts <alerts@beatonlineslots.com>",
             to: recipient.user.email,
             subject: `🎰 New SlotBot Alert: ${
@@ -90,12 +115,12 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
           });
 
           console.log(
-            `Successfully sent alert email to ${recipient.user.email}`
+            `✅ Successfully sent alert email to ${recipient.user.email}, Resend ID: ${emailResult.data?.id}`
           );
           sentCount++;
         } catch (error) {
           console.error(
-            `Failed to send alert email to ${recipient.user.email}:`,
+            `❌ Failed to send alert email to ${recipient.user.email}:`,
             error
           );
           failedCount++;
