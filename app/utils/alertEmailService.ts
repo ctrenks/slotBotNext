@@ -222,7 +222,7 @@ function generateAlertEmailHTML(
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
         img { display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
         .container { width: 100%; background-color: #000000; padding: 20px 0; }
-        .email-wrapper { max-width: 600px; width: 100%; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .email-wrapper { width: 600px; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
         .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; }
         .content { padding: 40px 30px; background-color: #1a1a1a; }
         .alert-box { background-color: #2d2d2d; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #10b981; }
