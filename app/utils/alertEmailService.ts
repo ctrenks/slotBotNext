@@ -226,7 +226,7 @@ function generateAlertEmailHTML(
         table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         .text-white { color: #ffffff !important; }
         .text-gray { color: #b3b3b3 !important; }
-        .text-green { color: #10b981 !important; }
+        .text-green { color: #000000 !important; }
         .text-center { text-align: center; }
         .mb-20 { margin-bottom: 20px; }
         .mt-15 { margin-top: 15px; }
@@ -236,7 +236,7 @@ function generateAlertEmailHTML(
         [data-ogsc] .alert-box { background-color: #2d2d2d !important; }
       </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;" bgcolor="#000000" text="#ffffff" link="#10b981" vlink="#10b981" alink="#10b981">
+    <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;" bgcolor="#000000" text="#ffffff" link="#000000" vlink="#000000" alink="#000000">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000; width: 100% !important;" bgcolor="#000000">
         <tr>
           <td align="center" style="padding: 20px 0; background-color: #000000;" bgcolor="#000000">
@@ -248,7 +248,7 @@ function generateAlertEmailHTML(
             <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a !important; border-radius: 12px; overflow: hidden; max-width: 600px;" bgcolor="#1a1a1a">
               <!-- Header -->
               <tr>
-                <td style="background: #10b981; padding: 30px 20px; text-align: center;" bgcolor="#10b981">
+                <td style="background: #000000; padding: 30px 20px; text-align: center;" bgcolor="#000000">
                   <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff !important;" color="#ffffff">
                     🎰 New SlotBot Alert!
                   </h1>
@@ -275,7 +275,7 @@ function generateAlertEmailHTML(
                   </table>
 
                   <!-- Alert Content -->
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0" class="alert-box" style="background-color: #2d2d2d !important; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;" bgcolor="#2d2d2d">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" class="alert-box" style="background-color: #2d2d2d !important; border-radius: 12px; margin: 25px 0; border-left: 5px solid #000000;" bgcolor="#2d2d2d">
                     <tr>
                       <td style="padding: 25px; background-color: #2d2d2d !important; color: #ffffff !important;" bgcolor="#2d2d2d" color="#ffffff">
                         <table width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -317,7 +317,7 @@ function generateAlertEmailHTML(
                             ? `
                           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
                             <tr>
-                              <td style="padding: 15px; background-color: #10b981; border-radius: 10px; text-align: center;" bgcolor="#10b981">
+                              <td style="padding: 15px; background-color: #000000; border-radius: 10px; text-align: center;" bgcolor="#000000">
                                 <strong style="font-size: 20px; color: #ffffff !important;" color="#ffffff">💰 Max Win: $${alert.maxWin.toLocaleString()}</strong>
                               </td>
                             </tr>
@@ -333,7 +333,7 @@ function generateAlertEmailHTML(
                                 ? `
                               <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
                                 <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;" color="#b3b3b3">Recommended Bet</div>
-                                <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;" color="#10b981">$${alert.recommendedBet}</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #000000 !important;" color="#000000">$${alert.recommendedBet}</div>
                               </td>
                               <td width="4%"></td>
                             `
@@ -345,7 +345,7 @@ function generateAlertEmailHTML(
                                 ? `
                               <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
                                 <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;" color="#b3b3b3">RTP</div>
-                                <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;" color="#10b981">${alert.rtp}%</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #000000 !important;" color="#000000">${alert.rtp}%</div>
                               </td>
                             `
                                 : ""
@@ -363,7 +363,7 @@ function generateAlertEmailHTML(
                                   ? `
                                 <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
                                   <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;" color="#b3b3b3">Target Win</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;" color="#10b981">$${alert.targetWin.toLocaleString()}</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #000000 !important;" color="#000000">$${alert.targetWin.toLocaleString()}</div>
                                 </td>
                                 <td width="4%"></td>
                               `
@@ -375,7 +375,7 @@ function generateAlertEmailHTML(
                                   ? `
                                 <td width="48%" style="background-color: #333333 !important; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;" bgcolor="#333333">
                                   <div style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3 !important;" color="#b3b3b3">Stop Limit</div>
-                                  <div style="font-size: 16px; font-weight: bold; color: #10b981 !important;" color="#10b981">$${alert.stopLimit.toLocaleString()}</div>
+                                  <div style="font-size: 16px; font-weight: bold; color: #000000 !important;" color="#000000">$${alert.stopLimit.toLocaleString()}</div>
                                 </td>
                               `
                                   : ""
@@ -395,7 +395,7 @@ function generateAlertEmailHTML(
                       <td style="text-align: center;">
                         <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
                           <tr>
-                            <td style="background-color: #10b981; border-radius: 10px; padding: 18px 40px;" bgcolor="#10b981">
+                            <td style="background-color: #000000; border-radius: 10px; padding: 18px 40px;" bgcolor="#000000">
                               <a href="${playUrl}" style="color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 18px; display: block;" color="#ffffff">
                                 🎰 PLAY NOW
                               </a>
@@ -430,10 +430,10 @@ function generateAlertEmailHTML(
                           You're receiving this email because you're subscribed to SlotBot alerts.
                         </p>
                         <p style="font-size: 12px; margin: 0; text-align: center; color: #b3b3b3 !important;" color="#b3b3b3">
-                          <a href="${unsubscribeUrl}" style="color: #10b981 !important; text-decoration: underline;" color="#10b981">
+                          <a href="${unsubscribeUrl}" style="color: #000000 !important; text-decoration: underline;" color="#000000">
                             Disable Future Alert Emails
                           </a> |
-                          <a href="${baseUrl}" style="color: #10b981 !important; text-decoration: underline;" color="#10b981">
+                          <a href="${baseUrl}" style="color: #000000 !important; text-decoration: underline;" color="#000000">
                             Beatonlineslots.com
                           </a>
                         </p>
