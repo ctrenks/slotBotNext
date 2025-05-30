@@ -121,10 +121,10 @@ function generateTestAlertEmailHTML(
             }</div>
 
             ${
-              alertData.maxPotential
+              alertData.maxWin
                 ? `
               <div style="margin-top: 15px; padding: 10px; background-color: #ecfdf5; border-radius: 6px;">
-                <strong style="color: #059669;">Max Potential: $${alertData.maxPotential}</strong>
+                <strong style="color: #059669;">Max Win: $${alertData.maxWin}</strong>
               </div>
             `
                 : ""
@@ -145,6 +145,26 @@ function generateTestAlertEmailHTML(
                 ? `
               <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
                 RTP: ${alertData.rtp}%
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              alertData.targetWin
+                ? `
+              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                Target Win: $${alertData.targetWin}
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              alertData.stopLimit
+                ? `
+              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                Stop Limit: $${alertData.stopLimit}
               </div>
             `
                 : ""
@@ -187,21 +207,41 @@ function generateTestAlertEmailHTML(
 
 export async function POST(request: Request) {
   try {
+    console.log("🚀 Test email API called");
+
     const session = await auth();
+    console.log("👤 Session:", {
+      email: session?.user?.email,
+      hasSession: !!session,
+    });
 
     // Check if user is admin
     const isAdmin =
       session?.user?.email === "chris@trenkas.com" ||
       session?.user?.email === "carringtoncenno180@gmail.com";
 
+    console.log("🔐 Admin check:", {
+      isAdmin,
+      userEmail: session?.user?.email,
+    });
+
     if (!isAdmin) {
+      console.log("❌ Unauthorized access attempt");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log("📦 Request body:", {
+      hasEmail: !!body.email,
+      email: body.email,
+      hasAlertData: !!body.alertData,
+      alertDataKeys: body.alertData ? Object.keys(body.alertData) : [],
+    });
+
     const { email, alertData } = body;
 
     if (!email) {
+      console.log("❌ No email provided");
       return NextResponse.json(
         { error: "Email address is required" },
         { status: 400 }
@@ -209,6 +249,7 @@ export async function POST(request: Request) {
     }
 
     if (!alertData) {
+      console.log("❌ No alert data provided");
       return NextResponse.json(
         { error: "Alert data is required" },
         { status: 400 }
@@ -218,11 +259,14 @@ export async function POST(request: Request) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log("❌ Invalid email format:", email);
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400 }
       );
     }
+
+    console.log("✅ Validation passed, preparing email");
 
     // Create a mock user object
     const mockUser = {
@@ -235,6 +279,8 @@ export async function POST(request: Request) {
       process.env.NEXTAUTH_URL
     }/api/unsubscribe?token=${generateUnsubscribeToken("test-user")}`;
 
+    console.log("🔗 Unsubscribe URL:", unsubscribeUrl);
+
     // Send the test email
     const emailPayload = {
       from: "SlotBot Alerts <alerts@beatonlineslots.com>",
@@ -245,13 +291,25 @@ export async function POST(request: Request) {
       html: generateTestAlertEmailHTML(alertData, mockUser, unsubscribeUrl),
     };
 
+    console.log("📧 Email payload:", {
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      htmlLength: emailPayload.html.length,
+      hasResendKey: !!process.env.RESEND_API_KEY,
+    });
+
     const emailResult = await resend.emails.send(emailPayload);
+    console.log("📨 Resend result:", emailResult);
 
     if (emailResult.error) {
+      console.error("❌ Resend error:", emailResult.error);
       throw new Error(`Resend error: ${emailResult.error.message}`);
     }
 
-    console.log(`Test email sent to: ${email} by admin: ${session.user.email}`);
+    console.log(
+      `✅ Test email sent successfully to: ${email} by admin: ${session.user.email}`
+    );
 
     return NextResponse.json({
       success: true,
@@ -259,7 +317,7 @@ export async function POST(request: Request) {
       resendId: emailResult.data?.id,
     });
   } catch (error) {
-    console.error("Error sending test email:", error);
+    console.error("💥 Error sending test email:", error);
     return NextResponse.json(
       {
         error: "Failed to send test email",

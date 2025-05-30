@@ -273,6 +273,7 @@ export default function AlertManager() {
 
   const sendTestEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
 
     if (!testEmail) {
       setTestEmailMessage("Please enter an email address");
@@ -286,8 +287,12 @@ export default function AlertManager() {
       return;
     }
 
-    // Get current form data
-    const currentFormData = watch();
+    // Get current form data - collect all form values including selected arrays
+    const currentFormData = {
+      ...watch(),
+      geoTargets: selectedGeos,
+      referralCodes: selectedReferrals,
+    };
 
     // Basic validation for test email
     if (!currentFormData.message?.trim()) {
@@ -309,6 +314,8 @@ export default function AlertManager() {
     setTestEmailMessage(null);
 
     try {
+      console.log("Sending test email with data:", currentFormData);
+
       const response = await fetch("/api/admin/test-email", {
         method: "POST",
         headers: {
@@ -321,12 +328,17 @@ export default function AlertManager() {
       });
 
       const result = await response.json();
+      console.log("Test email response:", result);
 
       if (response.ok) {
         setTestEmailMessage(`✅ Test email sent successfully to ${testEmail}`);
         setTestEmail(""); // Clear the email field
       } else {
-        setTestEmailMessage(`❌ Failed to send test email: ${result.error}`);
+        setTestEmailMessage(
+          `❌ Failed to send test email: ${
+            result.error || result.details || "Unknown error"
+          }`
+        );
       }
     } catch (error) {
       console.error("Error sending test email:", error);
@@ -345,6 +357,7 @@ export default function AlertManager() {
         </div>
       )}
       <form
+        id="alert-form"
         onSubmit={handleSubmit((data) => {
           console.log("Form submitted with data:", data);
           onSubmit(data);
@@ -727,66 +740,66 @@ export default function AlertManager() {
             </pre>
           </div>
         </div>
+      </form>
 
-        {/* Test Email Section */}
-        <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-200">
-          <h3 className="text-lg font-semibold mb-2 text-blue-800">
-            Test Email Alert
-          </h3>
-          <p className="text-sm text-blue-600 mb-4">
-            Send a test email to preview how the alert will look before creating
-            it.
-          </p>
+      {/* Test Email Section - Outside main form to prevent interference */}
+      <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-200">
+        <h3 className="text-lg font-semibold mb-2 text-blue-800">
+          Test Email Alert
+        </h3>
+        <p className="text-sm text-blue-600 mb-4">
+          Send a test email to preview how the alert will look before creating
+          it.
+        </p>
 
-          {testEmailMessage && (
-            <div
-              className={`mb-4 p-3 rounded-md text-sm ${
-                testEmailMessage.includes("✅")
-                  ? "bg-green-100 text-green-700 border border-green-200"
-                  : "bg-red-100 text-red-700 border border-red-200"
-              }`}
-            >
-              {testEmailMessage}
-            </div>
-          )}
+        {testEmailMessage && (
+          <div
+            className={`mb-4 p-3 rounded-md text-sm ${
+              testEmailMessage.includes("✅")
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "bg-red-100 text-red-700 border border-red-200"
+            }`}
+          >
+            {testEmailMessage}
+          </div>
+        )}
 
-          <form onSubmit={sendTestEmail} className="flex gap-2">
-            <input
-              type="email"
-              value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="Enter email address to test..."
-              className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
-              disabled={isSendingTest}
-            />
-            <button
-              type="submit"
-              disabled={isSendingTest || !testEmail}
-              className={`px-4 py-2 bg-blue-600 text-white rounded-md font-medium ${
-                isSendingTest || !testEmail
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-blue-700"
-              }`}
-            >
-              {isSendingTest ? "Sending..." : "Send Test"}
-            </button>
-          </form>
-        </div>
-
-        <div className="flex justify-end mt-6">
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            placeholder="Enter email address to test..."
+            className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
+            disabled={isSendingTest}
+          />
           <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`px-4 py-2 bg-blue-600 text-white rounded-md ${
-              isSubmitting
+            type="button"
+            onClick={sendTestEmail}
+            disabled={isSendingTest || !testEmail}
+            className={`px-4 py-2 bg-blue-600 text-white rounded-md font-medium ${
+              isSendingTest || !testEmail
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:bg-blue-700"
             }`}
           >
-            {isSubmitting ? "Creating Alert..." : "Create Alert"}
+            {isSendingTest ? "Sending..." : "Send Test"}
           </button>
         </div>
-      </form>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button
+          type="submit"
+          form="alert-form"
+          disabled={isSubmitting}
+          className={`px-4 py-2 bg-blue-600 text-white rounded-md ${
+            isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+          }`}
+        >
+          {isSubmitting ? "Creating Alert..." : "Create Alert"}
+        </button>
+      </div>
     </div>
   );
 }
