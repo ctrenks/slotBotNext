@@ -45,7 +45,11 @@ function generateTestAlertEmailHTML(
     ? `${baseUrl}/image/sloticonssquare/${alertData.slotImage}`
     : null;
 
-  const playUrl = alertData.customUrl || `${baseUrl}`;
+  const playUrl =
+    alertData.customUrl ||
+    (alertData.casinoCleanName
+      ? `${baseUrl}/play/${alertData.casinoCleanName}`
+      : `${baseUrl}`);
 
   return `
     <!DOCTYPE html>

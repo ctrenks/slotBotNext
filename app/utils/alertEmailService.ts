@@ -287,10 +287,10 @@ function generateAlertEmailHTML(
             }</div>
 
             ${
-              alert.maxPotential
+              alert.maxWin
                 ? `
               <div style="margin-top: 15px; padding: 10px; background-color: #ecfdf5; border-radius: 6px;">
-                <strong style="color: #059669;">Max Potential: $${alert.maxPotential}</strong>
+                <strong style="color: #059669;">Max Win: $${alert.maxWin}</strong>
               </div>
             `
                 : ""
@@ -301,6 +301,36 @@ function generateAlertEmailHTML(
                 ? `
               <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
                 Recommended Bet: $${alert.recommendedBet}
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              alert.rtp
+                ? `
+              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                RTP: ${alert.rtp}%
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              alert.targetWin
+                ? `
+              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                Target Win: $${alert.targetWin}
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              alert.stopLimit
+                ? `
+              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
+                Stop Limit: $${alert.stopLimit}
               </div>
             `
                 : ""
