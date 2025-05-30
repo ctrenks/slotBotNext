@@ -77,8 +77,10 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     let sentCount = 0;
     let failedCount = 0;
 
-    // Send emails in batches to avoid rate limiting
-    const batchSize = 50;
+    // Send emails with rate limiting to avoid Resend's 10 requests per second limit
+    const batchSize = 8; // Send 8 emails per second to stay under the 10/sec limit
+    const delayBetweenEmails = 125; // 125ms delay = 8 emails per second
+
     for (let i = 0; i < emailEnabledRecipients.length; i += batchSize) {
       const batch = emailEnabledRecipients.slice(i, i + batchSize);
 
@@ -88,7 +90,8 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
           .join(", ")}`
       );
 
-      const emailPromises = batch.map(async (recipient) => {
+      // Send emails sequentially within each batch to respect rate limits
+      for (const recipient of batch) {
         try {
           console.log(`Attempting to send email to: ${recipient.user.email}`);
 
@@ -118,6 +121,13 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             `✅ Successfully sent alert email to ${recipient.user.email}, Resend ID: ${emailResult.data?.id}`
           );
           sentCount++;
+
+          // Add delay between emails to respect rate limits (except for the last email in batch)
+          if (batch.indexOf(recipient) < batch.length - 1) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, delayBetweenEmails)
+            );
+          }
         } catch (error) {
           console.error(
             `❌ Failed to send alert email to ${recipient.user.email}:`,
@@ -125,11 +135,9 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
           );
           failedCount++;
         }
-      });
+      }
 
-      await Promise.all(emailPromises);
-
-      // Small delay between batches to be respectful to the email service
+      // Longer delay between batches to be extra safe
       if (i + batchSize < emailEnabledRecipients.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -150,15 +158,18 @@ function generateAlertEmailHTML(
   user: EmailUser,
   unsubscribeUrl: string
 ): string {
+  // Use absolute URLs for images - fallback to production domain if NEXTAUTH_URL not set
+  const baseUrl = process.env.NEXTAUTH_URL || "https://allfreechips.com";
+
   const casinoImageUrl = alert.casino?.button
-    ? `${process.env.NEXTAUTH_URL}/image/casino/${alert.casino.button}`
+    ? `${baseUrl}/image/casino/${alert.casino.button}`
     : null;
 
   const slotImageUrl = alert.slotImage
-    ? `${process.env.NEXTAUTH_URL}/image/sloticonssquare/${alert.slotImage}`
+    ? `${baseUrl}/image/sloticonssquare/${alert.slotImage}`
     : null;
 
-  const playUrl = `${process.env.NEXTAUTH_URL}/out/${alert.id}`;
+  const playUrl = `${baseUrl}/out/${alert.id}`;
 
   return `
     <!DOCTYPE html>
@@ -167,22 +178,41 @@ function generateAlertEmailHTML(
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>New SlotBot Alert</title>
+      <style>
+        /* Ensure images display properly in email clients */
+        img {
+          display: block;
+          border: 0;
+          outline: none;
+          text-decoration: none;
+          -ms-interpolation-mode: bicubic;
+        }
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+          .email-container {
+            background-color: #1f2937 !important;
+          }
+          .content-text {
+            color: #f9fafb !important;
+          }
+        }
+      </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+      <div class="email-container" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
 
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">🎰 New SlotBot Alert!</h1>
+          <h1 style="color: #ffffff !important; margin: 0; font-size: 24px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">🎰 New SlotBot Alert!</h1>
         </div>
 
         <!-- Content -->
-        <div style="padding: 30px 20px;">
-          <p style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
+        <div style="padding: 30px 20px; background-color: #ffffff;">
+          <p class="content-text" style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
             Hello ${user.name || "there"}!
           </p>
 
-          <p style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
+          <p class="content-text" style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
             We have a new alert for you:
           </p>
 
@@ -194,7 +224,7 @@ function generateAlertEmailHTML(
               <div style="text-align: center; margin-bottom: 15px;">
                 <img src="${casinoImageUrl}" alt="${
                     alert.casinoName || "Casino"
-                  }" style="max-width: 150px; height: auto;">
+                  }" style="max-width: 150px; height: auto; margin: 0 auto;" />
               </div>
             `
                 : ""
@@ -206,7 +236,7 @@ function generateAlertEmailHTML(
               <div style="text-align: center; margin-bottom: 15px;">
                 <img src="${slotImageUrl}" alt="${
                     alert.slot || "Slot"
-                  }" style="max-width: 100px; height: auto; border-radius: 8px;">
+                  }" style="max-width: 100px; height: auto; border-radius: 8px; margin: 0 auto;" />
               </div>
             `
                 : ""
@@ -239,7 +269,7 @@ function generateAlertEmailHTML(
 
           <!-- Play Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${playUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 18px;">
+            <a href="${playUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 18px; border: none;">
               🎰 Play Now
             </a>
           </div>
@@ -260,9 +290,7 @@ function generateAlertEmailHTML(
             <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">
               Disable Future Alert Emails
             </a> |
-            <a href="${
-              process.env.NEXTAUTH_URL
-            }" style="color: #6b7280; text-decoration: underline;">
+            <a href="${baseUrl}" style="color: #6b7280; text-decoration: underline;">
               AllFreeChips.com
             </a>
           </p>
