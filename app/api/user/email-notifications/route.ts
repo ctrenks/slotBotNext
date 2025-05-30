@@ -21,8 +21,12 @@ export async function POST(request: NextRequest) {
     // Update user's email notification preference
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
-      data: { emailNotifications } as any,
-      select: { id: true, email: true, emailNotifications: true as any },
+      data: { emailNotifications } as { emailNotifications: boolean },
+      select: {
+        id: true,
+        email: true,
+        emailNotifications: true as unknown as true,
+      },
     });
 
     console.log(
@@ -31,7 +35,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      emailNotifications: (updatedUser as any).emailNotifications,
+      emailNotifications: (updatedUser as { emailNotifications: boolean })
+        .emailNotifications,
     });
   } catch (error) {
     console.error("Error updating email notification settings:", error);

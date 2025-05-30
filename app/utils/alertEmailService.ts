@@ -41,9 +41,9 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     });
 
     // Filter recipients who have email notifications enabled
-    const emailEnabledRecipients = recipients.filter((recipient: any) => {
+    const emailEnabledRecipients = recipients.filter((recipient) => {
       // Check if user has emailNotifications enabled (default to true if field doesn't exist yet)
-      const user = recipient.user as any;
+      const user = recipient.user as { emailNotifications?: boolean };
       return user.emailNotifications !== false;
     });
 
@@ -64,7 +64,7 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     for (let i = 0; i < emailEnabledRecipients.length; i += batchSize) {
       const batch = emailEnabledRecipients.slice(i, i + batchSize);
 
-      const emailPromises = batch.map(async (recipient: any) => {
+      const emailPromises = batch.map(async (recipient) => {
         try {
           const unsubscribeUrl = `${
             process.env.NEXTAUTH_URL
@@ -78,7 +78,14 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             subject: `🎰 New SlotBot Alert: ${
               alert.casinoName || "Casino Alert"
             }`,
-            html: generateAlertEmailHTML(alert, recipient.user, unsubscribeUrl),
+            html: generateAlertEmailHTML(
+              alert,
+              {
+                ...recipient.user,
+                emailNotifications: true,
+              },
+              unsubscribeUrl
+            ),
           });
 
           console.log(

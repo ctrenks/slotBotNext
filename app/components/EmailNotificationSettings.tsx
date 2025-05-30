@@ -8,7 +8,6 @@ interface EmailNotificationSettingsProps {
 }
 
 export default function EmailNotificationSettings({
-  userId,
   currentSetting,
 }: EmailNotificationSettingsProps) {
   const [emailNotifications, setEmailNotifications] = useState(currentSetting);

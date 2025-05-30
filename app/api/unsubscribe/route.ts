@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     const { userId } = parsed;
 
     // Update user to disable email notifications
-    const user = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
-      data: { emailNotifications: false } as any,
+      data: { emailNotifications: false } as { emailNotifications: boolean },
       select: { email: true, name: true },
     });
 

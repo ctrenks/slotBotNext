@@ -23,7 +23,7 @@ export default async function SettingsPage() {
       id: true,
       name: true,
       email: true,
-      emailNotifications: true as any, // Type assertion until Prisma types are updated
+      emailNotifications: true as unknown as true,
     },
   });
 
@@ -65,7 +65,10 @@ export default async function SettingsPage() {
             <h2 className="text-xl font-semibold mb-4">Email Notifications</h2>
             <EmailNotificationSettings
               userId={user.id}
-              currentSetting={(user as any).emailNotifications ?? true}
+              currentSetting={
+                (user as { emailNotifications: boolean }).emailNotifications ??
+                true
+              }
             />
           </div>
         </div>
