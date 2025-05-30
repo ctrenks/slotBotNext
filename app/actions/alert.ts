@@ -137,12 +137,20 @@ export async function createAlert(data: CreateAlertData) {
                 : referralCodes.includes("NOCODE")
                 ? {
                     OR: [
-                      // Users with NOCODE in referral codes AND users with null/empty referral
-                      {
-                        refferal: {
-                          in: referralCodes.filter((code) => code !== "NOCODE"),
-                        },
-                      },
+                      // Users with other referral codes (only if there are any)
+                      ...(referralCodes.filter((code) => code !== "NOCODE")
+                        .length > 0
+                        ? [
+                            {
+                              refferal: {
+                                in: referralCodes.filter(
+                                  (code) => code !== "NOCODE"
+                                ),
+                              },
+                            },
+                          ]
+                        : []),
+                      // Users with no referral code
                       { refferal: null },
                       { refferal: "" },
                     ],
