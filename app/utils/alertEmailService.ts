@@ -219,15 +219,16 @@ function generateAlertEmailHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>New SlotBot Alert</title>
       <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; width: 100% !important; }
         img { display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         .container { width: 100%; background-color: #000000; padding: 20px 0; }
-        .email-wrapper { width: 600px; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
-        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; }
-        .content { padding: 40px 30px; background-color: #1a1a1a; }
-        .alert-box { background-color: #2d2d2d; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #10b981; }
+        .email-wrapper { width: 600px !important; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; width: 560px; }
+        .content { padding: 40px 30px; background-color: #1a1a1a; width: 540px; }
+        .alert-box { background-color: #2d2d2d; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #10b981; width: 490px; }
         .play-button { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; }
-        .footer { background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333; }
+        .footer { background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333; width: 560px; }
         .text-white { color: #ffffff !important; }
         .text-gray { color: #b3b3b3 !important; }
         .text-green { color: #10b981 !important; }
@@ -237,143 +238,179 @@ function generateAlertEmailHTML(
         .mt-10 { margin-top: 10px; }
       </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #000000;">
-      <div class="container">
-        <div class="email-wrapper">
-          <!-- Header -->
-          <div class="header">
-            <h1 class="text-white" style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-              🎰 New SlotBot Alert!
-            </h1>
-          </div>
+    <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000;">
+        <tr>
+          <td align="center" style="padding: 20px 0;">
+            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; border-radius: 12px; overflow: hidden;">
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center;">
+                  <h1 class="text-white" style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); color: #ffffff;">
+                    🎰 New SlotBot Alert!
+                  </h1>
+                </td>
+              </tr>
 
-          <!-- Content -->
-          <div class="content">
-            <p class="text-white mb-20" style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0;">
-              Hello <strong>${user.name || "there"}</strong>!
-            </p>
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px 30px; background-color: #1a1a1a;">
+                  <p class="text-white mb-20" style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0; color: #ffffff;">
+                    Hello <strong>${user.name || "there"}</strong>!
+                  </p>
 
-            <p class="text-gray mb-20" style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
-              We have a new hot alert for you:
-            </p>
+                  <p class="text-gray mb-20" style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; color: #b3b3b3;">
+                    We have a new hot alert for you:
+                  </p>
 
-            <!-- Alert Content -->
-            <div class="alert-box">
-              ${
-                casinoImageUrl
-                  ? `
-                <div class="text-center mb-20">
-                  <img src="${casinoImageUrl}" alt="${
-                      alert.casinoName || "Casino"
-                    }" style="max-width: 180px; height: auto; margin: 0 auto; border-radius: 8px;" />
-                </div>
-              `
-                  : ""
-              }
+                  <!-- Alert Content -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;">
+                    <tr>
+                      <td style="padding: 25px;">
+                        ${
+                          casinoImageUrl
+                            ? `
+                          <div class="text-center mb-20" style="text-align: center; margin-bottom: 20px;">
+                            <img src="${casinoImageUrl}" alt="${
+                                alert.casinoName || "Casino"
+                              }" style="max-width: 180px; height: auto; margin: 0 auto; border-radius: 8px;" />
+                          </div>
+                        `
+                            : ""
+                        }
 
-              ${
-                slotImageUrl
-                  ? `
-                <div class="text-center mb-20">
-                  <img src="${slotImageUrl}" alt="${
-                      alert.slot || "Slot"
-                    }" style="max-width: 120px; height: auto; border-radius: 12px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
-                </div>
-              `
-                  : ""
-              }
+                        ${
+                          slotImageUrl
+                            ? `
+                          <div class="text-center mb-20" style="text-align: center; margin-bottom: 20px;">
+                            <img src="${slotImageUrl}" alt="${
+                                alert.slot || "Slot"
+                              }" style="max-width: 120px; height: auto; border-radius: 12px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
+                          </div>
+                        `
+                            : ""
+                        }
 
-              <div class="text-white" style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px;">
-                ${alert.message}
-              </div>
+                        <div class="text-white" style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px; color: #ffffff;">
+                          ${alert.message}
+                        </div>
 
-              ${
-                alert.maxWin
-                  ? `
-                <div class="mt-15" style="padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; text-align: center;">
-                  <strong class="text-white" style="font-size: 20px;">💰 Max Win: $${alert.maxWin.toLocaleString()}</strong>
-                </div>
-              `
-                  : ""
-              }
+                        ${
+                          alert.maxWin
+                            ? `
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
+                            <tr>
+                              <td style="padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; text-align: center;">
+                                <strong class="text-white" style="font-size: 20px; color: #ffffff;">💰 Max Win: $${alert.maxWin.toLocaleString()}</strong>
+                              </td>
+                            </tr>
+                          </table>
+                        `
+                            : ""
+                        }
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                ${
-                  alert.recommendedBet
-                    ? `
-                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Recommended Bet</div>
-                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alert.recommendedBet}</div>
-                  </div>
-                `
-                    : ""
-                }
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+                          <tr>
+                            ${
+                              alert.recommendedBet
+                                ? `
+                              <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
+                                <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Recommended Bet</div>
+                                <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alert.recommendedBet}</div>
+                              </td>
+                              <td width="4%"></td>
+                            `
+                                : ""
+                            }
 
-                ${
-                  alert.rtp
-                    ? `
-                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">RTP</div>
-                    <div class="text-green" style="font-size: 16px; font-weight: bold;">${alert.rtp}%</div>
-                  </div>
-                `
-                    : ""
-                }
+                            ${
+                              alert.rtp
+                                ? `
+                              <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
+                                <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">RTP</div>
+                                <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">${alert.rtp}%</div>
+                              </td>
+                            `
+                                : ""
+                            }
+                          </tr>
+                          ${
+                            alert.targetWin || alert.stopLimit
+                              ? `
+                            <tr>
+                              <td colspan="3" style="height: 15px;"></td>
+                            </tr>
+                            <tr>
+                              ${
+                                alert.targetWin
+                                  ? `
+                                <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
+                                  <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Target Win</div>
+                                  <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alert.targetWin.toLocaleString()}</div>
+                                </td>
+                                <td width="4%"></td>
+                              `
+                                  : ""
+                              }
 
-                ${
-                  alert.targetWin
-                    ? `
-                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Target Win</div>
-                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alert.targetWin.toLocaleString()}</div>
-                  </div>
-                `
-                    : ""
-                }
+                              ${
+                                alert.stopLimit
+                                  ? `
+                                <td width="48%" style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center; vertical-align: top;">
+                                  <div class="text-gray" style="font-size: 12px; margin-bottom: 5px; color: #b3b3b3;">Stop Limit</div>
+                                  <div class="text-green" style="font-size: 16px; font-weight: bold; color: #10b981;">$${alert.stopLimit.toLocaleString()}</div>
+                                </td>
+                              `
+                                  : ""
+                              }
+                            </tr>
+                          `
+                              : ""
+                          }
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
 
-                ${
-                  alert.stopLimit
-                    ? `
-                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
-                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Stop Limit</div>
-                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alert.stopLimit.toLocaleString()}</div>
-                  </div>
-                `
-                    : ""
-                }
-              </div>
-            </div>
+                  <!-- Play Button -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 40px 0;">
+                    <tr>
+                      <td style="text-align: center;">
+                        <a href="${playUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                          🎰 PLAY NOW
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
 
-            <!-- Play Button -->
-            <div class="text-center" style="margin: 40px 0;">
-              <a href="${playUrl}" class="play-button">
-                🎰 PLAY NOW
-              </a>
-            </div>
+                  <p class="text-gray" style="font-size: 14px; margin: 30px 0 0 0; text-align: center; font-style: italic; color: #b3b3b3;">
+                    ⏰ This alert is active until ${new Date(
+                      alert.endTime
+                    ).toLocaleString()}
+                  </p>
+                </td>
+              </tr>
 
-            <p class="text-gray" style="font-size: 14px; margin: 30px 0 0 0; text-align: center; font-style: italic;">
-              ⏰ This alert is active until ${new Date(
-                alert.endTime
-              ).toLocaleString()}
-            </p>
-          </div>
-
-          <!-- Footer -->
-          <div class="footer">
-            <p class="text-gray" style="font-size: 12px; margin: 0 0 15px 0; text-align: center;">
-              You're receiving this email because you're subscribed to SlotBot alerts.
-            </p>
-            <p class="text-gray" style="font-size: 12px; margin: 0; text-align: center;">
-              <a href="${unsubscribeUrl}" style="color: #10b981; text-decoration: underline;">
-                Disable Future Alert Emails
-              </a> |
-              <a href="${baseUrl}" style="color: #10b981; text-decoration: underline;">
-                Beatonlineslots.com
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333;">
+                  <p class="text-gray" style="font-size: 12px; margin: 0 0 15px 0; text-align: center; color: #b3b3b3;">
+                    You're receiving this email because you're subscribed to SlotBot alerts.
+                  </p>
+                  <p class="text-gray" style="font-size: 12px; margin: 0; text-align: center; color: #b3b3b3;">
+                    <a href="${unsubscribeUrl}" style="color: #10b981; text-decoration: underline;">
+                      Disable Future Alert Emails
+                    </a> |
+                    <a href="${baseUrl}" style="color: #10b981; text-decoration: underline;">
+                      Beatonlineslots.com
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
