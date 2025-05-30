@@ -159,7 +159,7 @@ function generateAlertEmailHTML(
   unsubscribeUrl: string
 ): string {
   // Use absolute URLs for images - fallback to production domain if NEXTAUTH_URL not set
-  const baseUrl = process.env.NEXTAUTH_URL || "https://allfreechips.com";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://Beatonlineslots.com";
 
   const casinoImageUrl = alert.casino?.button
     ? `${baseUrl}/image/casino/${alert.casino.button}`
@@ -291,7 +291,7 @@ function generateAlertEmailHTML(
               Disable Future Alert Emails
             </a> |
             <a href="${baseUrl}" style="color: #6b7280; text-decoration: underline;">
-              AllFreeChips.com
+              Beatonlineslots.com
             </a>
           </p>
         </div>

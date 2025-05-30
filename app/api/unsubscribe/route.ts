@@ -80,12 +80,12 @@ export async function GET(request: NextRequest) {
             You have been unsubscribed from SlotBot alert emails.<br>
             You will no longer receive email notifications for new alerts.
             <br><br>
-            You can still access alerts by logging into your account at AllFreeChips.com.
+            You can still access alerts by logging into your account at Beatonlineslots.com.
             <br><br>
             To re-enable email notifications, please visit your account settings.
           </div>
           <a href="${process.env.NEXTAUTH_URL}" class="button">
-            Return to AllFreeChips.com
+            Return to Beatonlineslots.com
           </a>
         </div>
       </body>

@@ -116,7 +116,7 @@ export async function POST(req: Request) {
                 </div>
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 0.875rem;">
                   <p>You're receiving this email because you're subscribed to SlotBot alerts.</p>
-                  <p>AllFreeChips.com - Your trusted source for online casino information.</p>
+                  <p>Beatonlineslots.com - Your trusted source for online casino information.</p>
                 </div>
               </div>
             `,
