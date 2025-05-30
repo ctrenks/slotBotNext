@@ -594,7 +594,8 @@ export default function AlertManager() {
             </button>
           </div>
           <p className="text-sm text-gray-500 mb-2">
-            Use "NOCODE" to target users who don't have any referral code set.
+            Use &quot;NOCODE&quot; to target users who don&apos;t have any
+            referral code set.
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedReferrals.map((ref) => (
