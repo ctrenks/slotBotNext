@@ -4,6 +4,26 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+interface AlertData {
+  message?: string;
+  casinoId?: number;
+  casinoName?: string;
+  casinoCleanName?: string;
+  casinoImage?: string;
+  slot?: string;
+  slotImage?: string;
+  customUrl?: string;
+  maxPotential?: number;
+  recommendedBet?: number;
+  stopLimit?: number;
+  targetWin?: number;
+  maxWin?: number;
+  rtp?: number;
+  duration?: number;
+  geoTargets?: string[];
+  referralCodes?: string[];
+}
+
 // Helper function to generate unsubscribe token (copied from alertEmailService)
 function generateUnsubscribeToken(userId: string): string {
   return Buffer.from(`${userId}:${Date.now()}`).toString("base64");
@@ -11,7 +31,7 @@ function generateUnsubscribeToken(userId: string): string {
 
 // Helper function to generate alert email HTML (simplified version)
 function generateTestAlertEmailHTML(
-  alertData: any,
+  alertData: AlertData,
   user: { email: string; name: string },
   unsubscribeUrl: string
 ): string {
