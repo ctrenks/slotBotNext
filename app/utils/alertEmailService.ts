@@ -22,7 +22,13 @@ interface EmailUser {
 
 export async function sendAlertEmails(alert: AlertWithCasino) {
   try {
-    console.log("Starting to send alert emails for alert:", alert.id);
+    console.log("🚀 Starting to send alert emails for alert:", alert.id);
+    console.log("Alert details:", {
+      id: alert.id,
+      message: alert.message.substring(0, 100) + "...",
+      referralCodes: alert.referralCodes,
+      geoTargets: alert.geoTargets,
+    });
 
     // Get all recipients for this alert
     const recipients = await prisma.alertRecipient.findMany({
@@ -42,13 +48,14 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     });
 
     console.log(
-      `Found ${recipients.length} total recipients for alert ${alert.id}`
+      `📋 Found ${recipients.length} total recipients for alert ${alert.id}`
     );
     console.log(
-      "Recipients details:",
+      "📧 Recipients details:",
       recipients.map((r) => ({
         email: r.user.email,
         emailNotifications: r.user.emailNotifications,
+        hasEmailField: r.user.emailNotifications !== undefined,
       }))
     );
 
@@ -59,20 +66,31 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
       const isEnabled = emailNotifications !== false; // null, undefined, or true = enabled
 
       console.log(
-        `User ${recipient.user.email}: emailNotifications=${emailNotifications}, isEnabled=${isEnabled}`
+        `👤 User ${
+          recipient.user.email
+        }: emailNotifications=${emailNotifications} (type: ${typeof emailNotifications}), isEnabled=${isEnabled}`
       );
 
       return isEnabled;
     });
 
     console.log(
-      `Found ${emailEnabledRecipients.length} recipients with email notifications enabled out of ${recipients.length} total recipients`
+      `✅ Found ${emailEnabledRecipients.length} recipients with email notifications enabled out of ${recipients.length} total recipients`
     );
 
     if (emailEnabledRecipients.length === 0) {
-      console.log("No recipients with email notifications enabled");
+      console.log(
+        "❌ No recipients with email notifications enabled - stopping email send"
+      );
       return { sentCount: 0, failedCount: 0 };
     }
+
+    // Check environment variables
+    console.log("🔧 Environment check:", {
+      hasResendKey: !!process.env.RESEND_API_KEY,
+      hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
+      nextAuthUrl: process.env.NEXTAUTH_URL,
+    });
 
     let sentCount = 0;
     let failedCount = 0;
@@ -93,7 +111,9 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
       // Send emails sequentially within each batch to respect rate limits
       for (const recipient of batch) {
         try {
-          console.log(`Attempting to send email to: ${recipient.user.email}`);
+          console.log(
+            `📤 Attempting to send email to: ${recipient.user.email}`
+          );
 
           const unsubscribeUrl = `${
             process.env.NEXTAUTH_URL
@@ -101,7 +121,9 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             recipient.user.id
           )}`;
 
-          const emailResult = await resend.emails.send({
+          console.log(`🔗 Generated unsubscribe URL: ${unsubscribeUrl}`);
+
+          const emailPayload = {
             from: "SlotBot Alerts <alerts@beatonlineslots.com>",
             to: recipient.user.email,
             subject: `🎰 New SlotBot Alert: ${
@@ -115,10 +137,23 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
               },
               unsubscribeUrl
             ),
+          };
+
+          console.log(`📨 Email payload:`, {
+            from: emailPayload.from,
+            to: emailPayload.to,
+            subject: emailPayload.subject,
+            htmlLength: emailPayload.html.length,
           });
 
+          const emailResult = await resend.emails.send(emailPayload);
+
           console.log(
-            `✅ Successfully sent alert email to ${recipient.user.email}, Resend ID: ${emailResult.data?.id}`
+            `✅ Successfully sent alert email to ${recipient.user.email}:`,
+            {
+              resendId: emailResult.data?.id,
+              error: emailResult.error,
+            }
           );
           sentCount++;
 
@@ -131,7 +166,12 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
         } catch (error) {
           console.error(
             `❌ Failed to send alert email to ${recipient.user.email}:`,
-            error
+            {
+              error: error,
+              errorMessage:
+                error instanceof Error ? error.message : "Unknown error",
+              errorStack: error instanceof Error ? error.stack : undefined,
+            }
           );
           failedCount++;
         }
@@ -158,8 +198,8 @@ function generateAlertEmailHTML(
   user: EmailUser,
   unsubscribeUrl: string
 ): string {
-  // Use absolute URLs for images - fallback to production domain if NEXTAUTH_URL not set
-  const baseUrl = process.env.NEXTAUTH_URL || "https://Beatonlineslots.com";
+  // Use the correct base URL for images - ensure we use the production domain
+  const baseUrl = "https://www.beatonlineslots.com";
 
   const casinoImageUrl = alert.casino?.button
     ? `${baseUrl}/image/casino/${alert.casino.button}`
