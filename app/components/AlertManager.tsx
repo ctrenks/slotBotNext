@@ -10,8 +10,7 @@ interface AlertFormData {
   message: string;
   geoTargets: string[];
   referralCodes: string[];
-  startTime: string;
-  endTime: string;
+  duration?: number; // Duration in minutes, defaults to 45
   casinoId?: number;
   casinoName?: string;
   casinoCleanName?: string;
@@ -46,34 +45,6 @@ interface Slot {
   cleanName?: string;
 }
 
-function getDefaultTimes() {
-  // Get current time in EST
-  const now = new Date();
-  const estOffset = -5; // EST is UTC-5
-  const utcOffset = now.getTimezoneOffset() / 60;
-  const offsetDiff = utcOffset + estOffset;
-
-  // Convert current time to EST
-  const estNow = new Date(now.getTime() + offsetDiff * 60 * 60 * 1000);
-  const estEnd = new Date(estNow.getTime() + 45 * 60 * 1000);
-
-  // Format to YYYY-MM-DDTHH:mm format
-  const formatToDateTime = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  return {
-    startTime: formatToDateTime(estNow),
-    endTime: formatToDateTime(estEnd),
-  };
-}
-
 export default function AlertManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -89,7 +60,7 @@ export default function AlertManager() {
       message: "",
       geoTargets: [],
       referralCodes: [],
-      ...getDefaultTimes(),
+      duration: 45, // Default 45 minutes
     },
     mode: "onSubmit",
     reValidateMode: "onSubmit",
@@ -209,29 +180,11 @@ export default function AlertManager() {
         return;
       }
 
-      // Create Date objects from the input times and adjust for UTC
-      const startDate = new Date(data.startTime);
-      const endDate = new Date(data.endTime);
-
-      // Date validation
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        setErrorMessage("Please enter valid dates");
+      // Validate duration
+      if (!data.duration || data.duration < 1) {
+        setErrorMessage("Duration must be at least 1 minute");
         setIsSubmitting(false);
         return;
-      }
-
-      if (endDate <= startDate) {
-        setErrorMessage("End time must be after start time");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // If start time is in the past, use current time
-      const now = new Date();
-      if (startDate < now) {
-        startDate.setTime(now.getTime());
-        // Add 45 minutes to the end time from the new start time
-        endDate.setTime(startDate.getTime() + 45 * 60 * 1000);
       }
 
       // Handle URL if provided (but don't validate if empty)
@@ -244,9 +197,8 @@ export default function AlertManager() {
       // Clean and format the data for submission
       const formattedData = {
         message: data.message,
-        // Convert input times to EST timestamps
-        startTime: Math.floor(new Date(data.startTime).getTime() / 1000),
-        endTime: Math.floor(new Date(data.endTime).getTime() / 1000),
+        // Server will handle timing based on duration
+        duration: data.duration || 45,
         geoTargets: selectedGeos,
         referralCodes: selectedReferrals,
         ...(data.casinoId && { casinoId: Number(data.casinoId) }),
@@ -278,7 +230,7 @@ export default function AlertManager() {
       // Reset form on success with current time
       reset({
         message: "",
-        ...getDefaultTimes(),
+        duration: 45,
       });
       setSelectedGeos([]);
       setSelectedReferrals([]);
@@ -447,44 +399,36 @@ export default function AlertManager() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Start Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              {...register("startTime", { required: "Start time is required" })}
-              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                errors.startTime ? "border-red-500" : ""
-              }`}
-              disabled={isSubmitting}
-            />
-            {errors.startTime && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.startTime.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              End Time <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              {...register("endTime", { required: "End time is required" })}
-              className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                errors.endTime ? "border-red-500" : ""
-              }`}
-              disabled={isSubmitting}
-            />
-            {errors.endTime && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.endTime.message}
-              </p>
-            )}
-          </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Duration (minutes) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            step="1"
+            {...register("duration", {
+              required: "Duration is required",
+              min: { value: 1, message: "Duration must be at least 1 minute" },
+              max: {
+                value: 120,
+                message: "Duration cannot exceed 120 minutes",
+              },
+            })}
+            className={`w-full p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
+              errors.duration ? "border-red-500" : ""
+            }`}
+            placeholder="e.g., 45"
+            disabled={isSubmitting}
+          />
+          {errors.duration && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.duration.message}
+            </p>
+          )}
+          <p className="text-sm text-gray-500 mt-1">
+            Alert will be active for this many minutes starting immediately when
+            created.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

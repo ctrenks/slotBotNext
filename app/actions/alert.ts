@@ -9,8 +9,7 @@ export interface CreateAlertData {
   message: string;
   geoTargets: string[];
   referralCodes: string[];
-  startTime: number; // Unix timestamp in seconds
-  endTime: number; // Unix timestamp in seconds
+  duration: number; // Duration in minutes
   casinoId?: number;
   casinoName?: string;
   casinoCleanName?: string;
@@ -47,17 +46,19 @@ export async function createAlert(data: CreateAlertData) {
     const referralCodes =
       data.referralCodes.length === 0 ? ["all"] : data.referralCodes;
 
-    // Convert Unix timestamps to Date objects
-    const startTime = new Date(data.startTime * 1000);
-    const endTime = new Date(data.endTime * 1000);
+    // Generate start and end times on server using current time and duration
+    const now = new Date();
+    const startTime = now;
+    const endTime = new Date(now.getTime() + data.duration * 60 * 1000);
 
     console.log("Creating alert with data:", {
       userEmail: session.user.email,
       message: data.message,
       geoTargets,
       referralCodes,
-      startTime,
-      endTime,
+      duration: data.duration,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
       casinoId: data.casinoId,
       slot: data.slot,
     });
@@ -118,7 +119,6 @@ export async function createAlert(data: CreateAlertData) {
     });
 
     // Find all users that should receive this alert
-    const now = new Date();
     const users = await prisma.user.findMany({
       where: {
         AND: [
