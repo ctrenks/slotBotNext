@@ -41,6 +41,7 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
     });
 
     // Filter recipients who have email notifications enabled
+    // emailNotifications defaults to true, so we only exclude users who explicitly set it to false
     const emailEnabledRecipients = recipients.filter((recipient) => {
       // Check if user has emailNotifications enabled (default to true if field doesn't exist yet)
       const user = recipient.user as { emailNotifications?: boolean };

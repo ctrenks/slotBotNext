@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 
+export async function GET() {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        emailNotifications: true as unknown as true,
+      },
+    });
+
+    if (!user) {
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    return NextResponse.json({
+      emailNotifications:
+        (user as { emailNotifications: boolean }).emailNotifications ?? true,
+    });
+  } catch (error) {
+    console.error("Error fetching email notification settings:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
