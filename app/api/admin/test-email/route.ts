@@ -59,149 +59,162 @@ function generateTestAlertEmailHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Test SlotBot Alert</title>
       <style>
-        img {
-          display: block;
-          border: 0;
-          outline: none;
-          text-decoration: none;
-          -ms-interpolation-mode: bicubic;
-        }
-        @media (prefers-color-scheme: dark) {
-          .email-container {
-            background-color: #1f2937 !important;
-          }
-          .content-text {
-            color: #f9fafb !important;
-          }
-        }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        img { display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        .container { width: 100%; background-color: #000000; padding: 20px 0; }
+        .email-wrapper { max-width: 600px; width: 100%; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; }
+        .content { padding: 40px 30px; background-color: #1a1a1a; }
+        .alert-box { background-color: #2d2d2d; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #10b981; }
+        .play-button { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; }
+        .footer { background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333; }
+        .warning-box { background-color: #fbbf24; border-radius: 10px; padding: 20px; margin: 25px 0; border-left: 5px solid #f59e0b; }
+        .text-white { color: #ffffff !important; }
+        .text-gray { color: #b3b3b3 !important; }
+        .text-green { color: #10b981 !important; }
+        .text-orange { color: #f59e0b !important; }
+        .text-center { text-align: center; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-15 { margin-top: 15px; }
+        .mt-10 { margin-top: 10px; }
       </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
-      <div class="email-container" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; text-align: center;">
-          <h1 style="color: #ffffff !important; margin: 0; font-size: 24px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">🎰 TEST SlotBot Alert!</h1>
-        </div>
-
-        <!-- Content -->
-        <div style="padding: 30px 20px; background-color: #ffffff;">
-          <p class="content-text" style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
-            Hello ${user.name || "there"}!
-          </p>
-
-          <p class="content-text" style="color: #374151; font-size: 16px; margin: 0 0 20px 0;">
-            This is a <strong>TEST EMAIL</strong> for the following alert:
-          </p>
-
-          <!-- Alert Content -->
-          <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #10b981;">
-            ${
-              casinoImageUrl
-                ? `
-              <div style="text-align: center; margin-bottom: 15px;">
-                <img src="${casinoImageUrl}" alt="${
-                    alertData.casinoName || "Casino"
-                  }" style="max-width: 150px; height: auto; margin: 0 auto;" />
-              </div>
-            `
-                : ""
-            }
-
-            ${
-              slotImageUrl
-                ? `
-              <div style="text-align: center; margin-bottom: 15px;">
-                <img src="${slotImageUrl}" alt="${
-                    alertData.slot || "Slot"
-                  }" style="max-width: 100px; height: auto; border-radius: 8px; margin: 0 auto;" />
-              </div>
-            `
-                : ""
-            }
-
-            <div style="color: #374151; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${
-              alertData.message || "No message provided"
-            }</div>
-
-            ${
-              alertData.maxWin
-                ? `
-              <div style="margin-top: 15px; padding: 10px; background-color: #ecfdf5; border-radius: 6px;">
-                <strong style="color: #059669;">Max Win: $${alertData.maxWin}</strong>
-              </div>
-            `
-                : ""
-            }
-
-            ${
-              alertData.recommendedBet
-                ? `
-              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
-                Recommended Bet: $${alertData.recommendedBet}
-              </div>
-            `
-                : ""
-            }
-
-            ${
-              alertData.rtp
-                ? `
-              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
-                RTP: ${alertData.rtp}%
-              </div>
-            `
-                : ""
-            }
-
-            ${
-              alertData.targetWin
-                ? `
-              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
-                Target Win: $${alertData.targetWin}
-              </div>
-            `
-                : ""
-            }
-
-            ${
-              alertData.stopLimit
-                ? `
-              <div style="margin-top: 10px; color: #6b7280; font-size: 14px;">
-                Stop Limit: $${alertData.stopLimit}
-              </div>
-            `
-                : ""
-            }
+    <body style="margin: 0; padding: 0; background-color: #000000;">
+      <div class="container">
+        <div class="email-wrapper">
+          <!-- Header -->
+          <div class="header">
+            <h1 class="text-white" style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+              🎰 TEST SlotBot Alert!
+            </h1>
           </div>
 
-          <!-- Play Button -->
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${playUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 18px; border: none;">
-              🎰 Play Now
-            </a>
+          <!-- Content -->
+          <div class="content">
+            <p class="text-white mb-20" style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0;">
+              Hello <strong>${user.name || "there"}</strong>!
+            </p>
+
+            <p class="text-gray mb-20" style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+              This is a <strong class="text-white">TEST EMAIL</strong> for the following alert:
+            </p>
+
+            <!-- Alert Content -->
+            <div class="alert-box">
+              ${
+                casinoImageUrl
+                  ? `
+                <div class="text-center mb-20">
+                  <img src="${casinoImageUrl}" alt="${
+                      alertData.casinoName || "Casino"
+                    }" style="max-width: 180px; height: auto; margin: 0 auto; border-radius: 8px;" />
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                slotImageUrl
+                  ? `
+                <div class="text-center mb-20">
+                  <img src="${slotImageUrl}" alt="${
+                      alertData.slot || "Slot"
+                    }" style="max-width: 120px; height: auto; border-radius: 12px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
+                </div>
+              `
+                  : ""
+              }
+
+              <div class="text-white" style="font-size: 16px; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px;">
+                ${alertData.message || "No message provided"}
+              </div>
+
+              ${
+                alertData.maxWin
+                  ? `
+                <div class="mt-15" style="padding: 15px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; text-align: center;">
+                  <strong class="text-white" style="font-size: 20px;">💰 Max Win: $${alertData.maxWin.toLocaleString()}</strong>
+                </div>
+              `
+                  : ""
+              }
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                ${
+                  alertData.recommendedBet
+                    ? `
+                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Recommended Bet</div>
+                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alertData.recommendedBet}</div>
+                  </div>
+                `
+                    : ""
+                }
+
+                ${
+                  alertData.rtp
+                    ? `
+                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">RTP</div>
+                    <div class="text-green" style="font-size: 16px; font-weight: bold;">${alertData.rtp}%</div>
+                  </div>
+                `
+                    : ""
+                }
+
+                ${
+                  alertData.targetWin
+                    ? `
+                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Target Win</div>
+                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alertData.targetWin.toLocaleString()}</div>
+                  </div>
+                `
+                    : ""
+                }
+
+                ${
+                  alertData.stopLimit
+                    ? `
+                  <div style="background-color: #333; padding: 12px; border-radius: 8px; text-align: center;">
+                    <div class="text-gray" style="font-size: 12px; margin-bottom: 5px;">Stop Limit</div>
+                    <div class="text-green" style="font-size: 16px; font-weight: bold;">$${alertData.stopLimit.toLocaleString()}</div>
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+
+            <!-- Play Button -->
+            <div class="text-center" style="margin: 40px 0;">
+              <a href="${playUrl}" class="play-button">
+                🎰 PLAY NOW
+              </a>
+            </div>
+
+            <!-- Test Warning -->
+            <div class="warning-box">
+              <p class="text-orange" style="font-size: 16px; margin: 0; font-weight: bold; text-align: center;">
+                ⚠️ This is a test email. No actual alert has been created.
+              </p>
+            </div>
           </div>
 
-          <div style="background-color: #fef3c7; border-radius: 8px; padding: 15px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-            <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: bold;">
-              ⚠️ This is a test email. No actual alert has been created.
+          <!-- Footer -->
+          <div class="footer">
+            <p class="text-gray" style="font-size: 12px; margin: 0 0 15px 0; text-align: center;">
+              This is a test email for SlotBot alert functionality.
+            </p>
+            <p class="text-gray" style="font-size: 12px; margin: 0; text-align: center;">
+              <a href="${unsubscribeUrl}" style="color: #10b981; text-decoration: underline;">
+                Disable Future Alert Emails
+              </a> |
+              <a href="${baseUrl}" style="color: #10b981; text-decoration: underline;">
+                Beatonlineslots.com
+              </a>
             </p>
           </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background-color: #f9fafb; padding: 20px; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 12px; margin: 0 0 10px 0; text-align: center;">
-            This is a test email for SlotBot alert functionality.
-          </p>
-          <p style="color: #6b7280; font-size: 12px; margin: 0; text-align: center;">
-            <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">
-              Disable Future Alert Emails
-            </a> |
-            <a href="${baseUrl}" style="color: #6b7280; text-decoration: underline;">
-              Beatonlineslots.com
-            </a>
-          </p>
         </div>
       </div>
     </body>
