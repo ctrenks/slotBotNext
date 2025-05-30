@@ -59,9 +59,9 @@ function generateTestAlertEmailHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Test SlotBot Alert</title>
       <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; width: 100% !important; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; width: 100% !important; background-color: #000000 !important; }
         img { display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: transparent; }
         .container { width: 100%; background-color: #000000; padding: 20px 0; }
         .email-wrapper { width: 600px !important; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
         .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; width: 560px; }
@@ -78,12 +78,29 @@ function generateTestAlertEmailHTML(
         .mb-20 { margin-bottom: 20px; }
         .mt-15 { margin-top: 15px; }
         .mt-10 { margin-top: 10px; }
+        /* Force dark mode - override any email client defaults */
+        * { background-color: inherit !important; }
+        div, td, p, span, h1, h2, h3, h4, h5, h6 { color: inherit !important; }
+        @media (prefers-color-scheme: light) {
+          body { background-color: #000000 !important; }
+          .email-wrapper { background-color: #1a1a1a !important; }
+          .content { background-color: #1a1a1a !important; }
+          .alert-box { background-color: #2d2d2d !important; }
+          .footer { background-color: #0f0f0f !important; }
+        }
+        @media (prefers-color-scheme: dark) {
+          body { background-color: #000000 !important; }
+          .email-wrapper { background-color: #1a1a1a !important; }
+          .content { background-color: #1a1a1a !important; }
+          .alert-box { background-color: #2d2d2d !important; }
+          .footer { background-color: #0f0f0f !important; }
+        }
       </style>
     </head>
     <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000;">
         <tr>
-          <td align="center" style="padding: 20px 0;">
+          <td align="center" style="padding: 20px 0; background-color: #000000;">
             <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; border-radius: 12px; overflow: hidden;">
               <!-- Header -->
               <tr>
@@ -108,7 +125,7 @@ function generateTestAlertEmailHTML(
                   <!-- Alert Content -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;">
                     <tr>
-                      <td style="padding: 25px;">
+                      <td style="padding: 25px; background-color: #2d2d2d;">
                         ${
                           casinoImageUrl
                             ? `
