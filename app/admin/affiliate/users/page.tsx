@@ -48,15 +48,11 @@ export default async function AffiliateUserManagementPage() {
   const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // Fetch recently authenticated users (last 15 minutes)
+  // Fetch recently authenticated users (last 15 minutes) - using updatedAt as activity indicator
   const recentlyAuthenticated = await prisma.user.findMany({
     where: {
-      sessions: {
-        some: {
-          createdAt: {
-            gte: fifteenMinutesAgo,
-          },
-        },
+      updatedAt: {
+        gte: fifteenMinutesAgo,
       },
     },
     select: {
@@ -64,41 +60,19 @@ export default async function AffiliateUserManagementPage() {
       name: true,
       email: true,
       paid: true,
-      sessions: {
-        where: {
-          createdAt: {
-            gte: fifteenMinutesAgo,
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 1,
-      },
+      updatedAt: true,
+      geo: true,
     },
     orderBy: {
       updatedAt: "desc",
     },
   });
 
-  // Fetch users active in the last 24 hours (based on session activity)
+  // Fetch users active in the last 24 hours (based on updatedAt)
   const activeInLast24Hours = await prisma.user.findMany({
     where: {
-      sessions: {
-        some: {
-          OR: [
-            {
-              createdAt: {
-                gte: twentyFourHoursAgo,
-              },
-            },
-            {
-              updatedAt: {
-                gte: twentyFourHoursAgo,
-              },
-            },
-          ],
-        },
+      updatedAt: {
+        gte: twentyFourHoursAgo,
       },
     },
     select: {
@@ -107,26 +81,7 @@ export default async function AffiliateUserManagementPage() {
       email: true,
       paid: true,
       geo: true,
-      sessions: {
-        where: {
-          OR: [
-            {
-              createdAt: {
-                gte: twentyFourHoursAgo,
-              },
-            },
-            {
-              updatedAt: {
-                gte: twentyFourHoursAgo,
-              },
-            },
-          ],
-        },
-        orderBy: {
-          updatedAt: "desc",
-        },
-        take: 1,
-      },
+      updatedAt: true,
     },
     orderBy: {
       updatedAt: "desc",
@@ -202,11 +157,9 @@ export default async function AffiliateUserManagementPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.sessions[0] && (
+                      {user.updatedAt && (
                         <span className="text-green-400">
-                          {new Date(
-                            user.sessions[0].createdAt
-                          ).toLocaleString()}
+                          {new Date(user.updatedAt).toLocaleString()}
                         </span>
                       )}
                     </td>
@@ -284,11 +237,9 @@ export default async function AffiliateUserManagementPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.sessions[0] && (
+                      {user.updatedAt && (
                         <span className="text-blue-400">
-                          {new Date(
-                            user.sessions[0].updatedAt
-                          ).toLocaleString()}
+                          {new Date(user.updatedAt).toLocaleString()}
                         </span>
                       )}
                     </td>

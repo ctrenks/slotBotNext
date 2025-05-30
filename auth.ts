@@ -134,6 +134,7 @@ export const {
             refferal: true,
             clickId: true,
             offerCode: true,
+            updatedAt: true,
           },
         });
 
@@ -146,6 +147,18 @@ export const {
           session.user.refferal = user.refferal;
           session.user.clickId = user.clickId;
           session.user.offerCode = user.offerCode;
+
+          // Update user activity every 5 minutes to track active users
+          const now = new Date();
+          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+          if (user.updatedAt < fiveMinutesAgo) {
+            // Update the user's updatedAt field to track activity
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { updatedAt: now },
+            });
+          }
         }
       } catch (error) {
         // Log the error but don't fail the session
