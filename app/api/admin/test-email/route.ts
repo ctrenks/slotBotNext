@@ -59,17 +59,9 @@ function generateTestAlertEmailHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Test SlotBot Alert</title>
       <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; width: 100% !important; background-color: #000000 !important; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; width: 100% !important; }
         img { display: block; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: transparent; }
-        .container { width: 100%; background-color: #000000; padding: 20px 0; }
-        .email-wrapper { width: 600px !important; margin: 0 auto; background-color: #1a1a1a; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
-        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; width: 560px; }
-        .content { padding: 40px 30px; background-color: #1a1a1a; width: 540px; }
-        .alert-box { background-color: #2d2d2d; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 5px solid #10b981; width: 490px; }
-        .play-button { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; }
-        .footer { background-color: #0f0f0f; padding: 25px 20px; border-top: 1px solid #333; width: 560px; }
-        .warning-box { background-color: #fbbf24; border-radius: 10px; padding: 20px; margin: 25px 0; border-left: 5px solid #f59e0b; }
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         .text-white { color: #ffffff !important; }
         .text-gray { color: #b3b3b3 !important; }
         .text-green { color: #10b981 !important; }
@@ -78,34 +70,17 @@ function generateTestAlertEmailHTML(
         .mb-20 { margin-bottom: 20px; }
         .mt-15 { margin-top: 15px; }
         .mt-10 { margin-top: 10px; }
-        /* Force dark mode - override any email client defaults */
-        * { background-color: inherit !important; }
-        div, td, p, span, h1, h2, h3, h4, h5, h6 { color: inherit !important; }
-        @media (prefers-color-scheme: light) {
-          body { background-color: #000000 !important; }
-          .email-wrapper { background-color: #1a1a1a !important; }
-          .content { background-color: #1a1a1a !important; }
-          .alert-box { background-color: #2d2d2d !important; }
-          .footer { background-color: #0f0f0f !important; }
-        }
-        @media (prefers-color-scheme: dark) {
-          body { background-color: #000000 !important; }
-          .email-wrapper { background-color: #1a1a1a !important; }
-          .content { background-color: #1a1a1a !important; }
-          .alert-box { background-color: #2d2d2d !important; }
-          .footer { background-color: #0f0f0f !important; }
-        }
       </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000;">
+    <body style="margin: 0; padding: 0; background-color: #000000; width: 100% !important;" bgcolor="#000000">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #000000;" bgcolor="#000000">
         <tr>
-          <td align="center" style="padding: 20px 0; background-color: #000000;">
-            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; border-radius: 12px; overflow: hidden;">
+          <td align="center" style="padding: 20px 0; background-color: #000000;" bgcolor="#000000">
+            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1a1a1a; border-radius: 12px; overflow: hidden;" bgcolor="#1a1a1a">
               <!-- Header -->
               <tr>
-                <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center;">
-                  <h1 class="text-white" style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); color: #ffffff;">
+                <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center;" bgcolor="#10b981">
+                  <h1 style="margin: 0; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); color: #ffffff;">
                     🎰 TEST SlotBot Alert!
                   </h1>
                 </td>
@@ -113,19 +88,19 @@ function generateTestAlertEmailHTML(
 
               <!-- Content -->
               <tr>
-                <td style="padding: 40px 30px; background-color: #1a1a1a;">
-                  <p class="text-white mb-20" style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0; color: #ffffff;">
+                <td style="padding: 40px 30px; background-color: #1a1a1a;" bgcolor="#1a1a1a">
+                  <p style="font-size: 18px; line-height: 1.6; margin: 0 0 20px 0; color: #ffffff;">
                     Hello <strong>${user.name || "there"}</strong>!
                   </p>
 
-                  <p class="text-gray mb-20" style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; color: #b3b3b3;">
-                    This is a <strong class="text-white" style="color: #ffffff;">TEST EMAIL</strong> for the following alert:
+                  <p style="font-size: 16px; line-height: 1.6; margin: 0 0 25px 0; color: #b3b3b3;">
+                    This is a <strong style="color: #ffffff;">TEST EMAIL</strong> for the following alert:
                   </p>
 
                   <!-- Alert Content -->
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 12px; margin: 25px 0; border-left: 5px solid #10b981;" bgcolor="#2d2d2d">
                     <tr>
-                      <td style="padding: 25px; background-color: #2d2d2d;">
+                      <td style="padding: 25px; background-color: #2d2d2d;" bgcolor="#2d2d2d">
                         ${
                           casinoImageUrl
                             ? `
