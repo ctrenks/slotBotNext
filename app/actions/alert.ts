@@ -115,51 +115,118 @@ export async function createAlert(data: CreateAlertData) {
         email: u.email,
         geo: u.geo,
         refferal: u.refferal,
+        paid: u.paid,
+        trial: u.trial,
+        hasAccess: u.paid || (u.trial && new Date(u.trial) > now),
       })),
     });
 
-    // Find all users that should receive this alert
-    const users = await prisma.user.findMany({
+    // Check how many users have access first
+    const usersWithAccess = await prisma.user.findMany({
       where: {
-        AND: [
-          // User must have either paid access or valid trial
-          {
-            OR: [{ paid: true }, { trial: { gt: now } }],
-          },
-          // Target matching
-          {
-            AND: [
-              // Geo targeting
-              geoTargets.includes("all") ? {} : { geo: { in: geoTargets } },
-              // Referral targeting with NOCODE support
-              referralCodes.includes("all")
-                ? {}
-                : referralCodes.includes("NOCODE")
-                ? {
-                    OR: [
-                      // Users with other referral codes (only if there are any)
-                      ...(referralCodes.filter((code) => code !== "NOCODE")
-                        .length > 0
-                        ? [
-                            {
-                              refferal: {
-                                in: referralCodes.filter(
-                                  (code) => code !== "NOCODE"
-                                ),
-                              },
-                            },
-                          ]
-                        : []),
-                      // Users with no referral code
-                      { refferal: null },
-                      { refferal: "" },
-                    ],
-                  }
-                : { refferal: { in: referralCodes } },
-            ],
-          },
-        ],
+        OR: [{ paid: true }, { trial: { gt: now } }],
       },
+    });
+
+    console.log("Users with access (paid or valid trial):", {
+      count: usersWithAccess.length,
+      users: usersWithAccess.map((u) => ({
+        email: u.email,
+        geo: u.geo,
+        refferal: u.refferal,
+        paid: u.paid,
+        trial: u.trial,
+      })),
+    });
+
+    // If NOCODE is being used, let's see what users would match
+    if (referralCodes.includes("NOCODE")) {
+      const nocodeOnlyUsers = await prisma.user.findMany({
+        where: {
+          AND: [
+            {
+              OR: [{ paid: true }, { trial: { gt: now } }],
+            },
+            {
+              OR: [{ refferal: null }, { refferal: "" }],
+            },
+          ],
+        },
+      });
+
+      console.log("Users that would match NOCODE only:", {
+        count: nocodeOnlyUsers.length,
+        users: nocodeOnlyUsers.map((u) => ({
+          email: u.email,
+          geo: u.geo,
+          refferal: u.refferal,
+        })),
+      });
+    }
+
+    // Find all users that should receive this alert
+    const whereCondition = {
+      AND: [
+        // Target matching
+        {
+          AND: [
+            // Geo targeting
+            geoTargets.includes("all") ? {} : { geo: { in: geoTargets } },
+            // Referral targeting with NOCODE support and access checks
+            referralCodes.includes("all")
+              ? {
+                  // All users, but still need access
+                  OR: [{ paid: true }, { trial: { gt: now } }],
+                }
+              : referralCodes.includes("NOCODE")
+              ? {
+                  OR: [
+                    // Users with other referral codes (need access)
+                    ...(referralCodes.filter((code) => code !== "NOCODE")
+                      .length > 0
+                      ? [
+                          {
+                            AND: [
+                              {
+                                refferal: {
+                                  in: referralCodes.filter(
+                                    (code) => code !== "NOCODE"
+                                  ),
+                                },
+                              },
+                              {
+                                OR: [{ paid: true }, { trial: { gt: now } }],
+                              },
+                            ],
+                          },
+                        ]
+                      : []),
+                    // Users with no referral code (no access required)
+                    { refferal: null },
+                    { refferal: "" },
+                  ],
+                }
+              : {
+                  // Regular referral codes (need access)
+                  AND: [
+                    { refferal: { in: referralCodes } },
+                    {
+                      OR: [{ paid: true }, { trial: { gt: now } }],
+                    },
+                  ],
+                },
+          ],
+        },
+      ],
+    };
+
+    console.log(
+      "Query condition for user targeting:",
+      JSON.stringify(whereCondition, null, 2)
+    );
+
+    const users = await prisma.user.findMany({
+      where: whereCondition,
     });
 
     console.log("Found users for alert:", {
