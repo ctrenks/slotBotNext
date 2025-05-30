@@ -48,6 +48,9 @@ interface Slot {
 export default function AlertManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -265,6 +268,71 @@ export default function AlertManager() {
     if (referralInput && !selectedReferrals.includes(referralInput)) {
       setSelectedReferrals([...selectedReferrals, referralInput]);
       setReferralInput("");
+    }
+  };
+
+  const sendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!testEmail) {
+      setTestEmailMessage("Please enter an email address");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(testEmail)) {
+      setTestEmailMessage("Please enter a valid email address");
+      return;
+    }
+
+    // Get current form data
+    const currentFormData = watch();
+
+    // Basic validation for test email
+    if (!currentFormData.message?.trim()) {
+      setTestEmailMessage("Please enter a message before sending test email");
+      return;
+    }
+
+    if (!currentFormData.casinoId) {
+      setTestEmailMessage("Please select a casino before sending test email");
+      return;
+    }
+
+    if (!currentFormData.slot) {
+      setTestEmailMessage("Please select a slot before sending test email");
+      return;
+    }
+
+    setIsSendingTest(true);
+    setTestEmailMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/test-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: testEmail,
+          alertData: currentFormData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setTestEmailMessage(`✅ Test email sent successfully to ${testEmail}`);
+        setTestEmail(""); // Clear the email field
+      } else {
+        setTestEmailMessage(`❌ Failed to send test email: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      setTestEmailMessage("❌ Failed to send test email. Please try again.");
+    } finally {
+      setIsSendingTest(false);
     }
   };
 
@@ -658,6 +726,51 @@ export default function AlertManager() {
               {formValues.message}
             </pre>
           </div>
+        </div>
+
+        {/* Test Email Section */}
+        <div className="mt-6 border rounded-md p-4 bg-blue-50 border-blue-200">
+          <h3 className="text-lg font-semibold mb-2 text-blue-800">
+            Test Email Alert
+          </h3>
+          <p className="text-sm text-blue-600 mb-4">
+            Send a test email to preview how the alert will look before creating
+            it.
+          </p>
+
+          {testEmailMessage && (
+            <div
+              className={`mb-4 p-3 rounded-md text-sm ${
+                testEmailMessage.includes("✅")
+                  ? "bg-green-100 text-green-700 border border-green-200"
+                  : "bg-red-100 text-red-700 border border-red-200"
+              }`}
+            >
+              {testEmailMessage}
+            </div>
+          )}
+
+          <form onSubmit={sendTestEmail} className="flex gap-2">
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="Enter email address to test..."
+              className="flex-1 p-2 border rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800"
+              disabled={isSendingTest}
+            />
+            <button
+              type="submit"
+              disabled={isSendingTest || !testEmail}
+              className={`px-4 py-2 bg-blue-600 text-white rounded-md font-medium ${
+                isSendingTest || !testEmail
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-700"
+              }`}
+            >
+              {isSendingTest ? "Sending..." : "Send Test"}
+            </button>
+          </form>
         </div>
 
         <div className="flex justify-end mt-6">
