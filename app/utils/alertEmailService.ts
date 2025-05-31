@@ -18,6 +18,7 @@ interface EmailUser {
   email: string;
   name: string | null;
   emailNotifications: boolean;
+  refferal: string | null;
 }
 
 export async function sendAlertEmails(alert: AlertWithCasino) {
@@ -42,6 +43,7 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             email: true,
             name: true,
             emailNotifications: true,
+            refferal: true,
           },
         },
       },
@@ -127,7 +129,10 @@ export async function sendAlertEmails(alert: AlertWithCasino) {
             from: "SlotBot Alerts <alerts@beatonlineslots.com>",
             to: recipient.user.email,
             subject: `🎰 New SlotBot Alert: ${
-              alert.casinoName || "Casino Alert"
+              // Hide casino name for trial/paid users to encourage sign-in
+              !recipient.user.refferal || recipient.user.refferal.trim() === ""
+                ? alert.casinoName || "Casino Alert" // Show casino name for NOCODE users
+                : "Exclusive Gaming Alert" // Generic subject for trial/paid users
             }`,
             html: generateAlertEmailHTML(
               alert,
@@ -209,7 +214,13 @@ function generateAlertEmailHTML(
     ? `${baseUrl}/image/sloticonssquare/${alert.slotImage}`
     : null;
 
-  const playUrl = `${baseUrl}/out/${alert.id}`;
+  // Determine play URL based on user type
+  // NOCODE users (no referral code) get direct casino link
+  // Trial/Paid users (have referral code) get redirected to sign in page
+  const isNocodeUser = !user.refferal || user.refferal.trim() === "";
+  const playUrl = isNocodeUser
+    ? `${baseUrl}/out/${alert.id}` // Direct casino link for NOCODE users
+    : `${baseUrl}/slotbot`; // Sign in page for trial/paid users
 
   return `
     <!DOCTYPE html>
@@ -282,7 +293,8 @@ function generateAlertEmailHTML(
                           <tr>
                             <td style="color: #ffffff !important;" color="#ffffff">
                               ${
-                                casinoImageUrl
+                                // Only show casino image for NOCODE users
+                                casinoImageUrl && isNocodeUser
                                   ? `
                                 <div style="text-align: center; margin-bottom: 20px;">
                                   <img src="${casinoImageUrl}" alt="${
@@ -391,13 +403,30 @@ function generateAlertEmailHTML(
 
                   <!-- Play Button -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 40px 0;">
+                    ${
+                      !isNocodeUser
+                        ? `
+                    <tr>
+                      <td style="color: #b3b3b3 !important; text-align: center; padding-bottom: 15px;" color="#b3b3b3">
+                        <p style="font-size: 14px; margin: 0; color: #b3b3b3 !important;" color="#b3b3b3">
+                          Click below to sign in to your account and access this alert
+                        </p>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
                     <tr>
                       <td style="text-align: center;">
                         <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
                           <tr>
                             <td style="background-color: #10b981; border-radius: 10px; padding: 18px 40px;" bgcolor="#10b981">
                               <a href="${playUrl}" style="color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 18px; display: block;" color="#ffffff">
-                                🎰 PLAY NOW
+                                ${
+                                  isNocodeUser
+                                    ? "🎰 PLAY NOW"
+                                    : "🔐 SIGN IN TO PLAY"
+                                }
                               </a>
                             </td>
                           </tr>

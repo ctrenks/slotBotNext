@@ -32,7 +32,7 @@ function generateUnsubscribeToken(userId: string): string {
 // Helper function to generate alert email HTML (simplified version)
 function generateTestAlertEmailHTML(
   alertData: AlertData,
-  user: { email: string; name: string },
+  user: { email: string; name: string; refferal?: string },
   unsubscribeUrl: string
 ): string {
   const baseUrl = "https://www.beatonlineslots.com";
@@ -45,11 +45,16 @@ function generateTestAlertEmailHTML(
     ? `${baseUrl}/image/sloticonssquare/${alertData.slotImage}`
     : null;
 
-  const playUrl =
-    alertData.customUrl ||
-    (alertData.casinoCleanName
-      ? `${baseUrl}/play/${alertData.casinoCleanName}`
-      : `${baseUrl}`);
+  // Determine play URL based on user type (for test purposes, assume NOCODE user)
+  // NOCODE users (no referral code) get direct casino link
+  // Trial/Paid users (have referral code) get redirected to sign in page
+  const isNocodeUser = !user.refferal || user.refferal.trim() === "";
+  const playUrl = isNocodeUser
+    ? alertData.customUrl ||
+      (alertData.casinoCleanName
+        ? `${baseUrl}/play/${alertData.casinoCleanName}`
+        : `${baseUrl}`)
+    : `${baseUrl}/slotbot`; // Sign in page for trial/paid users
 
   return `
     <!DOCTYPE html>
@@ -104,7 +109,8 @@ function generateTestAlertEmailHTML(
                     <tr>
                       <td style="padding: 25px; background-color: #2d2d2d !important;" bgcolor="#2d2d2d">
                         ${
-                          casinoImageUrl
+                          // Only show casino image for NOCODE users
+                          casinoImageUrl && isNocodeUser
                             ? `
                           <div style="text-align: center; margin-bottom: 20px;">
                             <img src="${casinoImageUrl}" alt="${
@@ -210,10 +216,23 @@ function generateTestAlertEmailHTML(
 
                   <!-- Play Button -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 40px 0;">
+                    ${
+                      !isNocodeUser
+                        ? `
+                    <tr>
+                      <td style="color: #b3b3b3 !important; text-align: center; padding-bottom: 15px;" color="#b3b3b3">
+                        <p style="font-size: 14px; margin: 0; color: #b3b3b3 !important;" color="#b3b3b3">
+                          Click below to sign in to your account and access this alert
+                        </p>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
                     <tr>
                       <td style="text-align: center;">
                         <a href="${playUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 10px; font-weight: bold; font-size: 18px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
-                          🎰 PLAY NOW
+                          ${isNocodeUser ? "🎰 PLAY NOW" : "🔐 SIGN IN TO PLAY"}
                         </a>
                       </td>
                     </tr>
@@ -324,6 +343,7 @@ export async function POST(request: Request) {
     const mockUser = {
       email: email,
       name: "Test User",
+      refferal: undefined, // Test as NOCODE user by default - you can change this to test different user types
     };
 
     // Generate unsubscribe URL
@@ -338,7 +358,10 @@ export async function POST(request: Request) {
       from: "SlotBot Alerts <alerts@beatonlineslots.com>",
       to: email,
       subject: `🎰 TEST SlotBot Alert: ${
-        alertData.casinoName || "Test Casino"
+        // Hide casino name for trial/paid users to encourage sign-in
+        !mockUser.refferal
+          ? alertData.casinoName || "Test Casino" // Show casino name for NOCODE users
+          : "Exclusive Gaming Alert" // Generic subject for trial/paid users
       }`,
       html: generateTestAlertEmailHTML(alertData, mockUser, unsubscribeUrl),
     };
