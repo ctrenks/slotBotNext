@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const format = searchParams.get("format"); // csv, json
 
     // Base query conditions
-    const whereConditions: any = {};
+    const whereConditions: { alertId?: string } = {};
     if (alertId) {
       whereConditions.alertId = alertId;
     }
