@@ -21,6 +21,28 @@ export async function GET() {
       },
       include: {
         recipients: true,
+        clicks: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                geo: true,
+                paid: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        _count: {
+          select: {
+            clicks: true,
+            recipients: true,
+          },
+        },
       },
     });
 
