@@ -11,9 +11,9 @@ const SessionInfo: React.FC = () => {
   if (session) {
     return (
       <div className="flex items-center space-x-2">
-        <Link 
-          href="/myprofile" 
-          className="relative w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-emerald-500 transition-all duration-200"
+        <Link
+          href="/myprofile"
+          className="relative w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all duration-200"
         >
           <Image
             src={session.user?.image || "/img/defaultuser.png"}
@@ -25,7 +25,7 @@ const SessionInfo: React.FC = () => {
         </Link>
         <button
           onClick={() => signOut()}
-          className="emerald-button"
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
         >
           Sign out
         </button>
@@ -36,7 +36,7 @@ const SessionInfo: React.FC = () => {
   return (
     <button
       onClick={() => signIn()}
-      className="emerald-button"
+      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
     >
       Sign in
     </button>

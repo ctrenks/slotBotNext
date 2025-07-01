@@ -74,7 +74,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#10b981",
+  themeColor: "#3B82F6",
 };
 
 export default function RootLayout({
@@ -83,7 +83,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -95,7 +95,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
         <meta name="apple-mobile-web-app-orientations" content="portrait" />
-        <meta name="theme-color" content="#4ADE80" />
+        <meta name="theme-color" content="#3B82F6" />
 
         {/* Service Worker Registration */}
         <script
@@ -154,7 +154,7 @@ export default function RootLayout({
         />
         <SafeAreaStyles />
       </head>
-      <body className={`${inter.className} bg-black text-[#4ADE80]`}>
+      <body className={`${inter.className} bg-white text-gray-800`}>
         <AuthContext>
           <AuthWrapper>
             <ClickIdCapture />

@@ -10,20 +10,20 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#1E3A8A", // dark blue
-          dark: "#0F172A",
+          DEFAULT: "#3B82F6", // bright blue
+          dark: "#1E40AF", // darker blue
         },
         accent: {
-          DEFAULT: "#3B82F6", // bright blue
-          dark: "#4ADE80", // neon green
+          DEFAULT: "#60A5FA", // lighter blue
+          dark: "#2563EB", // medium blue
         },
         background: {
-          DEFAULT: "#F8FAFC", // light chrome
-          dark: "#000000", // pure black
+          DEFAULT: "#FFFFFF", // pure white
+          dark: "#F8FAFC", // very light gray
         },
         foreground: {
-          DEFAULT: "#1E293B", // dark chrome text
-          dark: "#4ADE80", // neon green text
+          DEFAULT: "#1E293B", // dark gray text
+          dark: "#334155", // medium gray text
         },
       },
     },

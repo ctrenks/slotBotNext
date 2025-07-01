@@ -14,9 +14,10 @@ export default function Header() {
     { name: "Pricing", href: "/pricing" },
     { name: "Betting Guide", href: "/betting-guide" },
     { name: "User Guide", href: "/howto" },
+    { name: "Slot Wins", href: "/slot-wins" },
   ];
   return (
-    <header className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur supports-[backdrop-filter]:bg-black/60">
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-gray-200">
       <style jsx>{`
         @supports (padding-top: env(safe-area-inset-top)) {
           header {
@@ -54,13 +55,13 @@ export default function Header() {
               <>
                 <Link
                   href="/admin/alerts"
-                  className="text-white hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Alerts
                 </Link>
                 <Link
                   href="/admin/affiliate"
-                  className="text-white hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Affiliate
                 </Link>

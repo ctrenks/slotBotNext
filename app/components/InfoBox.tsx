@@ -5,7 +5,7 @@ interface InfoBoxProps {
 
 export default function InfoBox({ children, className = "" }: InfoBoxProps) {
   return (
-    <div className="border-x-4 border-x-emerald-700 rounded-lg shadow-lg">
+    <div className="border-x-4 border-x-blue-600 rounded-lg shadow-lg">
       <div
         className={`
         p-4

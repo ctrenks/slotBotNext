@@ -8,9 +8,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "default", ...props }, ref) => {
     const baseClasses = "px-4 py-2 rounded-md transition-colors duration-200";
     const variantClasses = {
-      default: "bg-emerald-500 text-white hover:bg-emerald-600",
+      default: "bg-blue-500 text-white hover:bg-blue-600",
       outline:
-        "border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white",
+        "border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white",
     };
 
     return (

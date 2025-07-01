@@ -43,6 +43,11 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                   Alerts
                 </Link>
               </li>
+              <li>
+                <Link href="/admin/slot-wins" className="hover:text-green-400">
+                  User Wins
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>

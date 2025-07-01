@@ -71,7 +71,7 @@ export default function CasinoBonus({
           <div className="flex-1 flex flex-col space-y-2 w-full">
             {/* Casino Name and Rating */}
             <div className="flex justify-between items-center w-full px-0">
-              <div className="text-lg font-bold text-emerald-700">
+              <div className="text-lg font-bold text-blue-600">
                 {casino.name}
               </div>
               <div className="text-sm text-gray-600">
@@ -83,14 +83,14 @@ export default function CasinoBonus({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <div className="text-center flex items-center justify-center gap-4 w-full">
                 <div className="flex-1">
-                  <div className="text-emerald-700">
+                  <div className="text-blue-600">
                     {formatBonus(casino.bonusAmount, casino.currency)}
                   </div>
                   <p className="text-sm text-gray-600">{casino.bonusType}</p>
                 </div>
                 {casino.bonusAmount > 0 && casino.bonusCode && (
                   <div className="border-l border-gray-200 pl-4 flex-1">
-                    <div className="text-emerald-700 font-mono text-lg">
+                    <div className="text-blue-600 font-mono text-lg">
                       {casino.bonusCode}
                     </div>
                     <p className="text-sm text-gray-600">Bonus Code</p>
@@ -99,21 +99,23 @@ export default function CasinoBonus({
               </div>
               <div className="text-center flex items-center justify-center gap-4 w-full">
                 <div className="flex-1">
-                  <div className="text-emerald-700">
+                  <div className="text-blue-600">
                     {formatBonus(casino.depositAmount || 0, casino.currency)}
                   </div>
                   <p className="text-sm text-gray-600">
                     {casino.bonusPercent}% Deposit Bonus
                   </p>
                 </div>
-                {casino.depositAmount && casino.depositAmount > 0 && casino.secondaryBonusCode && (
-                  <div className="border-l border-gray-200 pl-4 flex-1">
-                    <div className="text-emerald-700 font-mono text-lg">
-                      {casino.secondaryBonusCode}
+                {casino.depositAmount &&
+                  casino.depositAmount > 0 &&
+                  casino.secondaryBonusCode && (
+                    <div className="border-l border-gray-200 pl-4 flex-1">
+                      <div className="text-blue-600 font-mono text-lg">
+                        {casino.secondaryBonusCode}
+                      </div>
+                      <p className="text-sm text-gray-600">Bonus Code</p>
                     </div>
-                    <p className="text-sm text-gray-600">Bonus Code</p>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           </div>
@@ -123,15 +125,19 @@ export default function CasinoBonus({
         <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_1fr] gap-2 items-start relative">
           <div className="h-10 contents">
             {casino.information && (
-              <Suspense fallback={<div className="h-10 w-24 hidden sm:block" />}>
+              <Suspense
+                fallback={<div className="h-10 w-24 hidden sm:block" />}
+              >
                 <CasinoInfo information={casino.information} />
               </Suspense>
             )}
-            {casino.information === "" && <div className="h-10 w-24 hidden sm:block" />}
+            {casino.information === "" && (
+              <div className="h-10 w-24 hidden sm:block" />
+            )}
           </div>
 
-          <Link 
-            href={casino.reviewUrl} 
+          <Link
+            href={casino.reviewUrl}
             className="text-center emerald-button col-span-1 sm:col-span-1"
           >
             {casino.name} Review
@@ -139,7 +145,7 @@ export default function CasinoBonus({
 
           <Link
             href={casino.playUrl}
-            className="text-center px-4 py-2 bg-gradient-to-r from-[#f9d90a] to-[#dc7d11] text-white rounded-md border border-[#dc7d11] hover:from-[#dc7d11] hover:to-[#f9d90a] hover:translate-y-[-1px] active:translate-y-[1px] transition-all duration-200 shadow-md hover:shadow-lg col-span-1 sm:col-span-1"
+            className="text-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors col-span-1 sm:col-span-1"
           >
             Play Now
           </Link>

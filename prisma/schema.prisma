@@ -44,6 +44,7 @@ model User {
   alerts        AlertRecipient[]
   clickTracks   ClickTrack[]     // Relation to click tracking data
   alertClicks   AlertClick[]     // Relation to alert clicks
+  slotWins      SlotWin[]        // Relation to user slot wins
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -716,5 +717,26 @@ model ClickTrack {
   @@index([clickId])
   @@index([offerCode])
   @@index([geo])
+  @@index([createdAt])
+}
+
+model SlotWin {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  winAmount   String   // Store as string to handle different currencies and formats
+  slotGame    String?
+  casino      String?
+  imageUrl    String?  // URL of the uploaded screenshot
+  approved    Boolean  @default(false) // Admin approval required
+  featured    Boolean  @default(false) // Admin can feature wins
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([approved])
+  @@index([featured])
   @@index([createdAt])
 }

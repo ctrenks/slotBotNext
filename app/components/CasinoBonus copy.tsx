@@ -91,7 +91,7 @@ export default function CasinoBonus({ casino }: CasinoBonusProps) {
           <div className="flex-1 flex flex-col space-y-2 w-full">
             {/* Casino Name and Rating */}
             <div className="flex justify-between items-center w-full px-0">
-              <div className="text-lg font-bold text-emerald-700">
+              <div className="text-lg font-bold text-blue-600">
                 {casino.casino}
               </div>
               <div className="text-sm text-gray-600">
@@ -103,12 +103,12 @@ export default function CasinoBonus({ casino }: CasinoBonusProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <div className="text-center flex items-center justify-center gap-4 w-full">
                 <div className="flex-1">
-                  <div className="text-emerald-700">{bonus.bonus}</div>
+                  <div className="text-blue-600">{bonus.bonus}</div>
                   <p className="text-sm text-gray-600">{bonus.bonusType}</p>
                 </div>
                 {bonus.bonusAmount && bonus.bonusCode && (
                   <div className="border-l border-gray-200 pl-4 flex-1">
-                    <div className="text-emerald-700 font-mono text-lg">
+                    <div className="text-blue-600 font-mono text-lg">
                       {bonus.bonusCode}
                     </div>
                     <p className="text-sm text-gray-600">
@@ -119,12 +119,12 @@ export default function CasinoBonus({ casino }: CasinoBonusProps) {
               </div>
               <div className="text-center flex items-center justify-center gap-4 w-full">
                 <div className="flex-1">
-                  <div className="text-emerald-700">{bonus2.bonus}</div>
+                  <div className="text-blue-600">{bonus2.bonus}</div>
                   <p className="text-sm text-gray-600">{bonus2.bonusType}</p>
                 </div>
                 {bonus2.bonus && bonus2.bonus && bonus2.bonusCode && (
                   <div className="border-l border-gray-200 pl-4 flex-1">
-                    <div className="text-emerald-700 font-mono text-lg">
+                    <div className="text-blue-600 font-mono text-lg">
                       {bonus2.bonusCode}
                     </div>
                     <p className="text-sm text-gray-600">
@@ -162,7 +162,7 @@ export default function CasinoBonus({ casino }: CasinoBonusProps) {
           <a
             href={`/play/${casino.clean_name}`}
             target="_blank"
-            className="text-center px-4 py-2 bg-gradient-to-r from-[#f9d90a] to-[#dc7d11] text-white rounded-md border border-[#dc7d11] hover:from-[#dc7d11] hover:to-[#f9d90a] hover:translate-y-[-1px] active:translate-y-[1px] transition-all duration-200 shadow-md hover:shadow-lg col-span-1 sm:col-span-1"
+            className="text-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors col-span-1 sm:col-span-1"
           >
             Play Now
           </a>
