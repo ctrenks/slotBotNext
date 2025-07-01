@@ -14,6 +14,7 @@ interface SlotWin {
   imageUrl: string | null;
   approved: boolean;
   featured: boolean;
+  displayName: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -29,6 +30,10 @@ export default function AdminSlotWinsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "featured" | "regular">("all");
+  const [editingDisplayName, setEditingDisplayName] = useState<string | null>(
+    null
+  );
+  const [tempDisplayName, setTempDisplayName] = useState<string>("");
 
   useEffect(() => {
     if (session?.user?.email === "chris@trenkas.com") {
@@ -54,7 +59,7 @@ export default function AdminSlotWinsPage() {
 
   const updateWin = async (
     id: string,
-    updates: { approved?: boolean; featured?: boolean }
+    updates: { approved?: boolean; featured?: boolean; displayName?: string }
   ) => {
     try {
       const response = await fetch("/api/admin/slot-wins", {
@@ -76,6 +81,26 @@ export default function AdminSlotWinsPage() {
     } catch (error) {
       alert("Failed to update slot win");
     }
+  };
+
+  const startEditingDisplayName = (
+    winId: string,
+    currentDisplayName: string | null,
+    userRealName: string | null
+  ) => {
+    setEditingDisplayName(winId);
+    setTempDisplayName(currentDisplayName || userRealName || "");
+  };
+
+  const saveDisplayName = async (winId: string) => {
+    await updateWin(winId, { displayName: tempDisplayName });
+    setEditingDisplayName(null);
+    setTempDisplayName("");
+  };
+
+  const cancelEditingDisplayName = () => {
+    setEditingDisplayName(null);
+    setTempDisplayName("");
   };
 
   const deleteWin = async (id: string) => {
@@ -200,11 +225,58 @@ export default function AdminSlotWinsPage() {
                       sizes="40px"
                     />
                   </div>
-                  <div>
-                    <p className="text-white font-medium">
-                      {win.user.name || "Anonymous"}
-                    </p>
-                    <p className="text-gray-400 text-sm">{win.user.email}</p>
+                  <div className="flex-1">
+                    {editingDisplayName === win.id ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={tempDisplayName}
+                          onChange={(e) => setTempDisplayName(e.target.value)}
+                          className="px-2 py-1 text-sm bg-gray-700 text-white border border-gray-600 rounded"
+                          placeholder="Display name"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveDisplayName(win.id)}
+                          className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={cancelEditingDisplayName}
+                          className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-white font-medium">
+                            {win.displayName || win.user.name || "Anonymous"}
+                          </p>
+                          <button
+                            onClick={() =>
+                              startEditingDisplayName(
+                                win.id,
+                                win.displayName,
+                                win.user.name
+                              )
+                            }
+                            className="text-gray-400 hover:text-white text-xs"
+                            title="Edit display name"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          {win.displayName
+                            ? `Real: ${win.user.name || "Anonymous"} | `
+                            : ""}
+                          {win.user.email}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">

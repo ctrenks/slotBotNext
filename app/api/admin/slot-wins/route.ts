@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { id, approved, featured } = await request.json();
+    const { id, approved, featured, displayName } = await request.json();
 
     if (!id) {
       return new NextResponse("Slot win ID is required", { status: 400 });
@@ -51,6 +51,7 @@ export async function PATCH(request: Request) {
       data: {
         ...(approved !== undefined && { approved }),
         ...(featured !== undefined && { featured }),
+        ...(displayName !== undefined && { displayName: displayName || null }),
         updatedAt: new Date(),
       },
       include: {

@@ -12,6 +12,7 @@ interface SlotWin {
   casino: string | null;
   imageUrl: string | null;
   featured: boolean;
+  displayName: string | null;
   createdAt: string;
   user: {
     name: string | null;
@@ -200,7 +201,7 @@ function SlotWinCard({ win, featured }: SlotWinCardProps) {
               />
             </div>
             <span className="text-sm text-gray-700">
-              {win.user.name || "Anonymous"}
+              {win.displayName || win.user.name || "Anonymous"}
             </span>
           </div>
           <span className="text-xs text-gray-500">

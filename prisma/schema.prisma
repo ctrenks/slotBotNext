@@ -732,6 +732,7 @@ model SlotWin {
   imageUrl    String?  // URL of the uploaded screenshot
   approved    Boolean  @default(false) // Admin approval required
   featured    Boolean  @default(false) // Admin can feature wins
+  displayName String?  // Admin override for displayed username
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
