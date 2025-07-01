@@ -106,7 +106,7 @@ export default function SlotWinForm({ onSuccess }: SlotWinFormProps) {
           text: errorText || "Failed to submit slot win",
         });
       }
-    } catch (error) {
+    } catch {
       setMessage({
         type: "error",
         text: "An error occurred while submitting your slot win",

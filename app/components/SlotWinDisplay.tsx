@@ -38,19 +38,11 @@ export default function SlotWinDisplay() {
       } else {
         setError("Failed to load slot wins");
       }
-    } catch (error) {
+    } catch {
       setError("Failed to load slot wins");
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   };
 
   if (loading) {

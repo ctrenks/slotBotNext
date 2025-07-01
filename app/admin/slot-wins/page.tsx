@@ -50,7 +50,7 @@ export default function AdminSlotWinsPage() {
       } else {
         setError("Failed to load slot wins");
       }
-    } catch (error) {
+    } catch {
       setError("Failed to load slot wins");
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ export default function AdminSlotWinsPage() {
       } else {
         alert("Failed to update slot win");
       }
-    } catch (error) {
+    } catch {
       alert("Failed to update slot win");
     }
   };
@@ -118,7 +118,7 @@ export default function AdminSlotWinsPage() {
       } else {
         alert("Failed to delete slot win");
       }
-    } catch (error) {
+    } catch {
       alert("Failed to delete slot win");
     }
   };
@@ -186,7 +186,7 @@ export default function AdminSlotWinsPage() {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setFilter(tab.key as any)}
+            onClick={() => setFilter(tab.key as "all" | "featured" | "regular")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               filter === tab.key
                 ? "bg-blue-600 text-white"
