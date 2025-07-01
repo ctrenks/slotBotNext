@@ -76,15 +76,29 @@ export default function SlotWinForm({ onSuccess }: SlotWinFormProps) {
         "screenshot"
       ) as HTMLInputElement;
       if (fileInput.files?.[0]) {
+        console.log("Adding file to form:", {
+          name: fileInput.files[0].name,
+          size: fileInput.files[0].size,
+          type: fileInput.files[0].type,
+        });
         form.append("screenshot", fileInput.files[0]);
+      } else {
+        console.log("No file selected for upload");
       }
 
+      console.log("Submitting slot win form...");
       const response = await fetch("/api/slot-wins", {
         method: "POST",
         body: form,
       });
 
+      console.log("Response status:", response.status);
+
       if (response.ok) {
+        const result = await response.json();
+        console.log("Slot win created:", result);
+        console.log("Image URL in response:", result.imageUrl);
+
         setMessage({
           type: "success",
           text: "Your slot win has been shared successfully! It's now visible to the community.",
@@ -101,12 +115,14 @@ export default function SlotWinForm({ onSuccess }: SlotWinFormProps) {
         onSuccess?.();
       } else {
         const errorText = await response.text();
+        console.error("Error response:", errorText);
         setMessage({
           type: "error",
           text: errorText || "Failed to submit slot win",
         });
       }
     } catch {
+      console.error("Network error during submission");
       setMessage({
         type: "error",
         text: "An error occurred while submitting your slot win",

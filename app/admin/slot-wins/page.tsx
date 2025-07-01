@@ -35,6 +35,27 @@ export default function AdminSlotWinsPage() {
   );
   const [tempDisplayName, setTempDisplayName] = useState<string>("");
 
+  // Helper function to convert blob URL to clean URL
+  const getCleanImageUrl = (blobUrl: string | null): string | null => {
+    if (!blobUrl) return null;
+
+    try {
+      // Extract filename from the blob URL
+      const url = new URL(blobUrl);
+      const pathname = url.pathname;
+      const filename = pathname.split("/").pop();
+
+      if (filename) {
+        return `/screen/${filename}`;
+      }
+    } catch (error) {
+      console.error("Error parsing blob URL:", error);
+    }
+
+    // Fallback to original URL if parsing fails
+    return blobUrl;
+  };
+
   useEffect(() => {
     if (session?.user?.email === "chris@trenkas.com") {
       fetchWins();
@@ -322,7 +343,7 @@ export default function AdminSlotWinsPage() {
                 {win.imageUrl && (
                   <div className="relative h-48 w-full rounded-md overflow-hidden">
                     <Image
-                      src={win.imageUrl}
+                      src={getCleanImageUrl(win.imageUrl) || win.imageUrl}
                       alt={win.title}
                       fill
                       className="object-cover"

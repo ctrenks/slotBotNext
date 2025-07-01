@@ -3,6 +3,27 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
+// Helper function to convert blob URL to clean URL
+const getCleanImageUrl = (blobUrl: string | null): string | null => {
+  if (!blobUrl) return null;
+
+  try {
+    // Extract filename from the blob URL
+    const url = new URL(blobUrl);
+    const pathname = url.pathname;
+    const filename = pathname.split("/").pop();
+
+    if (filename) {
+      return `/screen/${filename}`;
+    }
+  } catch (error) {
+    console.error("Error parsing blob URL:", error);
+  }
+
+  // Fallback to original URL if parsing fails
+  return blobUrl;
+};
+
 interface SlotWin {
   id: string;
   title: string;
@@ -124,6 +145,12 @@ function SlotWinCard({ win, featured }: SlotWinCardProps) {
     });
   };
 
+  useEffect(() => {
+    if (win.imageUrl) {
+      console.log("SlotWinCard - Image URL for win", win.id, ":", win.imageUrl);
+    }
+  }, [win.id, win.imageUrl]);
+
   return (
     <div
       className={`bg-white rounded-lg border overflow-hidden transition-transform hover:scale-105 ${
@@ -136,11 +163,17 @@ function SlotWinCard({ win, featured }: SlotWinCardProps) {
       {win.imageUrl && (
         <div className="relative h-48 w-full">
           <Image
-            src={win.imageUrl}
+            src={getCleanImageUrl(win.imageUrl) || win.imageUrl}
             alt={win.title}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={(e) => {
+              console.error("Image failed to load:", win.imageUrl, e);
+            }}
+            onLoad={() => {
+              console.log("Image loaded successfully:", win.imageUrl);
+            }}
           />
           {featured && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-medium">

@@ -4,7 +4,32 @@ const nextConfig = {
   // Move serverComponentsExternalPackages to the root level
   serverExternalPackages: ["@prisma/client", "bcrypt"],
   images: {
-    domains: ["lh3.googleusercontent.com", "avatars.githubusercontent.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "e4tchmxe7stjffhy.public.blob.vercel-storage.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.allfreechips.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
   // Exclude the notifications debug page from the build
   pageExtensions: ["js", "jsx", "ts", "tsx"],
