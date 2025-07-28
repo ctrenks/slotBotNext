@@ -17,7 +17,8 @@ export default async function AffiliateUserManagementPage() {
   // Check if user is admin
   const isAdmin =
     session?.user?.email === "chris@trenkas.com" ||
-    session?.user?.email === "carringtoncenno180@gmail.com";
+    session?.user?.email === "carringtoncenno180@gmail.com" ||
+    session?.user?.email === "ranrev.info@gmail.com";
   if (!isAdmin) {
     redirect("/");
   }

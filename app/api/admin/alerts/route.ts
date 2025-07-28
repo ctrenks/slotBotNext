@@ -9,7 +9,8 @@ export async function GET() {
     // Check if user is admin
     const isAdmin =
       session?.user?.email === "chris@trenkas.com" ||
-      session?.user?.email === "carringtoncenno180@gmail.com";
+      session?.user?.email === "carringtoncenno180@gmail.com" ||
+      session?.user?.email === "ranrev.info@gmail.com";
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

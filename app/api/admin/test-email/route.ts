@@ -289,7 +289,8 @@ export async function POST(request: Request) {
     // Check if user is admin
     const isAdmin =
       session?.user?.email === "chris@trenkas.com" ||
-      session?.user?.email === "carringtoncenno180@gmail.com";
+      session?.user?.email === "carringtoncenno180@gmail.com" ||
+      session?.user?.email === "ranrev.info@gmail.com";
 
     console.log("🔐 Admin check:", {
       isAdmin,

@@ -13,14 +13,15 @@ export const metadata: Metadata = {
 export default async function ClickTrackingPage() {
   const session = await auth();
 
-   // Check if user is admin
-   const isAdmin =
-   session?.user?.email === "chris@trenkas.com" ||
-   session?.user?.email === "carringtoncenno180@gmail.com";
+  // Check if user is admin
+  const isAdmin =
+    session?.user?.email === "chris@trenkas.com" ||
+    session?.user?.email === "carringtoncenno180@gmail.com" ||
+    session?.user?.email === "ranrev.info@gmail.com";
 
- if (!isAdmin) {
-   redirect("/");
- }
+  if (!isAdmin) {
+    redirect("/");
+  }
 
   // Get all available geos for the filter dropdown
   const allGeos = await prisma.$queryRaw<{ geo: string }[]>`
