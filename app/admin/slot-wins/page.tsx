@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { useAdminAccess } from "@/app/hooks/useAdminAccess";
 
 interface SlotWin {
   id: string;
@@ -25,7 +25,7 @@ interface SlotWin {
 }
 
 export default function AdminSlotWinsPage() {
-  const { data: session } = useSession();
+  const { isAdmin } = useAdminAccess();
   const [wins, setWins] = useState<SlotWin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +57,10 @@ export default function AdminSlotWinsPage() {
   };
 
   useEffect(() => {
-    if (session?.user?.email === "chris@trenkas.com") {
+    if (isAdmin) {
       fetchWins();
     }
-  }, [session]);
+  }, [isAdmin]);
 
   const fetchWins = async () => {
     try {
@@ -154,7 +154,7 @@ export default function AdminSlotWinsPage() {
     });
   };
 
-  if (session?.user?.email !== "chris@trenkas.com") {
+  if (!isAdmin) {
     return (
       <div className="text-center py-8">
         <p className="text-red-600">Access denied. Admin only.</p>

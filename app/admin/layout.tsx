@@ -1,18 +1,15 @@
-import { auth } from "@/auth";
-
 import { redirect } from "next/navigation";
-
 import { ReactNode } from "react";
 import Link from "next/link";
+import { isAdmin } from "@/app/utils/auth";
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
-  const session = await auth();
-
-  if (!session?.user) {
+  // Check if user has admin privileges
+  if (!(await isAdmin())) {
     redirect("/");
   }
 
