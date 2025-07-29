@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import Link from "next/link";
 import { isAdmin } from "@/app/utils/auth";
