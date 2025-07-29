@@ -56,7 +56,7 @@ export default async function AffiliateUserManagementPage() {
         id: true,
         name: true,
         email: true,
-        offerCode: true,
+        refferal: true,
         updatedAt: true,
       },
       orderBy: {
@@ -76,7 +76,7 @@ export default async function AffiliateUserManagementPage() {
         id: true,
         name: true,
         email: true,
-        offerCode: true,
+        refferal: true,
         clickId: true,
         updatedAt: true,
       },
@@ -183,13 +183,13 @@ export default async function AffiliateUserManagementPage() {
 
                     {/* Coupon Code and Click ID Display */}
                     <div className="space-y-1 mb-3">
-                      {user.offerCode && (
+                      {user.refferal && (
                         <div className="flex items-center">
                           <span className="text-xs text-gray-400 mr-2">
                             Coupon:
                           </span>
                           <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded">
-                            {user.offerCode}
+                            {user.refferal}
                           </span>
                         </div>
                       )}
