@@ -24,6 +24,7 @@ export default async function AffiliateUserManagementPage() {
         name: true,
         email: true,
         clickId: true,
+        offerCode: true,
         createdAt: true,
         paid: true,
         refferal: true,
@@ -55,6 +56,7 @@ export default async function AffiliateUserManagementPage() {
         id: true,
         name: true,
         email: true,
+        offerCode: true,
         updatedAt: true,
       },
       orderBy: {
@@ -74,6 +76,8 @@ export default async function AffiliateUserManagementPage() {
         id: true,
         name: true,
         email: true,
+        offerCode: true,
+        clickId: true,
         updatedAt: true,
       },
       orderBy: {
@@ -106,7 +110,19 @@ export default async function AffiliateUserManagementPage() {
 
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <h3 className="text-lg font-medium text-gray-300 mb-2">
-              Recently Authenticated Users (Last 15 Minutes)
+              Recently Active (24h)
+            </h3>
+            <p className="text-3xl font-bold text-blue-400">
+              {recentlyActive.length}
+            </p>
+            <p className="text-sm text-gray-400">
+              users active in last 24 hours
+            </p>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h3 className="text-lg font-medium text-gray-300 mb-2">
+              Recent Activity (15m)
             </h3>
             <p className="text-3xl font-bold text-green-400">
               {recentlyAuthenticated.length}
@@ -115,35 +131,6 @@ export default async function AffiliateUserManagementPage() {
               users authenticated recently
             </p>
           </div>
-
-          {recentlyAuthenticated.length > 0 ? (
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-medium text-gray-300 mb-4">
-                Recent Activity
-              </h3>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {recentlyAuthenticated.slice(0, 5).map((user) => (
-                  <div key={user.id} className="flex justify-between text-sm">
-                    <span className="text-gray-300 truncate">
-                      {user.name || user.email}
-                    </span>
-                    <span className="text-gray-500">
-                      {new Date(user.updatedAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-medium text-gray-300 mb-2">
-                Recent Activity
-              </h3>
-              <p className="text-sm text-gray-400">
-                No users authenticated in the last 15 minutes.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Navigation Links */}
@@ -162,27 +149,12 @@ export default async function AffiliateUserManagementPage() {
           </Link>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-xl font-semibold text-white">
-              Users with Tracking Information
-            </h2>
-            <p className="text-gray-400 mt-1">
-              Showing {users.length} users with affiliate tracking data
-            </p>
-          </div>
-          <div className="p-6">
-            <UserTable users={users} currentUserEmail="" />
-          </div>
-        </div>
-
-        {/* Recently Active Users */}
+        {/* Recently Active Users (24h) - Now at the top */}
         {recentlyActive.length > 0 && (
-          <div className="mt-8 bg-gray-800 rounded-lg border border-gray-700">
+          <div className="mb-8 bg-gray-800 rounded-lg border border-gray-700">
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-semibold text-white">
-                Recently Active Users (24h)
+                Recently Active Users (Last 24 Hours)
               </h2>
               <p className="text-gray-400 mt-1">
                 {recentlyActive.length} users active in the last 24 hours
@@ -195,8 +167,8 @@ export default async function AffiliateUserManagementPage() {
                     key={user.id}
                     className="bg-gray-700 rounded-lg p-4 border border-gray-600"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
                         <h4 className="text-white font-medium">
                           {user.name || "No Name"}
                         </h4>
@@ -204,13 +176,38 @@ export default async function AffiliateUserManagementPage() {
                           {user.email}
                         </p>
                       </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(user.updatedAt).toLocaleString()}
+                      <span className="text-xs text-gray-500 ml-2">
+                        {new Date(user.updatedAt).toLocaleTimeString()}
                       </span>
                     </div>
+
+                    {/* Coupon Code and Click ID Display */}
+                    <div className="space-y-1 mb-3">
+                      {user.offerCode && (
+                        <div className="flex items-center">
+                          <span className="text-xs text-gray-400 mr-2">
+                            Coupon:
+                          </span>
+                          <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded">
+                            {user.offerCode}
+                          </span>
+                        </div>
+                      )}
+                      {user.clickId && (
+                        <div className="flex items-center">
+                          <span className="text-xs text-gray-400 mr-2">
+                            Click ID:
+                          </span>
+                          <span className="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded">
+                            {user.clickId}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
                     <Link
                       href={`/admin/affiliate/users/${user.id}`}
-                      className="inline-block mt-2 text-blue-400 hover:text-blue-300 text-sm"
+                      className="inline-block text-blue-400 hover:text-blue-300 text-sm"
                     >
                       View Details →
                     </Link>
@@ -220,6 +217,21 @@ export default async function AffiliateUserManagementPage() {
             </div>
           </div>
         )}
+
+        {/* Users Table - Full list below recently active */}
+        <div className="bg-gray-800 rounded-lg border border-gray-700">
+          <div className="p-6 border-b border-gray-700">
+            <h2 className="text-xl font-semibold text-white">
+              All Users with Tracking Information
+            </h2>
+            <p className="text-gray-400 mt-1">
+              Showing {users.length} users with affiliate tracking data
+            </p>
+          </div>
+          <div className="p-6">
+            <UserTable users={users} currentUserEmail="" />
+          </div>
+        </div>
       </div>
     );
   } catch (error) {
