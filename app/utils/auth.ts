@@ -58,7 +58,11 @@ export async function hasRole(requiredRole: UserRole): Promise<boolean> {
  * Check if the current user is an admin (role 9)
  */
 export async function isAdmin(): Promise<boolean> {
-  console.log("🔍 isAdmin: Starting admin check");
+  const stack = new Error().stack;
+  console.log(
+    "🔍 isAdmin: Starting admin check - Called from:",
+    stack?.split("\n")[2]?.trim()
+  );
   const result = await hasRole(UserRole.ADMIN);
   console.log("🔍 isAdmin: Final result:", result);
   return result;

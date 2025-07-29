@@ -11,6 +11,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   console.log("🔍 Admin Layout: Starting authorization check...");
 
   try {
+    console.log("🔍 Admin Layout: About to call isAdmin()");
     const adminAccess = await isAdmin();
     console.log("🔍 Admin Layout: isAdmin() result:", adminAccess);
 
@@ -24,6 +25,8 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     console.error("💥 Admin Layout: Error during auth check:", error);
     redirect("/");
   }
+
+  console.log("🔍 Admin Layout: About to render layout JSX");
 
   return (
     <div className="flex flex-col min-h-screen">
