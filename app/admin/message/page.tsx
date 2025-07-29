@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useAdminAccess } from "@/app/hooks/useAdminAccess";
 
 interface UserFilter {
   referralCode?: string;
@@ -11,6 +12,7 @@ interface UserFilter {
 
 export default function AdminMessagePage() {
   const { data: session } = useSession();
+  const { isAdmin, loading } = useAdminAccess();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [filter, setFilter] = useState<UserFilter>({});
@@ -83,8 +85,17 @@ export default function AdminMessagePage() {
     }
   };
 
+  // Show loading while checking admin access
+  if (loading) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
   // Only allow admin access
-  if (!session?.user?.email?.endsWith("@trenkas.com")) {
+  if (!isAdmin) {
     return (
       <div className="p-4 text-red-500">
         You do not have permission to access this page.

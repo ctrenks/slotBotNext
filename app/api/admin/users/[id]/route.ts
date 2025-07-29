@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
+import { isAdmin } from "@/app/utils/auth";
 
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
-
     // Check if user is admin
-    const isAdmin =
-      session?.user?.email === "chris@trenkas.com" ||
-      session?.user?.email === "carringtoncenno180@gmail.com" ||
-      session?.user?.email === "ranrev.info@gmail.com";
-    if (!isAdmin) {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const session = await auth();
     const userId = params.id;
 
     if (!userId) {
@@ -38,7 +34,7 @@ export async function DELETE(
     }
 
     // Prevent admins from deleting themselves
-    if (user.email === session.user.email) {
+    if (session?.user?.email && user.email === session.user.email) {
       return NextResponse.json(
         { error: "Cannot delete your own account" },
         { status: 400 }
@@ -50,7 +46,9 @@ export async function DELETE(
       where: { id: userId },
     });
 
-    console.log(`Admin ${session.user.email} deleted user: ${user.email}`);
+    console.log(
+      `Admin ${session?.user?.email || "Unknown"} deleted user: ${user.email}`
+    );
 
     return NextResponse.json({
       success: true,
