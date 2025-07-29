@@ -8,8 +8,20 @@ interface AdminLayoutProps {
 }
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
-  // Check if user has admin privileges
-  if (!(await isAdmin())) {
+  console.log("🔍 Admin Layout: Starting authorization check...");
+
+  try {
+    const adminAccess = await isAdmin();
+    console.log("🔍 Admin Layout: isAdmin() result:", adminAccess);
+
+    if (!adminAccess) {
+      console.log("❌ Admin Layout: Access denied, redirecting to homepage");
+      redirect("/");
+    }
+
+    console.log("✅ Admin Layout: Access granted, rendering admin content");
+  } catch (error) {
+    console.error("💥 Admin Layout: Error during auth check:", error);
     redirect("/");
   }
 
