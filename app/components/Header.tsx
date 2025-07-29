@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import HeaderUserSection from "./HeaderUserSection";
 import MobileMenu from "./MobileMenu";
 import SlotBotButton from "./SlotBotButton";
 import { useAdminAccess } from "@/app/hooks/useAdminAccess";
 
 export default function Header() {
-  const { data: session } = useSession();
   const { isAdmin } = useAdminAccess();
 
   const menuItems = [

@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/app/utils/auth";

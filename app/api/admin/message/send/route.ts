@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { Resend } from "resend";
 import { Prisma } from "@prisma/client";

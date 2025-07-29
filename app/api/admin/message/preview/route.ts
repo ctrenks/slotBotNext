@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { Prisma } from "@prisma/client";
 import { isAdmin } from "@/app/utils/auth";

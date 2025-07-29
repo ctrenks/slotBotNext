@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
 import { isAdmin } from "@/app/utils/auth";
