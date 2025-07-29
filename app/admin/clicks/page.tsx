@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { prisma } from "@/prisma";
 import ClickFilters from "@/app/components/ClickFilters";
 import ClicksTable from "@/app/components/ClicksTable";
+import { isAdmin } from "@/app/utils/auth";
 
 export const metadata: Metadata = {
   title: "Click Tracking",
@@ -11,15 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ClickTrackingPage() {
-  const session = await auth();
-
   // Check if user is admin
-  const isAdmin =
-    session?.user?.email === "chris@trenkas.com" ||
-    session?.user?.email === "carringtoncenno180@gmail.com" ||
-    session?.user?.email === "ranrev.info@gmail.com";
-
-  if (!isAdmin) {
+  if (!(await isAdmin())) {
     redirect("/");
   }
 

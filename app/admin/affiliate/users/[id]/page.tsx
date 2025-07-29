@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { prisma } from "@/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isAdmin } from "@/app/utils/auth";
 
 export const metadata: Metadata = {
   title: "User Details",
@@ -19,14 +19,9 @@ export default async function Page({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
-  const session = await auth();
 
   // Check if user is admin
-  const isAdmin =
-    session?.user?.email === "chris@trenkas.com" ||
-    session?.user?.email === "carringtoncenno180@gmail.com" ||
-    session?.user?.email === "ranrev.info@gmail.com";
-  if (!isAdmin) {
+  if (!(await isAdmin())) {
     redirect("/");
   }
 

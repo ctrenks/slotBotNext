@@ -1,8 +1,8 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { prisma } from "@/prisma";
 import Link from "next/link";
+import { isAdmin } from "@/app/utils/auth";
 
 export const metadata: Metadata = {
   title: "Affiliate Statistics",
@@ -49,15 +49,10 @@ export default async function AffiliateStatsPage({
 }: {
   searchParams: { geo?: string; code?: string };
 }) {
-  const session = await auth();
-
-   // Check if user is admin
-   const isAdmin =
-   session?.user?.email === "chris@trenkas.com" ||
-   session?.user?.email === "ranrev.info@gmail.com";
- if (!isAdmin) {
-   redirect("/");
- }
+  // Check if user is admin
+  if (!(await isAdmin())) {
+    redirect("/");
+  }
 
   // Get filter parameters
   const { geo, code } = searchParams;

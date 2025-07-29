@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import AffiliateSettingsManager from "@/app/components/AffiliateSettingsManager";
+import { isAdmin } from "@/app/utils/auth";
 
 export const metadata: Metadata = {
   title: "Affiliate Settings",
@@ -9,16 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AffiliateSettingsPage() {
-  const session = await auth();
-
   // Check if user is admin
-  // Check if user is admin
-  const isAdmin =
-    session?.user?.email === "chris@trenkas.com" ||
-    session?.user?.email === "carringtoncenno180@gmail.com" ||
-    session?.user?.email === "ranrev.info@gmail.com";
-
-  if (!isAdmin) {
+  if (!(await isAdmin())) {
     redirect("/");
   }
 
