@@ -16,14 +16,28 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     console.log("🔍 Admin Layout: isAdmin() result:", adminAccess);
 
     if (!adminAccess) {
-      console.log("❌ Admin Layout: Access denied, redirecting to homepage");
-      redirect("/");
+      console.log(
+        "❌ Admin Layout: Access denied, but NOT redirecting for debug"
+      );
+      // Temporarily comment out redirect to debug
+      // redirect("/");
+      return (
+        <div className="p-8 text-red-500">
+          <h1>DEBUG: Admin access denied</h1>
+          <p>isAdmin() returned: {String(adminAccess)}</p>
+        </div>
+      );
     }
 
     console.log("✅ Admin Layout: Access granted, rendering admin content");
   } catch (error) {
     console.error("💥 Admin Layout: Error during auth check:", error);
-    redirect("/");
+    return (
+      <div className="p-8 text-red-500">
+        <h1>DEBUG: Error in admin layout</h1>
+        <p>Error: {error instanceof Error ? error.message : String(error)}</p>
+      </div>
+    );
   }
 
   console.log("🔍 Admin Layout: About to render layout JSX");
