@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import Link from "next/link";
 import { isAdmin } from "@/app/utils/auth";
@@ -60,7 +59,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/clicks" className="hover:text-green-400">
+                <Link href="/debuggingde/clicks" className="hover:text-green-400">
                   Click Tracking
                 </Link>
               </li>
