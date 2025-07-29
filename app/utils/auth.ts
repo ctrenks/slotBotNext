@@ -12,8 +12,16 @@ export enum UserRole {
  */
 export async function hasRole(requiredRole: UserRole): Promise<boolean> {
   try {
+    console.log("🔍 hasRole: Checking role for required level:", requiredRole);
+
     const session = await auth();
+    console.log(
+      "🔍 hasRole: Session data:",
+      session ? { email: session.user?.email, hasUser: !!session.user } : null
+    );
+
     if (!session?.user?.email) {
+      console.log("🔍 hasRole: No session or email, returning false");
       return false;
     }
 
@@ -22,13 +30,26 @@ export async function hasRole(requiredRole: UserRole): Promise<boolean> {
       select: { role: true },
     });
 
+    console.log("🔍 hasRole: User from DB:", user);
+
     if (!user) {
+      console.log("🔍 hasRole: User not found in database, returning false");
       return false;
     }
 
-    return user.role >= requiredRole;
+    const hasRequiredRole = user.role >= requiredRole;
+    console.log(
+      "🔍 hasRole: User role",
+      user.role,
+      ">=",
+      requiredRole,
+      "?",
+      hasRequiredRole
+    );
+
+    return hasRequiredRole;
   } catch (error) {
-    console.error("Error checking user role:", error);
+    console.error("🔍 hasRole: Error checking user role:", error);
     return false;
   }
 }
@@ -37,7 +58,10 @@ export async function hasRole(requiredRole: UserRole): Promise<boolean> {
  * Check if the current user is an admin (role 9)
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasRole(UserRole.ADMIN);
+  console.log("🔍 isAdmin: Starting admin check");
+  const result = await hasRole(UserRole.ADMIN);
+  console.log("🔍 isAdmin: Final result:", result);
+  return result;
 }
 
 /**

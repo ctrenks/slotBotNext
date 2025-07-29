@@ -10,14 +10,21 @@ export default function AuthCallbackHandler() {
   const pathname = usePathname();
 
   useEffect(() => {
+    console.log("🔍 AuthCallbackHandler: Running on pathname:", pathname);
+    console.log("🔍 AuthCallbackHandler: Session status:", status);
+
     // Only run this when the user is authenticated
     if (status === "authenticated") {
+      console.log(
+        "🔍 AuthCallbackHandler: User is authenticated, checking for pending offer code"
+      );
+
       // Check if we have a pending offer code from the authentication process
       const pendingOfferCode = sessionStorage.getItem("auth_pending_offercode");
 
       if (pendingOfferCode) {
         console.log(
-          "Found pending offer code after authentication:",
+          "🔍 AuthCallbackHandler: Found pending offer code after authentication:",
           pendingOfferCode
         );
 
@@ -28,15 +35,30 @@ export default function AuthCallbackHandler() {
         sessionStorage.removeItem("auth_pending_offercode");
 
         console.log(
-          "Transferred offer code to localStorage after authentication"
+          "🔍 AuthCallbackHandler: Transferred offer code to localStorage after authentication"
         );
 
         // If we're on the homepage, redirect to the pricing page
         if (pathname === "/") {
-          console.log("Redirecting to pricing page with offer code");
+          console.log(
+            "🔍 AuthCallbackHandler: On homepage, redirecting to pricing page with offer code"
+          );
           router.push("/pricing");
+        } else {
+          console.log(
+            "🔍 AuthCallbackHandler: Not on homepage, pathname is:",
+            pathname,
+            "- no redirect"
+          );
         }
+      } else {
+        console.log("🔍 AuthCallbackHandler: No pending offer code found");
       }
+    } else {
+      console.log(
+        "🔍 AuthCallbackHandler: User not authenticated, status:",
+        status
+      );
     }
   }, [status, pathname, router]);
 
