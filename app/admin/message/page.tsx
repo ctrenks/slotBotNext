@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useAdminAccess } from "@/app/hooks/useAdminAccess";
 
 interface UserFilter {
@@ -11,7 +10,6 @@ interface UserFilter {
 }
 
 export default function AdminMessagePage() {
-  const { data: session } = useSession();
   const { isAdmin, loading } = useAdminAccess();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");

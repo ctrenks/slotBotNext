@@ -25,7 +25,6 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     console.error("💥 Admin Layout: Error during auth check:", error);
     redirect("/");
   }
-
   console.log("🔍 Admin Layout: About to render layout JSX");
 
   return (
