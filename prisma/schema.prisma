@@ -39,6 +39,7 @@ model User {
   clickId       String?          // Tracking ID for affiliate postbacks
   offerCode     String?          // Promotional offer code
   emailNotifications Boolean      @default(true) // Allow users to opt out of alert emails
+  role          Int              @default(0) // 0 = regular user, 1 = mod, 9 = admin
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   alerts        AlertRecipient[]

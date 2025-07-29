@@ -2,19 +2,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { Prisma } from "@prisma/client";
+import { isAdmin } from "@/app/utils/auth";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user || !session.user.email) {
-      console.log("No session or user:", session);
-      return new NextResponse("Unauthorized - No session", { status: 401 });
-    }
-
     // Check if user is admin
-    if (!session.user.email.endsWith("@trenkas.com")) {
-      console.log("Unauthorized access attempt:", session.user.email);
+    if (!(await isAdmin())) {
+      console.log("Unauthorized access attempt");
       return new NextResponse("Unauthorized - Not admin", { status: 401 });
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/prisma";
 import { auth } from "@/auth";
 import { Prisma } from "@prisma/client";
+import { isAdmin } from "@/app/utils/auth";
 
 /**
  * API endpoint to get click tracking data with filters
@@ -10,8 +11,7 @@ import { Prisma } from "@prisma/client";
 export async function GET(request: Request) {
   try {
     // Check if user is authenticated and is admin
-    const session = await auth();
-    if (session?.user?.email !== "chris@trenkas.com") {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

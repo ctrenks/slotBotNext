@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Resend } from "resend";
+import { isAdmin } from "@/app/utils/auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -287,17 +288,14 @@ export async function POST(request: Request) {
     });
 
     // Check if user is admin
-    const isAdmin =
-      session?.user?.email === "chris@trenkas.com" ||
-      session?.user?.email === "carringtoncenno180@gmail.com" ||
-      session?.user?.email === "ranrev.info@gmail.com";
+    const adminAccess = await isAdmin();
 
     console.log("🔐 Admin check:", {
-      isAdmin,
+      isAdmin: adminAccess,
       userEmail: session?.user?.email,
     });
 
-    if (!isAdmin) {
+    if (!adminAccess) {
       console.log("❌ Unauthorized access attempt");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -384,7 +382,9 @@ export async function POST(request: Request) {
     }
 
     console.log(
-      `✅ Test email sent successfully to: ${email} by admin: ${session.user.email}`
+      `✅ Test email sent successfully to: ${email} by admin: ${
+        session?.user?.email || "Unknown"
+      }`
     );
 
     return NextResponse.json({

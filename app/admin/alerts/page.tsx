@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/prisma";
+import { isAdmin } from "@/app/utils/auth";
 import AlertManager from "@/app/components/AlertManager";
 import { Metadata } from "next";
 import { Alert, AlertRecipient, AlertClick, User } from "@prisma/client";
@@ -22,10 +23,8 @@ interface AlertWithRecipientsAndClicks extends Alert {
 }
 
 export default async function AlertManagementPage() {
-  const session = await auth();
-
-  // Check if user is logged in
-  if (session?.user?.email !== "chris@trenkas.com") {
+  // Check if user is admin
+  if (!(await isAdmin())) {
     redirect("/");
   }
 

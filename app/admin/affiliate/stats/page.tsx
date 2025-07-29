@@ -51,10 +51,13 @@ export default async function AffiliateStatsPage({
 }) {
   const session = await auth();
 
-  // Check if user is admin
-  if (session?.user?.email !== "chris@trenkas.com") {
-    redirect("/");
-  }
+   // Check if user is admin
+   const isAdmin =
+   session?.user?.email === "chris@trenkas.com" ||
+   session?.user?.email === "ranrev.info@gmail.com";
+ if (!isAdmin) {
+   redirect("/");
+ }
 
   // Get filter parameters
   const { geo, code } = searchParams;

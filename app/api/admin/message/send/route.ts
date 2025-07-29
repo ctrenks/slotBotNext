@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { Resend } from "resend";
 import { Prisma } from "@prisma/client";
+import { isAdmin } from "@/app/utils/auth";
 
 // Check if API key is available
 if (!process.env.RESEND_API_KEY) {
@@ -17,10 +18,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
     // Check if user is admin
-    if (!session?.user?.email?.endsWith("@trenkas.com")) {
+    if (!(await isAdmin())) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 

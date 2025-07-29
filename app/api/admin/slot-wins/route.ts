@@ -1,12 +1,12 @@
 import { auth } from "@/auth";
 import { prisma } from "@/prisma";
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/app/utils/auth";
 
 // Get all slot wins for admin (including unapproved)
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user?.email || session.user.email !== "chris@trenkas.com") {
+    if (!(await isAdmin())) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -35,8 +35,7 @@ export async function GET() {
 // Update slot win (approve, feature, etc.)
 export async function PATCH(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email || session.user.email !== "chris@trenkas.com") {
+    if (!(await isAdmin())) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -75,8 +74,7 @@ export async function PATCH(request: Request) {
 // Delete slot win
 export async function DELETE(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email || session.user.email !== "chris@trenkas.com") {
+    if (!(await isAdmin())) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
