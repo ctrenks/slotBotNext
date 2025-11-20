@@ -105,6 +105,29 @@ export function ContactForm() {
             className="w-full px-4 py-2 bg-white dark:bg-primary-dark text-foreground dark:text-white border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark transition duration-200 h-32 resize-none"
           ></textarea>
         </div>
+        {/* Honeypot field - hidden from users but visible to bots */}
+        <div
+          className="absolute"
+          style={{
+            opacity: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: 0,
+            width: 0,
+            zIndex: -1,
+          }}
+          aria-hidden="true"
+        >
+          <label htmlFor="website">Website</label>
+          <input
+            type="text"
+            id="website"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
         <button
           type="submit"
           disabled={isSubmitting}

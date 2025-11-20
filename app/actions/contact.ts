@@ -9,6 +9,13 @@ export async function submitContactForm(formData: FormData) {
   const email = formData.get("email") as string;
   const message = formData.get("message") as string;
   const recaptchaToken = formData.get("recaptcha_token") as string;
+  const honeypot = formData.get("website") as string;
+
+  // Honeypot check - if filled, it's likely a bot
+  if (honeypot) {
+    console.log("Bot detected via honeypot field");
+    return { success: false, message: "All fields are required." };
+  }
 
   // Input validation
   if (!name || !email || !message) {
