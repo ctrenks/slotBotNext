@@ -15,6 +15,7 @@ export default function SignInButtons() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [clickId, setClickId] = useState<string | null>(null);
   const [offerCode, setOfferCode] = useState<string | null>(null);
@@ -51,6 +52,13 @@ export default function SignInButtons() {
     setError(null);
 
     try {
+      // Honeypot check - if filled, silently reject
+      if (honeypot) {
+        console.log("Bot detected via honeypot field");
+        setIsLoading(false);
+        return;
+      }
+
       // Create a callback URL that redirects to the homepage
       const callbackUrl = "/";
 
@@ -142,6 +150,31 @@ export default function SignInButtons() {
             bg-background dark:bg-background-dark px-4 py-2
             text-foreground dark:text-foreground-dark
             focus:outline-none focus:ring-2 focus:ring-accent dark:focus:ring-accent-dark"
+          />
+        </div>
+        {/* Honeypot field - hidden from users but visible to bots */}
+        <div
+          className="absolute"
+          style={{
+            opacity: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: 0,
+            width: 0,
+            zIndex: -1,
+          }}
+          aria-hidden="true"
+        >
+          <label htmlFor="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
           />
         </div>
 
